@@ -57,12 +57,12 @@ Click **KO / PEP**. This tab shows the pair's paper positions, signals, and data
 
 1. Write down the tickers, prices, and run state for the primary and reference stocks. If you can't retrieve prices, use Figure 1-2 and label the values “sample data.”
 2. Switch from Monitor to the pair tab. Find **In signal** and **Out signal**, then return to Monitor. Explain what you'd use each tab for.
-3. Suppose Coca-Cola rises from $60 to $61.20 and PepsiCo rises from $150 to $151.50. Which stock gains more in percentage terms? Divide each price increase by its starting price.
+3. Suppose Coca-Cola rises from \$60 to \$61.20 and PepsiCo rises from \$150 to \$151.50. Which stock gains more in percentage terms? Divide each price increase by its starting price.
 
 <details>
 <summary>Check your answers</summary>
 
-1. In Figure 1-2, the primary stock is Coca-Cola, `KO`, at $60. The reference stock is PepsiCo, `PEP`, at $150. The strategy is stopped. Your refreshed prices may differ.
+1. In Figure 1-2, the primary stock is Coca-Cola, `KO`, at \$60. The reference stock is PepsiCo, `PEP`, at \$150. The strategy is stopped. Your refreshed prices may differ.
 2. Monitor is for scanning the overall status. The individual pair tab is for inspecting its positions, signals, and data inputs.
 3. Coca-Cola gains 1.20 ÷ 60, or **2%**. PepsiCo gains 1.50 ÷ 150, or **1%**. Coca-Cola has a smaller dollar increase and a larger percentage gain.
 
@@ -71,3 +71,7 @@ Click **KO / PEP**. This tab shows the pair's paper positions, signals, and data
 In the next chapter, you'll use a simple trade table to work out the profit or loss on the long and short positions, then add the two together.
 
 *Screenshots show the English Strategy Monitor interface with isolated sample data.*
+
+---
+
+[Edition contents](README.md) · [Next · Buying, short selling, and profit](02-long-short-and-profit.md)
