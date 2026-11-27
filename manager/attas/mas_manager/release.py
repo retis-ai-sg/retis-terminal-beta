@@ -31,6 +31,47 @@ PARAMETERS = {
     'host': {'type': 'string', 'title': 'Host', 'maxLength': 128, 'default': 'this-computer', 'readOnly': True},
 }
 
+# What an AI app may ask this view to do (phemacast:ai-actions). The view's own code runs each one with the steps a click
+# takes (ui/manager.js aiActions): it reads the components' status, and changes only the component settings named in
+# AI_SETTINGS, of a component that is not running, as the settings form's Save does. Installing, updating, starting,
+# stopping, restarting, rolling back, removing, data downloads and problem reports act on this computer, and accepting a
+# component's terms is the person's, so none is offered.
+# ai-actions: none, for every other component setting: Local LLM's model servers (whether each is used, its address and
+# the other servers) are connections, and its default model may name a model served from elsewhere; AssetStorage's
+# location decides where the person's files go (they move there) and its limits are storage ceilings. Nor for Remove's
+# Keep data box and the terms an install or update asks to accept.
+AI_SETTINGS = {'local-analyst': ('name',)}
+# The settings in AI_SETTINGS, by field id, as the components declare them (scripts/build_components.py).
+SETTING_VALUES = {
+    'name': {'type': 'string', 'maxLength': 60, 'pattern': '^[^\\u0000-\\u001f\\u007f]*$',
+             'description': "Local Analyst's name as this computer's Terminal lists it; empty: Local Analyst."},
+}
+COMPONENT = {'type': 'string', 'minLength': 1, 'maxLength': 80,
+             'description': 'A component as its row names it (e.g. Local Analyst), or its id (e.g. local-analyst).'}
+
+
+def ai_action(identity, title, description, effect, properties, required=()):
+    return {'id': identity, 'title': title, 'description': description, 'effect': effect,
+            'inputSchema': {'type': 'object', 'additionalProperties': False, 'properties': properties,
+                            **({'required': list(required)} if required else {})},
+            'outputSchema': {'type': 'object'}, 'maxPoints': 0, 'confirm': 'auto', 'sourceModes': ['parameters']}
+
+
+VIEW_ACTIONS = {'version': '1.0.0', 'actions': [
+    ai_action('describe', 'Describe the components',
+              'Reads the manager\'s status again, as Refresh does, and lists each Retis component on this computer: its '
+              'version, state, an update waiting, its last error, a data download, its CPU, memory and disk use, and the '
+              'settings an AI app may change; then the alerts and recent events. Nothing changes.', 'read', {}),
+    ai_action('set_settings', 'Change a component setting',
+              'Changes a stopped component\'s settings as its Settings form\'s Save does: today only Local Analyst\'s '
+              'name. Refused while the component runs, since saving restarts it (stop it in the window first), and while '
+              'its settings are open in the window. Answers with the values before and after.', 'edit',
+              {'component': COMPONENT, 'values': {'type': 'object', 'additionalProperties': False, 'minProperties': 1,
+                                                  'properties': deepcopy(SETTING_VALUES),
+                                                  'description': 'The settings to change, by name.'}},
+              ['component', 'values']),
+]}
+
 
 def view_files():
     return [*sorted(p for p in UI.iterdir() if p.is_file() and p.suffix in ('.js', '.css')), ROOT / 'release.py', ROOT / 'contracts.py']
@@ -56,8 +97,10 @@ def capture(publisher_id, origin, destination):
     build = digest(hashes)
     files = assets()
     origin = str(origin).rstrip('/')
+    # The actions the release offers are part of its identity: a new list is a new release, never a collision.
     release = digest({'build': build, 'publisher': publisher_id, 'origin': origin, 'bindings': bindings(),
-                      'assets': {kind: hashlib.sha256(data).hexdigest() for kind, data in files.items()}})
+                      'assets': {kind: hashlib.sha256(data).hexdigest() for kind, data in files.items()},
+                      'aiActions': VIEW_ACTIONS})
     manifest = validate_manifest({
         'schema': MANIFEST, 'version': '1.0.0', 'publisher': {'agentId': publisher_id, 'implementationDigest': build},
         'viewId': VIEW_ID, 'release': release, 'origin': origin,
@@ -70,6 +113,7 @@ def capture(publisher_id, origin, destination):
         'requirements': [{'id': CONFINED_CAPABILITY['id'], 'version': CONFINED_CAPABILITY['version']}],
         'disclosure': {'codeExecution': True, 'privateData': False, 'localNetwork': True, 'confidentialRequiresEgressGuard': True},
         'extensions': {'phemacast:composition-references': {'version': '1.0.0', 'bindings': bindings()},
+                       'phemacast:ai-actions': deepcopy(VIEW_ACTIONS),
                        'attas:mas-manager': {'catalogOwner': 'App Consultant', 'executionOwner': TITLE, 'sourceHashes': hashes}}},
         allow_local=True)
     verify_assets(manifest, files)

@@ -32,6 +32,9 @@ REFRESH_PREFIX = 'pc-refresh-'
 DEFAULT_SESSION_LIFETIME = 86400
 MAX_SESSION_LIFETIME = 7 * 86400
 LASTING = 253402300799.0  # 9999-12-31: a lasting session ends only when it is revoked
+# After a refresh, the access token it replaced keeps working this long (never past its own end), so a call
+# already under way finishes. Revoking the session ends both tokens at once.
+PREVIOUS_ACCESS_GRACE = 120
 # How long a sign-in request waits for its browser: long enough to register, confirm the email and sign in.
 SIGNIN_WAIT = 1200
 
@@ -60,6 +63,8 @@ class ClientSessions:
                 CREATE TABLE IF NOT EXISTS client_sessions (
                     id TEXT PRIMARY KEY, owner TEXT, label TEXT, access TEXT UNIQUE,
                     refresh TEXT UNIQUE, access_expires REAL, expires REAL, created REAL);
+                CREATE TABLE IF NOT EXISTS previous_access (
+                    access TEXT PRIMARY KEY, session TEXT NOT NULL, successor TEXT NOT NULL, until REAL NOT NULL);
             ''')
             db.execute('BEGIN IMMEDIATE')
             columns = {row['name'] for row in db.execute('PRAGMA table_info(device_grants)')}
@@ -192,6 +197,10 @@ class ClientSessions:
         column = 'refresh' if refresh else 'access'
         with self.connect() as db:
             row = db.execute(f'SELECT * FROM client_sessions WHERE {column}=?', (digest(token),)).fetchone()
+            if not row and not refresh:
+                # An access token a refresh replaced moments ago, while its session still holds that refresh's token.
+                row = db.execute('SELECT s.* FROM previous_access p JOIN client_sessions s ON s.id=p.session AND s.access=p.successor '
+                                 'WHERE p.access=? AND p.until>?', (digest(token), self.clock())).fetchone()
         if not row or row['expires'] <= self.clock() or (not refresh and row['access_expires'] <= self.clock()):
             raise HTTPException(401, 'Client session expired or revoked.')
         return dict(row)
@@ -200,10 +209,18 @@ class ClientSessions:
         row = self.resolve(token, refresh=True)
         with self.connect() as db:
             db.execute('BEGIN IMMEDIATE')
-            if not db.execute('SELECT 1 FROM client_sessions WHERE id=? AND refresh=? AND expires>?',
-                              (row['id'], digest(token), self.clock())).fetchone():
+            current = db.execute('SELECT access,access_expires FROM client_sessions WHERE id=? AND refresh=? AND expires>?',
+                                 (row['id'], digest(token), self.clock())).fetchone()
+            if not current:
                 raise HTTPException(401, 'Client refresh token was already used.')
-            return self._tokens(db, row['id'], row['owner'], row['label'], row['expires'], row['created'])
+            session = self._tokens(db, row['id'], row['owner'], row['label'], row['expires'], row['created'])
+            now = self.clock()
+            db.execute('DELETE FROM previous_access WHERE until<=? OR session=?', (now, row['id']))
+            until = min(now + PREVIOUS_ACCESS_GRACE, current['access_expires'], row['expires'])
+            if until > now:
+                db.execute('INSERT OR REPLACE INTO previous_access VALUES(?,?,?,?)',
+                           (current['access'], row['id'], digest(session['access_token']), until))
+            return session
 
     def sessions(self, owner):
         with self.connect() as db:
@@ -211,7 +228,8 @@ class ClientSessions:
 
     def revoke(self, owner, session_id):
         with self.connect() as db:
-            db.execute('DELETE FROM client_sessions WHERE owner=? AND id=?', (owner, session_id))
+            if db.execute('DELETE FROM client_sessions WHERE owner=? AND id=?', (owner, session_id)).rowcount:
+                db.execute('DELETE FROM previous_access WHERE session=?', (session_id,))
         return {'status': 'revoked'}
 
 

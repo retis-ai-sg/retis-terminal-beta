@@ -36,6 +36,7 @@ from pydantic import BaseModel
 from starlette.concurrency import iterate_in_threadpool, run_in_threadpool
 from prompits.channels.notifications import store_forward_summary_from_card
 from prompits.core.message import Message
+from prompits.core.access_roles import OPEN_GROUPS, normalize_groups as normalize_permission_groups
 from prompits.core.init_schema import agent_practices_table_schema
 from prompits.core.pit import Pit, PitAddress
 from prompits.core.practice import Practice
@@ -92,6 +93,27 @@ class PaymentScopeExecuted(HTTPException):
         )
 
 
+class _QuietAccessLogFilter(logging.Filter):
+    """Drop uvicorn's access line for a successful routine request (BaseAgent.QUIET_LOG_PATHS)."""
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        args = record.args if isinstance(record.args, tuple) else ()
+        if len(args) < 5:
+            return True
+        path = str(args[2] or "").split("?", 1)[0]
+        try:
+            ok = int(args[4]) < 400
+        except (TypeError, ValueError):
+            return True
+        return not (ok and BaseAgent._is_quiet_log_path(path))
+
+
+def _install_quiet_access_log_filter() -> None:
+    access = logging.getLogger("uvicorn.access")
+    if not any(isinstance(f, _QuietAccessLogFilter) for f in access.filters):
+        access.addFilter(_QuietAccessLogFilter())
+
+
 class BaseAgent(Pit, ABC):
     """
     Core runtime abstraction for every networked agent in the Prompits system.
@@ -123,6 +145,13 @@ class BaseAgent(Pit, ABC):
     REMOTE_PRACTICE_AUDIT_PERSIST_ENV = "PROMPITS_REMOTE_PRACTICE_AUDIT_PERSIST"
     AGENT_RUNTIME_VERSION = "0.2.1"
     AGENT_PROTOCOL_VERSION = "1.0"
+    # Permission groups a class declares in code: [{"name", "description", "operations": [...], "open"?}]. Each class in
+    # the chain adds its own and a config's `permission_groups` adds to them; a later group with the same name replaces
+    # an earlier one. A class's group keeps only the operations the agent serves (prompits/core/access_roles.py).
+    # Every agent: messages to its mailbox, open to everyone until the owner attaches a role (Alvin, 2026-11-24).
+    PERMISSION_GROUPS: List[Dict[str, Any]] = [
+        {"name": "Send messages", "description": "Send this agent messages through its mailbox.",
+         "operations": ["mailbox"], "open": True}]
     REMOTE_PROTOCOL_DISCOVERY_TIMEOUT = 15
     REMOTE_PROTOCOL_CACHE_TTL = 300
     AGENT_RUNTIME_PROPERTY_NOT_IMPLEMENTED = "not implemented"
@@ -668,6 +697,11 @@ class BaseAgent(Pit, ABC):
         raw_remote_billing = self._consume_runtime_setting("remote_practice_billing")
         if raw_remote_billing is None:
             raw_remote_billing = self._consume_runtime_setting("remote_use_practice_billing")
+        # Permission groups: named sets of this agent's operations, published in its card. Plaza stores them, and the
+        # owner attaches roles to them there; an operation a group lists is role-only (prompits/core/access_roles.py).
+        self._configured_permission_groups = normalize_permission_groups(
+            self._consume_runtime_setting("permission_groups"))
+        self.refresh_permission_groups()
         raw_practice_permissions = self._consume_runtime_setting("practice_permissions")
         if raw_practice_permissions is None:
             for alias in ("practice_access", "plaza_user_permissions", "user_practice_permissions"):
@@ -750,7 +784,8 @@ class BaseAgent(Pit, ABC):
             self.app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
             self.logger.info(f"Mounted static directory: {static_dir}")
         else:
-            self.logger.warning(f"Static directory NOT FOUND: {static_dir}")
+            # A package that ships only what its agent uses leaves these shared pages out: nothing is missing.
+            self.logger.debug(f"No static directory at {static_dir}")
 
         self.site_settings: Dict[str, Any] = {}
         self._install_request_logging()
@@ -1058,6 +1093,15 @@ class BaseAgent(Pit, ABC):
         query = f"?{request.url.query}" if request.url.query else ""
         return f"{request.url.path}{query}"
 
+    # Requests agents and pages send every few seconds (prompits.core.observability.ROUTINE_PATHS). A successful,
+    # fast one is logged at DEBUG (three INFO lines per heartbeat filled a local Plaza's log to 1.6 GB) and is not
+    # tracked as work; errors and slow ones stay INFO.
+    from prompits.core.observability import ROUTINE_PATHS as QUIET_LOG_PATHS, ROUTINE_SLOW_MS as QUIET_LOG_SLOW_MS
+
+    @classmethod
+    def _is_quiet_log_path(cls, path: str) -> bool:
+        return str(path or "").rstrip("/") in cls.QUIET_LOG_PATHS
+
     @staticmethod
     def _should_track_request_work(request: Request) -> bool:
         """Return whether this request should appear in live work/log views."""
@@ -1100,6 +1144,8 @@ class BaseAgent(Pit, ABC):
         ignored_raw_prefixes = (
             "/api/ui_",
         )
+        if BaseAgent._is_quiet_log_path(path):
+            return False
         if any(path == prefix or path.startswith(f"{prefix}/") for prefix in ignored_prefixes):
             return False
         if any(path.startswith(prefix) for prefix in ignored_raw_prefixes):
@@ -1578,6 +1624,8 @@ class BaseAgent(Pit, ABC):
 
     def _install_request_logging(self):
         """Internal helper for install request logging."""
+        _install_quiet_access_log_filter()
+
         @self.app.middleware("http")
         async def log_incoming_request(request: Request, call_next):
             """Log the incoming request."""
@@ -1600,7 +1648,9 @@ class BaseAgent(Pit, ABC):
                     },
                 )
 
-            self.logger.info(
+            quiet_log = self._is_quiet_log_path(request.url.path)
+            self.logger.log(
+                logging.DEBUG if quiet_log else logging.INFO,
                 f"Incoming request {request.method} {path} from {client_host}:{client_port}"
             )
             try:
@@ -1648,7 +1698,13 @@ class BaseAgent(Pit, ABC):
                         "duration_ms": int(elapsed_ms),
                     },
                 )
-            self.logger.info(
+            routine = (
+                quiet_log
+                and int(getattr(response, "status_code", 0) or 0) < 400
+                and elapsed_ms < self.QUIET_LOG_SLOW_MS
+            )
+            self.logger.log(
+                logging.DEBUG if routine else logging.INFO,
                 f"Completed request {request.method} {path} from {client_host}:{client_port} "
                 f"with {response.status_code} in {elapsed_ms:.1f}ms{detail_suffix}"
             )
@@ -2275,6 +2331,14 @@ class BaseAgent(Pit, ABC):
         meta["connectivity_mode"] = connectivity_mode
         meta["store_forward_configured"] = bool(store_forward.get("configured"))
         meta["store_forward_enabled"] = bool(store_forward.get("enabled"))
+        for hook in list(getattr(self, "card_meta_hooks", None) or ()):
+            # Extensions (Pipeline, say: prompits.core.pipeline_agent) add their card fields here.
+            hook(meta, accepts_inbound)
+
+    def refresh_registration(self):
+        """Register again now, so the card Plaza holds is this agent's current card (an extension changed it)."""
+        self._force_plaza_register_once = True
+        return self.register(start_reconnect_on_failure=True)
 
     def _save_plaza_credentials_to_pool(self):
         """Internal helper to save the Plaza credentials to pool."""
@@ -2645,10 +2709,58 @@ class BaseAgent(Pit, ABC):
         practice_entries = self._resolve_callable_practice_entries(practice)
         for practice_entry in practice_entries:
             self._upsert_practice_metadata_in_card(practice_entry)
+        if hasattr(self, "permission_groups"):
+            self.refresh_permission_groups()  # a type's group may name this practice
         self._persist_practices_to_pool(practice_entries, is_deleted=False)
         self._record_agent_version_snapshot()
         
         self.logger.info(f"Mounted practice: {practice.name}")
+
+    @classmethod
+    def class_permission_groups(cls) -> List[Dict[str, Any]]:
+        """The groups this class's chain declares, parents first; a subclass group with a parent's name replaces it."""
+        groups: Dict[str, Dict[str, Any]] = {}
+        for klass in reversed(cls.__mro__):
+            for group in vars(klass).get("PERMISSION_GROUPS") or []:
+                groups[str(group.get("name") or "").strip().lower()] = copy.deepcopy(group)
+        return list(groups.values())
+
+    def offered_operations(self) -> set:
+        """The operations this agent serves, by the names a call grant uses: its practices, and its mailbox."""
+        names = {str(practice.id) for practice in getattr(self, "practices", []) if getattr(practice, "id", None)}
+        entries = self.agent_card.get("practices") if isinstance(self.agent_card.get("practices"), list) else []
+        names |= {str(entry["id"]) for entry in entries if isinstance(entry, dict) and entry.get("id")}
+        names.add(self.MAILBOX_PRACTICE_ID)
+        return names
+
+    def compose_permission_groups(self) -> List[Dict[str, Any]]:
+        """This agent's groups: its class chain's, each kept to the operations it serves (a type's group names
+        operations some of its agents lack), then its config's as declared."""
+        offered = self.offered_operations()
+        groups: Dict[str, Dict[str, Any]] = {}
+        for group in self.class_permission_groups():
+            operations = [operation for operation in group.get("operations") or [] if operation in offered]
+            if operations:
+                groups[str(group["name"]).strip().lower()] = {**group, "operations": operations}
+        for group in getattr(self, "_configured_permission_groups", None) or []:
+            groups[group["name"].lower()] = copy.deepcopy(group)
+        return list(groups.values())
+
+    def refresh_permission_groups(self) -> List[Dict[str, Any]]:
+        """Recompute this agent's groups and put them on its card; it registers with what it serves at that time.
+
+        Owner-only groups go in `permission_groups` and open ones in `open_permission_groups`, which a Plaza older than
+        open groups doesn't read: there those operations stay open rather than becoming owner-only."""
+        groups = normalize_permission_groups(self.compose_permission_groups())
+        self.permission_groups = groups
+        meta = self.agent_card.setdefault("meta", {})
+        for key, opened in (("permission_groups", False), (OPEN_GROUPS, True)):
+            listed = [{k: v for k, v in group.items() if k != "open"} for group in groups if group["open"] is opened]
+            if listed:
+                meta[key] = copy.deepcopy(listed)
+            else:
+                meta.pop(key, None)
+        return groups
 
     def _register_pool_operation_practices(self):
         """Internal helper to register the pool operation practices."""
@@ -4280,6 +4392,11 @@ class BaseAgent(Pit, ABC):
             )
             return {"status": "ok", "practice_id": practice_id, "result": result}
 
+        @self.app.on_event("startup")
+        async def keep_serving_loop():
+            """Remember the loop serving this app, for extensions that serve the app themselves (Pipeline, say)."""
+            self._serving_loop = asyncio.get_running_loop()
+
         # Lifecycle events to auto-register on startup
         @self.app.on_event("startup")
         def startup_event():
@@ -4401,6 +4518,7 @@ class BaseAgent(Pit, ABC):
             self.agent_card["host"] = self.host
             self.agent_card["port"] = self.port
             self.agent_card["address"] = self._resolve_advertised_address()
+            self.refresh_permission_groups()  # what it serves now
 
             try:
                 attempt = 0
@@ -4613,6 +4731,12 @@ class BaseAgent(Pit, ABC):
                             self.logger.warning("Diagnostic request could not be completed.")
                     if isinstance(data.get("site_settings"), dict):
                         self.site_settings = data["site_settings"]
+                    for hook in list(getattr(self, "heartbeat_answer_hooks", None) or ()):
+                        # Extensions read what Plaza adds to the answer (prompits.core.pipeline_agent, say).
+                        try:
+                            hook(data)
+                        except Exception:
+                            self.logger.warning("A heartbeat answer hook failed.", exc_info=True)
                     if data.get("needs_register"):
                         self.logger.info("Plaza requested registration refresh after heartbeat.")
                         self._force_plaza_register_once = True
@@ -5762,8 +5886,11 @@ class BaseAgent(Pit, ABC):
         caller_user_token: Optional[str] = None,
     ) -> Dict[str, Any]:
         """Internal helper for verify remote caller."""
-        from prompits.core.call_grants import PREFIX, verified_context
-        if str(caller_plaza_token or '').startswith(PREFIX):
+        from prompits.core.call_grants import CURRENT, PREFIX, verified_context
+        current = CURRENT.get()
+        # A call grant consumed at Plaza, or a connection grant checked on arrival through Pipeline
+        # (connection_grants.guard): either way the caller and user come from the verified grant, never the body.
+        if str(caller_plaza_token or '').startswith(PREFIX) or (current and current.get('kind') == 'connection-grant'):
             context=verified_context()
             if str((caller_agent_address or {}).get('pit_id')) != context['agent_id']:
                 raise HTTPException(403, 'Scoped caller identity mismatch.')

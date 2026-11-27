@@ -678,8 +678,10 @@ def install_login():
     path, command = login_item()
     if sys.platform == 'darwin':
         import plistlib
+        # `Standard`, never `Background`: the manager and its components inherit the job's priority, and at background
+        # priority a busy Mac (right after a boot) makes a component's 3 s schema check time out.
         value = {'Label': LOGIN_LABEL, 'ProgramArguments': command, 'RunAtLoad': True,
-                 'KeepAlive': {'SuccessfulExit': False}, 'ProcessType': 'Background',
+                 'KeepAlive': {'SuccessfulExit': False}, 'ProcessType': 'Standard',
                  'StandardOutPath': str(manager_state() / 'login.log'), 'StandardErrorPath': str(manager_state() / 'login.log')}
         data = plistlib.dumps(value)
         changed = not path.is_file() or path.read_bytes() != data

@@ -52,6 +52,47 @@ async def refresh_content(engine, instance, user, *, references=None, trigger='o
             instance['content'] = result; instance['sourceMode'] = 'parameters'; instance['sequence'] += 1
 
 
+NO_EFFECTS = ('writesState', 'externalSend', 'paidExecution', 'startsJob', 'opensStream')
+
+
+def light_reads(instance, refs):
+    """Whether these references are light reads: each costs nothing (its permission rule allows at most 0 points) and
+    declares none of an action's effects (phemacast:operation-effects, every one false), such as a view's own progress
+    read. A view's interaction on them answers beside the page's other calls instead of waiting for them; every other
+    reference keeps running one at a time under the page's content lock."""
+    from phemacast.core.composition_permissions import manifest
+    try:
+        node = composition(instance['phema'])
+        declared = (manifest(instance['phema']) or {}).get('references') or []
+    except (KeyError, TypeError, ValueError):
+        return False
+    rules = {rule.get('id'): rule for rule in declared if isinstance(rule, dict)}
+    found = {ref.get('id'): ref for ref in node.get('references') or [] if isinstance(ref, dict)}
+    def light(id):
+        effects = ((found.get(id) or {}).get('extensions') or {}).get('phemacast:operation-effects')
+        return ((rules.get(id) or {}).get('maxPoints') == 0 and isinstance(effects, dict) and set(effects) == set(NO_EFFECTS)
+                and all(effects[name] is False for name in NO_EFFECTS))
+    return bool(refs) and all(light(id) for id in refs)
+
+
+async def read_light(engine, instance, user, references, interaction_inputs):
+    """A light read (light_reads), resolved without the page's content lock. It writes only its own references'
+    results into the page's content, so a call still running on the page keeps everything else as it was."""
+    if not instance.get('phema'): return
+    if '_contentResolver' not in instance: setup_content(engine, instance, user)
+    generation = instance['generation']
+    params = {k: v['default'] for k, v in instance['entry']['design']['params'].items() if 'default' in v}
+    def keep(id, state):
+        if instance['generation'] == generation and id in references:
+            instance.setdefault('content', {}).setdefault('results', {})[id] = state
+            instance['sequence'] += 1
+    async def update(id, state):
+        keep(id, state)
+    result = await instance['_contentResolver'].resolve(effective(instance['phema'],instance.get('contentOverrides',{})), params, owner=user['id'], authorization_scope=kept_scope(engine, user), refresh=list(references), trigger='manual', previous=instance.get('content'), on_update=update, interaction_inputs=interaction_inputs)
+    for id in references:
+        if id in ((result or {}).get('results') or {}): keep(id, result['results'][id])
+
+
 async def run_content(engine, instance, user, changed=None):
     refs = reference_paths(effective(instance['phema'],instance.get('contentOverrides',{})))
     try: await refresh_content(engine, instance, user, references=changed)
@@ -108,15 +149,18 @@ async def content_route(engine, instance, request, user):
                 'dataSources':await data_sources(engine,instance,user)}
     body = await request.json()
     if body.get('operation')=='source':
-        # The viewer's data source for this Browser's data panels; None returns them to the automatic choice.
-        from ..source_choice import apply, candidates
-        refs=reference_paths(instance['phema']);entry=None
+        # The viewer's data source for this Browser's data panels, or (with `reference`) for one panel, from the menu
+        # in its heading; None returns them to the automatic choice.
+        from ..source_choice import apply, apply_one, by_panel, candidates
+        refs=reference_paths(instance['phema']);entry=None;path=body.get('reference')
+        if path is not None and not isinstance(path,str):raise HTTPException(422,'Name one data panel.')
         if body.get('source') is not None:
             directory=await engine.network.directory(user.get('token',''))
-            listed={row['id'] for row in candidates(directory,refs)['sources']}
+            listed={row['id'] for row in (by_panel(directory,refs,{}).get(path,{}).get('sources',[]) if path else candidates(directory,refs)['sources'])}
             entry=next((e for e in directory if isinstance(e,dict) and e.get('id')==body['source']),None)
             if entry is None or body['source'] not in listed:raise HTTPException(422,'Choose one of the listed data sources.')
-        overrides,changed=apply(instance.get('contentOverrides',{}),refs,entry)
+        try:overrides,changed=(apply_one(instance.get('contentOverrides',{}),refs,path,entry) if path else apply(instance.get('contentOverrides',{}),refs,entry))
+        except ValueError as exc:raise HTTPException(422,str(exc)) from exc
         instance['contentOverrides']=overrides;instance['sequence']+=1
         if changed and instance.get('sourceMode')!='snapshot':
             # Interval panels keep their schedule; the changed panels read from their new source now, as ↻ does.
@@ -203,12 +247,16 @@ def start_manual(engine, instance, user, refs, interaction_inputs=None):
         # the viewer that a ↻ it sent got no new data even though the Terminal accepted it.
         run=instance['_manualRun']=instance.get('_manualRun',0)+1
         instance.setdefault('_manualRunOf',{})[key]=run
+        light=bool(interaction_inputs) and light_reads(instance,refs)
         async def generate():
-            try: await refresh_content(engine,instance,user,references=list(refs),trigger='manual',interaction_inputs=interaction_inputs)
+            try:
+                if light: await read_light(engine,instance,user,list(refs),interaction_inputs)
+                else: await refresh_content(engine,instance,user,references=list(refs),trigger='manual',interaction_inputs=interaction_inputs)
             except asyncio.CancelledError: raise
             except Exception as exc:
-                instance.setdefault('content', {})['error']=type(exc).__name__
-                instance['sequence']+=1
+                if not light:  # a light read that fails leaves the page's content as it was; its view times it out
+                    instance.setdefault('content', {})['error']=type(exc).__name__
+                    instance['sequence']+=1
             finally:
                 active.pop(key,None)
                 instance.setdefault('manualRuns',{}).update(dict.fromkeys(key,run))
@@ -255,6 +303,20 @@ async def restore_snapshot(engine, instance, user, snapshot_id):
     return instance['content']
 
 
+async def panel_sources(engine, instance, user):
+    """Each data panel's source menu ({path: {sources, chosen}}); a page with no data panel asks no directory."""
+    from ..source_choice import by_panel, panels
+    refs = reference_paths(instance['phema']) if instance.get('phema') else {}
+    if not panels(refs):
+        return {}
+    network = getattr(engine, 'network', None)
+    try:
+        directory = await network.directory(user.get('token', '')) if network else []
+    except HTTPException:
+        directory = []  # The menus fill in when the Terminal can reach its directory again.
+    return by_panel(directory, refs, instance.get('contentOverrides', {}))
+
+
 async def data_sources(engine, instance, user):
     """The sources this viewer can choose for the Browser's data panels, and the current choice."""
     from ..source_choice import candidates, chosen
@@ -264,5 +326,7 @@ async def data_sources(engine, instance, user):
         directory = await network.directory(user.get('token', '')) if refs and network else []
     except HTTPException:
         directory = []  # Sources are listed again when the Terminal can reach its directory.
+    from ..source_choice import by_panel
     listing = candidates(directory, refs)
-    return {**listing, 'chosen': chosen(instance.get('contentOverrides', {}), refs)}
+    overrides = instance.get('contentOverrides', {})
+    return {**listing, 'chosen': chosen(overrides, refs), 'byPanel': by_panel(directory, refs, overrides)}

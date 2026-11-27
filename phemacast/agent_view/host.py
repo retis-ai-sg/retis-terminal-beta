@@ -9,7 +9,7 @@ from fastapi import HTTPException, Request
 
 from prompits.core.capabilities import digest, negotiate
 from .broker import AgentViewSession
-from .contracts import check, exact, manifest_digest, resolve_contracts, validate_manifest, verify_assets
+from .contracts import ai_actions, check, exact, manifest_digest, resolve_contracts, validate_manifest, verify_assets
 
 
 async def result(value):
@@ -111,10 +111,13 @@ class AgentViewHost:
         mount_id=secrets.token_urlsafe(24)
         session=self.create_session(context,review,mount_id,value)
         renewal=deepcopy(value) if plan.get('renewableInterface') is True else None
+        # The actions this reviewed release offers AI apps. The container checks a call against this record, never
+        # against a list the page or the AI app supplies.
+        actions=ai_actions(manifest)
         self.mounts[mount_id]={'actor':context['actor'],'window':context['window'],'session':session,'view':view,
-            'renewal':renewal,'lock':asyncio.Lock(),'hostRelease':plan.get('hostRelease')}
+            'renewal':renewal,'lock':asyncio.Lock(),'hostRelease':plan.get('hostRelease'),'aiActions':actions}
         del self.reviews[identity]
-        return {'mountId':mount_id,'manifestDigest':session.digest,'title':plan.get('title',manifest['viewId']),
+        return {'mountId':mount_id,'manifestDigest':session.digest,'title':plan.get('title',manifest['viewId']),'aiActions':deepcopy(actions),
             'html':manifest['html'],'parameters':review['parameters'],'sourceMode':session.source_mode,
             'assets':{key:{'text':data.decode(),'digest':manifest['assets'][key]['digest']} for key,data in plan['assets'].items()},
             **({'runtime':plan['runtime']} if plan.get('runtime') else {}),

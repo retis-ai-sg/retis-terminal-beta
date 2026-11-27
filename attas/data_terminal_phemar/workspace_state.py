@@ -1,6 +1,7 @@
 """Server-owned workspaces, canonical Phema storage and legacy-device imports."""
 import copy
 import json
+import logging
 import secrets
 from fastapi import HTTPException
 from prompits.core.capabilities import digest
@@ -73,12 +74,21 @@ async def save(store,owner,body,key='default'):
     document=await canonical_document(body.get('document'))
     current=read(store,owner,key)
     try:
-        return store.put(owner,KIND,key,{'document':document,'migrations':current.get('migrations',[])},body['revision'])
+        saved=store.put(owner,KIND,key,{'document':document,'migrations':current.get('migrations',[])},body['revision'])
     except HTTPException as exc:
         if exc.status_code!=409:raise
         id=secrets.token_hex(16)
         store.put(owner,'workspace-conflict',id,{'document':document,'baseRevision':body['revision'],'windowKey':key})
         raise HTTPException(409,{'message':'Workspace changed in another session. Your draft is saved on the server.','conflictId':id}) from exc
+    trim_history(store,owner,key)
+    return saved
+
+
+def trim_history(store,owner,key):
+    """Drop the versions this window's history rules no longer keep; a failure here never fails the save."""
+    from .workspace_history import prune
+    try:prune(store,owner,key)
+    except Exception:logging.getLogger(__name__).exception('Workspace history could not be trimmed.')
 
 
 async def migrate(store,owner,body,state_key='default'):
@@ -105,4 +115,6 @@ def rollback_workspace(store, owner, previous_revision, expected_revision, key='
     """Restore a saved workspace revision without applying application policy."""
     previous = store.get(owner, 'workspace-revision', key+':'+str(previous_revision))
     restored = {k: v for k, v in previous.items() if k not in ('id', 'revision', 'updatedAt')}
-    return store.put(owner, 'workspace-state', key, {**restored, 'restoredRevision': previous_revision}, expected_revision)
+    saved = store.put(owner, 'workspace-state', key, {**restored, 'restoredRevision': previous_revision}, expected_revision)
+    trim_history(store, owner, key)
+    return saved

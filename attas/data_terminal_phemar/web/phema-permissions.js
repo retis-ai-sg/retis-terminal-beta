@@ -3,7 +3,14 @@ const EFFECTS={read:'Reads data',generate:'Generates content',action:'Runs when 
 const CLASSES={public:'Public data',private:'Private data',confidential:'Confidential data'};
 /** Where a link's request goes, by the agent's Plaza name: a data request sends only the symbols. */
 function destination(ref,data){
- const target=ref.target||{},name=data.agentNames?.[target.agentId];
+ const target=ref.target||{},name=typeof target.agentId==='string'?data.agentNames?.[target.agentId]:null;
+ // An agent the viewer chooses on the page ({"$param": …}); Plaza checks it when the link runs.
+ if(target.agentId&&typeof target.agentId==='object')return label('Sends its inputs to the agent you choose on the page');
+ // A program running on this computer, such as Local RSS, is never on Plaza: the inputs stay here.
+ if(typeof target.agentId==='string'&&(data.localAgents||[]).includes(target.agentId)){
+  if(target.pulse==='data_fetch')return name?label('Asks {0} on this computer for data; only the symbols are sent',name):label('Asks a program on this computer for data; only the symbols are sent');
+  return name?label('Sends its inputs to {0} on this computer',name):label('Sends its inputs to a program on this computer');
+ }
  if(target.pulse==='data_fetch')return name?label('Asks {0} for data; only the symbols are sent',name):label('Asks a data source for data; only the symbols are sent');
  return name?label('Sends its inputs to {0}',name):label('Sends its inputs to an agent on Plaza');
 }
@@ -20,6 +27,17 @@ export async function openPhemaPermissions(id,request,onChange=()=>{},scope=null
  const route='/api/instances/'+id+'/permissions',data=await request(route),dialog=document.createElement('dialog');dialog.className='config-dialog phema-permissions';
  dialog.innerHTML=ui`<header class="config-dialog-header"><strong>Phema permissions</strong><button type="button" data-close aria-label="Close">×</button></header><div class="config-dialog-body"><p class="hint" data-trusted hidden>Plaza trusts this layout’s owner and agents, so it loads without approval.</p><div data-scopes></div><label><input type="checkbox" name="private">Allow private data and declared sharing</label><p class="hint" data-private-hint hidden>This layout's panels load only when this box is ticked.</p><label data-local><input type="checkbox" name="local">Allow declared local network media</label><p role="status"></p></div><footer class="config-dialog-footer"><button type="button" data-revoke>Revoke</button><button type="button" data-approve>Approve</button></footer>`;
  const scopes=dialog.querySelector('[data-scopes]');
+ // A program on this computer ships a newer version of this page; its current version loads without approval.
+ // The window takes it in place (app.js).
+ const update=data.componentUpdate;
+ if(typeof update?.key==='string'&&update.key){
+  const note=document.createElement('div'),text=document.createElement('p'),take=document.createElement('button');
+  note.className='phema-permissions-update';note.setAttribute('role','note');
+  text.innerHTML=update.name?label('{0} ships a newer version of this page. The current version loads without approval.',update.name):label('A program on this computer ships a newer version of this page. The current version loads without approval.');
+  take.type='button';take.className='button';take.dataset.takeUpdate='';take.innerHTML=label('Update to the current version');
+  take.onclick=()=>{dialog.close();(scope||document).dispatchEvent(new CustomEvent('phemacast:update-component-page',{bubbles:true,detail:{key:update.key}}));};
+  note.append(text,take);scopes.before(note);
+ }
  for(const node of data.permissions.nodes){const section=document.createElement('section'),name=document.createElement('strong');name.textContent=node.path||'Phema';section.append(name);const list=document.createElement('ul');
   for(const ref of node.references){const li=document.createElement('li'),rule=node.permissions?.references?.find(r=>r.id===ref.id);li.innerHTML=plainLine(node,ref,rule,data);list.append(li);}
   for(const flow of node.permissions?.dataFlows||[]){const li=document.createElement('li');li.textContent=flow.from+(flow.path||'/*')+' → '+flow.to;list.append(li);}
@@ -36,6 +54,20 @@ export async function openPhemaPermissions(id,request,onChange=()=>{},scope=null
  // A layout Plaza trusts loads without a saved approval: nothing here to approve or revoke.
  if(data.approval?.basis==='current-plaza-agent-trust'){dialog.querySelector('[data-trusted]').hidden=false;dialog.querySelector('[data-private-hint]').hidden=true;
   dialog.querySelectorAll('[data-revoke],[data-approve]').forEach(b=>{b.hidden=true;});dialog.querySelectorAll('input[type=checkbox]').forEach(c=>{c.disabled=true;});}
+ // Its agent views may see (and, if it asks, change) the other open Phemas only with this box ticked: saved at once,
+ // apart from the approval, so a layout Plaza trusts asks it too.
+ if(data.panelAccess?.declared){
+  const row=document.createElement('label'),box=document.createElement('input'),text=document.createElement('span');
+  box.type='checkbox';box.name='panels';box.checked=data.panelAccess.allowed===true;
+  text.innerHTML=label(data.panelAccess.declared==='readWrite'?'See and change your other panels’ settings':'See your other panels’ settings');
+  row.append(box,text);(dialog.querySelector('[name=private]')?.closest('label')||scopes).after(row);
+  box.onchange=async()=>{
+   box.disabled=true;const status=dialog.querySelector('[role=status]');
+   try{await request(route,{method:'POST',body:{panelAccess:box.checked}});setUIText(status,'Saved.');}
+   catch(error){box.checked=!box.checked;status.textContent=error.message;}
+   finally{box.disabled=false;}
+  };
+ }
  dialog.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>dialog.close());
  // One decision at a time: until the Terminal has saved it, both buttons and the boxes wait and the dialog says so.
  const status=dialog.querySelector('[role=status]'),controls=()=>dialog.querySelectorAll('[data-revoke],[data-approve],input[type=checkbox]');let busy=false;

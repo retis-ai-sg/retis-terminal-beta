@@ -4,6 +4,7 @@ import {validLocale} from './i18n.js';
 import {normalizeFieldBindings} from './field-bindings.js';
 import {normalizeRefreshOverrides,refreshPolicy,refreshLabel,refreshFields} from './block-refresh.js';
 import {normalizeInstrumentOverrides} from './browser-instruments.js';
+import {normalizeSplits} from './layout-split.js';
 /** Local workspace persistence. This module has no browser or rendering dependency. */
 import { normalizeLayoutEntry } from './layout-library.js';
 export const STORAGE_KEY = 'data-terminal-ui.v2';
@@ -96,6 +97,11 @@ function normalizeWorkspace(workspace, index, usedIds) {
       interactionDrafts: normalizeInteractionDrafts(browser.interactionDrafts),
       commandDraft:typeof browser.commandDraft==='string'?browser.commandDraft.slice(0,499):browser.command,
       commandOpen:browser.commandOpen===true,
+      // Link groups (link-groups.js): the viewer's group colour, and the panels this one opened by name.
+      ...(['red','amber','green','teal','blue','purple'].includes(browser.linkGroup)?{linkGroup:browser.linkGroup}:{}),
+      ...(isRecord(browser.opened)?{opened:Object.fromEntries(Object.entries(browser.opened).filter(([k,v])=>/^[A-Za-z][A-Za-z0-9_-]{0,63}$/.test(k)&&typeof v==='string'&&v.length<=240).slice(0,16))}:{}),
+      // Where the person left each split-container border (layout-split.js).
+      ...(Object.keys(normalizeSplits(browser.layoutSplits)).length?{layoutSplits:normalizeSplits(browser.layoutSplits)}:{}),
       ...(isRecord(browser.layoutTabs)?{layoutTabs:Object.fromEntries(Object.entries(browser.layoutTabs).filter(([k,v])=>/^[a-zA-Z0-9_/-]{1,256}$/.test(k)&&typeof v==='string'&&/^[a-zA-Z0-9_-]{1,80}$/.test(v)).slice(0,64))}:{}),
       frame: normalizeFrame(browser.frame),
       z: finite(browser.z) ? Math.floor(clamp(browser.z, 0, MAX_GEOMETRY)) : browsers.length + 1,

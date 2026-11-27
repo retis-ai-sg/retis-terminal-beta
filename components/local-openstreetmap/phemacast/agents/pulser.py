@@ -20,8 +20,9 @@ import uuid
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Mapping, Optional, Union
+from typing import Any, Callable, Dict, List, Mapping, Optional, Union
 
+from fastapi import HTTPException
 from fastapi.staticfiles import StaticFiles
 from prompits.agents.standby import StandbyAgent
 from prompits.core.message import Message
@@ -231,6 +232,53 @@ def validate_pulser_config_test_parameters(config: Mapping[str, Any]) -> None:
     )
 
 
+PULSE_PRACTICES = ("get_pulse_data", "quote_pulse_data", "quote_request")
+
+
+def resolve_supported_pulse(
+    pulses: List[Dict[str, Any]],
+    pulse_name: Optional[str] = None,
+    pulse_address: Optional[str] = None,
+    *,
+    strict: bool = False,
+    same_address: Callable[[Any, Any], bool],
+) -> Dict[str, Any]:
+    """The pulse a call names, by name or alias, else by address; without either, the first pulse.
+
+    Strict, for an agent that declares permission groups: a name or address it does not serve, or a name and an
+    address of two different pulses, is refused instead of running its first pulse, so the pulse that runs is
+    always the one Plaza checked (prompits/core/access_roles.py)."""
+    if pulse_name:
+        requested_name = str(pulse_name).strip()
+        for pulse in pulses:
+            aliases = [str(alias).strip() for alias in list(pulse.get("aliases") or []) if str(alias).strip()]
+            if pulse.get("name") == requested_name or pulse.get("pulse_name") == requested_name or requested_name in aliases:
+                if strict and pulse_address and not same_address(pulse.get("pulse_address"), pulse_address):
+                    raise HTTPException(status_code=404, detail="The pulse name and address name different pulses.")
+                return pulse
+        if strict:
+            raise HTTPException(status_code=404, detail="This agent has no pulse by that name.")
+    if pulse_address:
+        for pulse in pulses:
+            if same_address(pulse.get("pulse_address"), pulse_address):
+                return pulse
+        if strict:
+            raise HTTPException(status_code=404, detail="This agent has no pulse at that address.")
+    return pulses[0]
+
+
+def resolved_pulse_names(agent: Any, practice_id: str, content: Any) -> List[str]:
+    """The names Plaza checks when a call grant for a pulse practice is redeemed: the pulse as the caller named it
+    and the pulse the agent will run. Empty for other practices (prompits/core/call_grants.reported_operations)."""
+    if practice_id not in PULSE_PRACTICES or not getattr(agent, "supported_pulses", None):
+        return []
+    content = content if isinstance(content, dict) else {}
+    pulse_name, pulse_address = content.get("pulse_name"), content.get("pulse_address")
+    pulse = agent.resolve_pulse_definition(pulse_name=pulse_name, pulse_address=pulse_address)
+    names = [pulse_name, pulse.get("name"), pulse.get("pulse_name")]
+    return list(dict.fromkeys(str(name).strip() for name in names if str(name or "").strip()))
+
+
 class Pulser(QuoteCascadeMixin, StandbyAgent):
     """
     Standby agent specialized for pulse payload delivery.
@@ -244,6 +292,8 @@ class Pulser(QuoteCascadeMixin, StandbyAgent):
     """
 
     PIT_TYPE = "Pulser"
+    # Every Pulser: "Use pulses", built from its own pulses (compose_permission_groups); open until a role is attached.
+    USE_PULSES = "Use pulses"
 
     def __init__(
         self,
@@ -840,6 +890,8 @@ class Pulser(QuoteCascadeMixin, StandbyAgent):
         meta["pulse_definition"] = dict(primary_pulse.get("pulse_definition") or {})
         card["meta"] = meta
         self.agent_card = card
+        # A configured agent card may replace the card's meta; the groups, built from these pulses, go back on it.
+        self.refresh_permission_groups()
         self.app.title = self.name
         self._refresh_pit_address()
         self._refresh_get_pulse_practice_metadata()
@@ -859,28 +911,46 @@ class Pulser(QuoteCascadeMixin, StandbyAgent):
         pulse_name: Optional[str] = None,
         pulse_address: Optional[str] = None,
     ) -> Dict[str, Any]:
-        """Resolve the pulse definition."""
-        if pulse_name:
-            requested_name = str(pulse_name).strip()
-            for pulse in self.supported_pulses:
-                aliases = [
-                    str(alias).strip()
-                    for alias in list(pulse.get("aliases") or [])
-                    if str(alias).strip()
-                ]
-                if (
-                    pulse.get("name") == requested_name
-                    or pulse.get("pulse_name") == requested_name
-                    or requested_name in aliases
-                ):
-                    return pulse
+        """Resolve the pulse definition; strictly when the agent declares an owner-only group (resolve_supported_pulse)."""
+        return resolve_supported_pulse(self.supported_pulses, pulse_name, pulse_address,
+                                       strict=self.strict_pulses(), same_address=self._same_pit_ref)
 
-        if pulse_address:
-            for pulse in self.supported_pulses:
-                if self._same_pit_ref(pulse.get("pulse_address"), pulse_address):
-                    return pulse
+    def strict_pulses(self) -> bool:
+        """Whether a name or address this agent doesn't serve is refused rather than run as its first pulse: when it
+        declares an owner-only group. Open groups don't make it strict; the pulse it runs is reported and checked
+        anyway (resolved_pulse_names), also once the owner attaches a role to one."""
+        return any(not group.get("open") for group in getattr(self, "permission_groups", None) or [])
 
-        return self.supported_pulses[0]
+    def offered_operations(self) -> set:
+        names = super().offered_operations()
+        for pulse in getattr(self, "supported_pulses", None) or []:
+            if isinstance(pulse, dict):
+                names |= {str(pulse.get(key)).strip() for key in ("name", "pulse_name") if str(pulse.get(key) or "").strip()}
+        return names
+
+    def compose_permission_groups(self) -> List[Dict[str, Any]]:
+        """The chain's and config's groups, then "Use pulses": the pulse practices and every pulse of this agent no other
+        group lists, open to everyone until the owner attaches a role (Alvin, 2026-11-24)."""
+        groups = super().compose_permission_groups()
+        if any(group["name"].lower() == self.USE_PULSES.lower() for group in groups):
+            return groups
+        claimed = {operation for group in groups for operation in group["operations"]}
+        practices = {str(practice.id) for practice in getattr(self, "practices", [])}
+        operations = [name for name in PULSE_PRACTICES if name in practices and name not in claimed]
+        for pulse in getattr(self, "supported_pulses", None) or []:
+            if not isinstance(pulse, dict):
+                continue
+            names = [str(pulse.get(key)).strip() for key in ("name", "pulse_name") if str(pulse.get(key) or "").strip()]
+            if names and not claimed.intersection(names) and names[0] not in operations:
+                operations.append(names[0])
+        if operations:
+            groups.append({"name": self.USE_PULSES, "description": "Use this agent's pulses.",
+                           "operations": operations[:200], "open": True})
+        return groups
+
+    def resolved_pulse_operations(self, practice_id: str, content: Any) -> List[str]:
+        """What Plaza checks when a grant for this call is redeemed (resolved_pulse_names)."""
+        return resolved_pulse_names(self, practice_id, content)
 
     def register(
         self,

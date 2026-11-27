@@ -61,14 +61,21 @@ def normalize_fugle_row(data: Mapping[str, Any], schema: str) -> dict[str, Any]:
     observed = _observed_at(data.get("lastUpdated") or data.get("time") or last_trade.get("time"))
     if schema == "market.quotes.v1":
         total = data.get("total") if isinstance(data.get("total"), Mapping) else {}
+        # Fugle counts a TWSE or TPEx listing's volume in lots: it becomes shares, as in the Data Consultant's quote
+        # mapping. An index or another market keeps Fugle's figure.
+        market, index = str(data.get("market") or "").upper(), str(data.get("type") or "").upper() == "INDEX"
+        volume = total.get("tradeVolume")
+        if not index and market in ("TSE", "OTC") and isinstance(volume, (int, float)) and not isinstance(volume, bool):
+            volume = volume * 1000
         return {
             "ticker": symbol,
             "last": data.get("lastPrice", data.get("closePrice")),
             "priceKind": "trial" if data.get("isTrial") else "close" if data.get("isClose") else "trade",
-            "volumeUnit":"provider-unspecified", "volumeScope":"session-cumulative",
+            "volumeUnit": "shares" if not index and market in ("TSE", "OTC") else "provider-unspecified",
+            "volumeScope":"session-cumulative",
             "sourceUpdatedAt":observed,
             "changePercent": data.get("changePercent"),
-            "volume": total.get("tradeVolume", data.get("volume")),
+            "volume": volume,
             "observedAt": _observed_at(((data.get("lastTrial") if data.get("isTrial") else last_trade) or {}).get("time")),
             "currency": "TWD",
             "exchange": data.get("exchange"),

@@ -1,0 +1,814 @@
+{
+  "entry": "scripts/run_local_llm.py",
+  "files": {
+    "THIRD_PARTY_NOTICES.txt": "c3df02a000c707c0ee2b68bc553566ebf64d639beaf7b45aa55e969993950a74",
+    "phemacast/__init__.py": "332f01f4c28215f8b4f12ae810bdeace2c26bc134134d775e105f8c76867f575",
+    "phemacast/agents/pulser.py": "642deb4abc482cb40e6f0482cb3ab66ab5eefcfe26bd9b8afd13870ca1931819",
+    "phemacast/agents/quote_cascade.py": "f23431b1176e8ee7f78af989d97714c3ee7eee2d575a9dd5634b44ec334b9b66",
+    "phemacast/configs/llm.pulser": "b31ee70ec2cb13c363c18cd6ed0d8c70f47bd1f37415d122e771529bc5f251a0",
+    "phemacast/core/data_requests.py": "85bb972ea01135a7d224372ad2ebbd7be3e7775789ef4ad5d0eca9a2c86be196",
+    "phemacast/core/llm_content.py": "a5f7dd53f9dd03442dee3e7d82413db072cbfafdd8d2511b7a38b8847937c0d2",
+    "phemacast/core/pulse_observability.py": "1571d7f104828ca66acb16b479e462088670e47868ce770d6c137582d6101c76",
+    "phemacast/core/pulse_runtime.py": "fe291b40b8789889720ea09b7a9cfef7560eb944dc1baa45a93f912e988ad609",
+    "phemacast/models.py": "a1c8ecbfd9ecf1b705777443fbbc544ca87e94385a524b0a665df5c0e3048e9c",
+    "phemacast/network/__init__.py": "43dade91df751986721d03d08a43e48bc6894f195e61442000b5749bc656813d",
+    "phemacast/network/configure.py": "b1c8072bb96ea98547f9417e0e01c843af1ab8684aa43ff2de402109552198e0",
+    "phemacast/network/discovery.py": "21096a68561e93ec43740810599268ad06019101655541804b5d7be78bdbb53e",
+    "phemacast/network/mcp.py": "4b6a46c5dc6072acda134efac9ead264997266d7d02c92e379054e60094d2cf0",
+    "phemacast/network/pulser.py": "a6a016f62fa7ce16498b1cacc1fda35fb870d7cc1c3e2458f8e43beacc9df6fa",
+    "phemacast/network/service.py": "824b7fddfbaa48f992b293205726caf0239b65bc3defccadde1cf77800e1bc21",
+    "phemacast/practices/__init__.py": "698aeb5539f1a0787c712666c00c5d8944a6544998a5b8b9be51a247384e9249",
+    "phemacast/practices/pulser.py": "90060691161b5e842165988ae82f3ca0ce1b330cb49781056b644410756f7559",
+    "phemacast/practices/quote.py": "fe47660a194957508805b7b390354e62a239ab6b3e945862c855a3d86c370efc",
+    "phemacast/pulsers/claude_pulser.py": "16f2f7facead46db39b3e5334cf2958f58157e1803bbafcf35fa858b94eb9f4c",
+    "phemacast/pulsers/llm_pulser.py": "fb4d6a846cedd0524b1fbc8e68abd7073f6abbf2f692a02448b0ac281e7e6bf2",
+    "phemacast/pulsers/local_models.py": "437b8325a2505bc8963a707edbe4955c236de8273b4227b7021a23b6718c5dfe",
+    "phemacast/pulsers/local_servers.py": "565bbf53626ac1e3ed687109faa30cf3edbbd6bf40fdfa926c25276d01f1ec57",
+    "phemacast/system.py": "d63e6313d9bc9d2a1564231b98fc51ddc0ac9377ad80d09852a67531dc38688a",
+    "prompits/__init__.py": "a743e32fd533d44c4802f4cff5db5416e3bd82523e7754858b07cddff5f9eb08",
+    "prompits/agents/base.py": "00db64b773e44131944460f3c885ce2e914cafe4ec77a1114c517cc266e47aff",
+    "prompits/agents/standby.py": "2b648b40158438ec804b86a9e048d99058ce03db7f8c53439efbc428edd8bfff",
+    "prompits/channels/__init__.py": "139e8eec7b1984cb5ff94ca32641e7b72d9201b165c42fb5d1a4e7ac2bcdd236",
+    "prompits/channels/notifications.py": "78d03a9ac862eb1526a9710e73da2b92b5c180fa396ec3d39675c797b92aad3f",
+    "prompits/channels/runtime.py": "35f063dc60b179477513732d1cd9300c777fc1c7f0e1983456537012cb45e142",
+    "prompits/components/__init__.py": "90fe79efbf4e271c18e2e96eb5a740e280e6ed1221b134a173bf6c58c92c2306",
+    "prompits/components/health.py": "bfe78a3e89a45c32cb3e723782c274e237b379276e499576b171795f0ee3c761",
+    "prompits/components/logs.py": "9fde83feb056e32ca25a0b840b92a01d92df87f3e2bb350f291dba60d9d1db61",
+    "prompits/components/settings.py": "9a13caf580d7debb5f25667435bb13c1fe3136b2134f5e6d86bba54c3ceca1b8",
+    "prompits/core/access_roles.py": "36830be740f49a3363ce015f5decd82931f2f10b3ece299cfbd46a64120711c9",
+    "prompits/core/agent_config.py": "ab4cd19280b954c2ea2946a7a4e1ef469681d31569f21f5a5c2a595b3d11947e",
+    "prompits/core/approved_access.py": "ea837a6fdd5e6cd6ede2bbebfa045602203713cf000f3144f13dc180bc299baa",
+    "prompits/core/call_grants.py": "0fc6b2ac7f3fdaa63be8ba61927f9fcf19ccf7818de9a0892225e6cad2b213e5",
+    "prompits/core/capabilities.py": "8a30bbd0040559dd5c89be442aa152e04d201936a30a957eae0c0715945f46df",
+    "prompits/core/directory_runtime.py": "2df14cf60db67ea50af08c8fe22fcb8c5afd9d1f21c3d7bf1ffefe1db5cb2238",
+    "prompits/core/init_schema.py": "500e8e212a844ff12c25b53094948e5d4e11d06bb21eaca580a97fd78a686246",
+    "prompits/core/job_history.py": "acdf02cf20ac6856a0bd4f0aa3957792b594da1ad3a65dc4f37d69838b8fcfde",
+    "prompits/core/json_response.py": "3161639b47a7b8bfdb0200989446a841e55b01896ecbc3ff5c3e2e29f10ad171",
+    "prompits/core/log_paths.py": "3e57202727ff3f16b8c141d1e277e0771029fa2b2c3fabe9b1c7ca9284e96589",
+    "prompits/core/message.py": "84ea326d812d9243c39650175fc5dbb8df4ae3185258842523f0fb83bfc6c241",
+    "prompits/core/observability.py": "76d1164652222d2cef1484c8eaede82e49555ce8ae5023bf77190034079b7d7f",
+    "prompits/core/observability_routes.py": "4762c601cca7c7e85f79b28a22bc4e61f40ceb61c50d509d7cfdb46e2a3e3f28",
+    "prompits/core/pit.py": "ba8c3659fbca8972c1a2fe96622c1a0842237872598585197f1e3d81d7b86b8d",
+    "prompits/core/plaza_jobs.py": "4593aee1c7d0303e1c1db7930afe5dbc368e5923e28d894dc88ca3a556adc76f",
+    "prompits/core/pool.py": "89d205287836fa3082fb6f9d78a10a17a975cf4085c3a394fb5055a1982593d2",
+    "prompits/core/practice.py": "f2c78c398a502b17c5618cbc65768ce7814083a0dd0be1d0843e1ccf551fc9c7",
+    "prompits/core/process_utils.py": "2f43f9170834747796a23809498c3e0a8dcab88f1e9ec2bd48258bef505947bb",
+    "prompits/core/pulse_mapping.py": "5b49f650f6df82d4426cd54f31fdb65a2d78cee3476e0a196b3f75d2f5af5531",
+    "prompits/core/schema.py": "b712e3abe793527abde5232d1e934d8c8072bd144edf3b928e8969db93e9929c",
+    "prompits/mcp/__init__.py": "7c4e695f20d48f725de1e8d04b1c5e76a5f9072f8ecba79bd01f2541e48fb042",
+    "prompits/mcp/client.py": "3132c3dfd4ffe46bf23cba59196e027f47e584bf0040e1fdbae0592b765d5ee9",
+    "prompits/mcp/server.py": "47794b498fc7c6c6924b7159d3fe323c2b72cb1823eff17af66ef425b52e344b",
+    "prompits/practices/__init__.py": "62ced013e74813246af027247e3bbf373453091aae95847d4ee6bde6f54087cc",
+    "prompits/practices/plaza.py": "7a54e4f4524dde4d8152d6a6afc3eca39ac8d508228384dbe3607d8f1e9a221e",
+    "requirements.lock": "62a89f464a778e18948c04cdc51b5e07920e483a1e617dc200dd31fbd4b548e7",
+    "scripts/run_local_llm.py": "2ac980f16fdfcdd7fe860fb7bb2c739f794314a29a0d9c730493ba43d76701f8",
+    "start.py": "350f70faa5224c80c90f9678981e5a9f64a0207df1fafeb6ec70c51bb60f009c"
+  },
+  "id": "local-llm",
+  "offer": {
+    "data": [
+      {
+        "id": "model",
+        "names": {
+          "en": "A model, downloaded or loaded in your model server",
+          "zh-Hant": "模型，在您的模型伺服器中下載或載入"
+        }
+      }
+    ],
+    "descriptions": {
+      "en": "Chat with the models on this computer (Ollama, LM Studio, vLLM, llama.cpp and others), or with your own vendor key from your Terminal.",
+      "zh-Hant": "使用這台電腦上的模型（Ollama、LM Studio、vLLM、llama.cpp 等），或以您終端中的金鑰使用供應商的模型。"
+    },
+    "id": "local-llm",
+    "names": {
+      "en": "Local LLM",
+      "zh-Hant": "本機 LLM"
+    },
+    "notices": [
+      {
+        "homepage": "https://github.com/fastapi/annotated-doc",
+        "license": "MIT",
+        "name": "annotated-doc",
+        "version": "0.0.5"
+      },
+      {
+        "homepage": "https://github.com/annotated-types/annotated-types",
+        "license": "MIT",
+        "name": "annotated-types",
+        "version": "0.8.0"
+      },
+      {
+        "homepage": "https://github.com/anthropics/anthropic-sdk-python",
+        "license": "MIT",
+        "name": "anthropic",
+        "version": "1.17.0"
+      },
+      {
+        "homepage": "https://anyio.readthedocs.io/en/latest/",
+        "license": "MIT",
+        "name": "anyio",
+        "version": "4.15.1"
+      },
+      {
+        "homepage": "https://www.attrs.org/",
+        "license": "MIT",
+        "name": "attrs",
+        "version": "26.1.0"
+      },
+      {
+        "homepage": "https://github.com/certifi/python-certifi",
+        "license": "MPL-2.0",
+        "name": "certifi",
+        "version": "2026.10.23"
+      },
+      {
+        "homepage": "https://cffi.readthedocs.io/",
+        "license": "MIT-0",
+        "name": "cffi",
+        "version": "2.1.1"
+      },
+      {
+        "homepage": "https://charset-normalizer.readthedocs.io/",
+        "license": "MIT",
+        "name": "charset-normalizer",
+        "version": "3.5.1"
+      },
+      {
+        "homepage": "https://click.palletsprojects.com/",
+        "license": "BSD-3-Clause",
+        "name": "click",
+        "version": "8.5.0"
+      },
+      {
+        "homepage": "https://cryptography.io/",
+        "license": "Apache-2.0 OR BSD-3-Clause",
+        "name": "cryptography",
+        "version": "50.0.1"
+      },
+      {
+        "homepage": "https://github.com/rr-/docstring_parser",
+        "license": "MIT",
+        "name": "docstring_parser",
+        "version": "0.18.0"
+      },
+      {
+        "homepage": "https://github.com/fastapi/fastapi",
+        "license": "MIT",
+        "name": "fastapi",
+        "version": "0.141.1"
+      },
+      {
+        "homepage": "https://github.com/python-hyper/h11",
+        "license": "MIT",
+        "name": "h11",
+        "version": "0.16.0"
+      },
+      {
+        "homepage": "https://www.encode.io/httpcore",
+        "license": "BSD-3-Clause",
+        "name": "httpcore",
+        "version": "1.0.9"
+      },
+      {
+        "homepage": "https://github.com/pydantic/httpx2",
+        "license": "BSD-3-Clause",
+        "name": "httpcore2",
+        "version": "2.16.2"
+      },
+      {
+        "homepage": "https://www.python-httpx.org",
+        "license": "BSD-3-Clause",
+        "name": "httpx",
+        "version": "0.27.2"
+      },
+      {
+        "homepage": "https://github.com/pydantic/httpx2",
+        "license": "BSD-3-Clause",
+        "name": "httpx2",
+        "version": "2.16.2"
+      },
+      {
+        "homepage": "https://github.com/kjd/idna",
+        "license": "BSD-3-Clause",
+        "name": "idna",
+        "version": "3.20"
+      },
+      {
+        "homepage": "https://github.com/pydron/ifaddr",
+        "license": "MIT",
+        "name": "ifaddr",
+        "version": "0.2.0"
+      },
+      {
+        "homepage": "",
+        "license": "MIT",
+        "name": "jiter",
+        "version": "0.17.0"
+      },
+      {
+        "homepage": "https://github.com/python-jsonschema/jsonschema",
+        "license": "MIT",
+        "name": "jsonschema",
+        "version": "4.23.0"
+      },
+      {
+        "homepage": "https://jsonschema-specifications.readthedocs.io/",
+        "license": "MIT",
+        "name": "jsonschema-specifications",
+        "version": "2025.9.1"
+      },
+      {
+        "homepage": "https://modelcontextprotocol.io",
+        "license": "MIT",
+        "name": "mcp",
+        "version": "2.3.0"
+      },
+      {
+        "homepage": "https://modelcontextprotocol.io",
+        "license": "MIT",
+        "name": "mcp-types",
+        "version": "2.3.0"
+      },
+      {
+        "homepage": "https://github.com/open-telemetry/opentelemetry-python/tree/main/opentelemetry-api",
+        "license": "Apache-2.0",
+        "name": "opentelemetry-api",
+        "version": "1.45.2"
+      },
+      {
+        "homepage": "https://pillow.readthedocs.io",
+        "license": "MIT-CMU",
+        "name": "pillow",
+        "version": "13.0.0"
+      },
+      {
+        "homepage": "https://github.com/giampaolo/psutil",
+        "license": "BSD-3-Clause",
+        "name": "psutil",
+        "version": "7.2.2"
+      },
+      {
+        "homepage": "https://github.com/eliben/pycparser",
+        "license": "BSD-3-Clause",
+        "name": "pycparser",
+        "version": "3.0"
+      },
+      {
+        "homepage": "https://github.com/pydantic/pydantic",
+        "license": "MIT",
+        "name": "pydantic",
+        "version": "2.12.5"
+      },
+      {
+        "homepage": "https://github.com/pydantic/pydantic-core",
+        "license": "MIT",
+        "name": "pydantic_core",
+        "version": "2.41.5"
+      },
+      {
+        "homepage": "https://github.com/jpadilla/pyjwt",
+        "license": "MIT",
+        "name": "PyJWT",
+        "version": "2.14.0"
+      },
+      {
+        "homepage": "https://github.com/Kludex/python-multipart",
+        "license": "Apache-2.0",
+        "name": "python-multipart",
+        "version": "0.0.31"
+      },
+      {
+        "homepage": "https://github.com/mhammond/pywin32",
+        "license": "PSF",
+        "name": "pywin32",
+        "version": "312"
+      },
+      {
+        "homepage": "https://referencing.readthedocs.io/",
+        "license": "MIT",
+        "name": "referencing",
+        "version": "0.37.0"
+      },
+      {
+        "homepage": "https://requests.readthedocs.io",
+        "license": "Apache-2.0",
+        "name": "requests",
+        "version": "2.33.0"
+      },
+      {
+        "homepage": "https://rpds.readthedocs.io/",
+        "license": "MIT",
+        "name": "rpds-py",
+        "version": "2026.6.3"
+      },
+      {
+        "homepage": "https://github.com/python-trio/sniffio",
+        "license": "MIT OR Apache-2.0",
+        "name": "sniffio",
+        "version": "1.3.1"
+      },
+      {
+        "homepage": "https://github.com/sysid/sse-starlette",
+        "license": "BSD-3-Clause",
+        "name": "sse-starlette",
+        "version": "3.4.11"
+      },
+      {
+        "homepage": "https://github.com/Kludex/starlette",
+        "license": "BSD-3-Clause",
+        "name": "starlette",
+        "version": "1.6.0"
+      },
+      {
+        "homepage": "https://truststore.readthedocs.io",
+        "license": "MIT",
+        "name": "truststore",
+        "version": "0.10.5"
+      },
+      {
+        "homepage": "https://typing-extensions.readthedocs.io/",
+        "license": "PSF-2.0",
+        "name": "typing_extensions",
+        "version": "4.16.0"
+      },
+      {
+        "homepage": "https://github.com/pydantic/typing-inspection",
+        "license": "MIT",
+        "name": "typing-inspection",
+        "version": "0.4.4"
+      },
+      {
+        "homepage": "https://urllib3.readthedocs.io",
+        "license": "MIT",
+        "name": "urllib3",
+        "version": "2.8.0"
+      },
+      {
+        "homepage": "https://www.uvicorn.org/",
+        "license": "BSD-3-Clause",
+        "name": "uvicorn",
+        "version": "0.34.0"
+      },
+      {
+        "homepage": "https://github.com/python-websockets/websockets",
+        "license": "BSD-3-Clause",
+        "name": "websockets",
+        "version": "15.0.1"
+      },
+      {
+        "homepage": "https://python-zeroconf.readthedocs.io",
+        "license": "LGPL-2.1-or-later",
+        "name": "zeroconf",
+        "version": "0.151.3"
+      }
+    ],
+    "optional": true,
+    "platforms": [
+      "macos-arm64",
+      "windows-x86_64",
+      "linux-x86_64",
+      "linux-arm64"
+    ],
+    "run": {
+      "command": [
+        "{python}",
+        "-I",
+        "-S",
+        "-X",
+        "utf8",
+        "{component_dir}/start.py",
+        "--state",
+        "{data_dir}",
+        "--port",
+        "28480",
+        "--health-port",
+        "28481"
+      ],
+      "env": {
+        "PROMPITS_ENV_FILE": "none",
+        "PYTHON_DOTENV_DISABLED": "1"
+      },
+      "health_path": "/health",
+      "port": 28481
+    },
+    "settings": [
+      {
+        "default": true,
+        "group": {
+          "id": "ollama",
+          "names": {
+            "en": "Ollama"
+          }
+        },
+        "id": "ollama_on",
+        "names": {
+          "en": "Use",
+          "zh-Hant": "使用"
+        },
+        "type": "boolean"
+      },
+      {
+        "default": "http://127.0.0.1:11434/v1",
+        "group": {
+          "id": "ollama",
+          "names": {
+            "en": "Ollama"
+          }
+        },
+        "id": "ollama_url",
+        "max_length": 200,
+        "names": {
+          "en": "Address",
+          "zh-Hant": "位址"
+        },
+        "pattern": "https?://(127\\.0\\.0\\.1|localhost|\\[::1\\])(:[0-9]{1,5})?(/[A-Za-z0-9._~/-]*)?",
+        "type": "text"
+      },
+      {
+        "default": true,
+        "group": {
+          "id": "lmstudio",
+          "names": {
+            "en": "LM Studio"
+          }
+        },
+        "id": "lmstudio_on",
+        "names": {
+          "en": "Use",
+          "zh-Hant": "使用"
+        },
+        "type": "boolean"
+      },
+      {
+        "default": "http://127.0.0.1:1234/v1",
+        "group": {
+          "id": "lmstudio",
+          "names": {
+            "en": "LM Studio"
+          }
+        },
+        "id": "lmstudio_url",
+        "max_length": 200,
+        "names": {
+          "en": "Address",
+          "zh-Hant": "位址"
+        },
+        "pattern": "https?://(127\\.0\\.0\\.1|localhost|\\[::1\\])(:[0-9]{1,5})?(/[A-Za-z0-9._~/-]*)?",
+        "type": "text"
+      },
+      {
+        "default": true,
+        "group": {
+          "id": "vllm",
+          "names": {
+            "en": "vLLM"
+          }
+        },
+        "id": "vllm_on",
+        "names": {
+          "en": "Use",
+          "zh-Hant": "使用"
+        },
+        "type": "boolean"
+      },
+      {
+        "default": "http://127.0.0.1:8000/v1",
+        "group": {
+          "id": "vllm",
+          "names": {
+            "en": "vLLM"
+          }
+        },
+        "id": "vllm_url",
+        "max_length": 200,
+        "names": {
+          "en": "Address",
+          "zh-Hant": "位址"
+        },
+        "pattern": "https?://(127\\.0\\.0\\.1|localhost|\\[::1\\])(:[0-9]{1,5})?(/[A-Za-z0-9._~/-]*)?",
+        "type": "text"
+      },
+      {
+        "default": true,
+        "group": {
+          "id": "llamacpp",
+          "names": {
+            "en": "llama.cpp"
+          }
+        },
+        "id": "llamacpp_on",
+        "names": {
+          "en": "Use",
+          "zh-Hant": "使用"
+        },
+        "type": "boolean"
+      },
+      {
+        "default": "http://127.0.0.1:8080/v1",
+        "group": {
+          "id": "llamacpp",
+          "names": {
+            "en": "llama.cpp"
+          }
+        },
+        "id": "llamacpp_url",
+        "max_length": 200,
+        "names": {
+          "en": "Address",
+          "zh-Hant": "位址"
+        },
+        "pattern": "https?://(127\\.0\\.0\\.1|localhost|\\[::1\\])(:[0-9]{1,5})?(/[A-Za-z0-9._~/-]*)?",
+        "type": "text"
+      },
+      {
+        "default": true,
+        "group": {
+          "id": "jan",
+          "names": {
+            "en": "Jan"
+          }
+        },
+        "id": "jan_on",
+        "names": {
+          "en": "Use",
+          "zh-Hant": "使用"
+        },
+        "type": "boolean"
+      },
+      {
+        "default": "http://127.0.0.1:1337/v1",
+        "group": {
+          "id": "jan",
+          "names": {
+            "en": "Jan"
+          }
+        },
+        "id": "jan_url",
+        "max_length": 200,
+        "names": {
+          "en": "Address",
+          "zh-Hant": "位址"
+        },
+        "pattern": "https?://(127\\.0\\.0\\.1|localhost|\\[::1\\])(:[0-9]{1,5})?(/[A-Za-z0-9._~/-]*)?",
+        "type": "text"
+      },
+      {
+        "default": true,
+        "group": {
+          "id": "gpt4all",
+          "names": {
+            "en": "GPT4All"
+          }
+        },
+        "id": "gpt4all_on",
+        "names": {
+          "en": "Use",
+          "zh-Hant": "使用"
+        },
+        "type": "boolean"
+      },
+      {
+        "default": "http://127.0.0.1:4891/v1",
+        "group": {
+          "id": "gpt4all",
+          "names": {
+            "en": "GPT4All"
+          }
+        },
+        "id": "gpt4all_url",
+        "max_length": 200,
+        "names": {
+          "en": "Address",
+          "zh-Hant": "位址"
+        },
+        "pattern": "https?://(127\\.0\\.0\\.1|localhost|\\[::1\\])(:[0-9]{1,5})?(/[A-Za-z0-9._~/-]*)?",
+        "type": "text"
+      },
+      {
+        "default": true,
+        "group": {
+          "id": "textgen",
+          "names": {
+            "en": "Text Generation WebUI"
+          }
+        },
+        "id": "textgen_on",
+        "names": {
+          "en": "Use",
+          "zh-Hant": "使用"
+        },
+        "type": "boolean"
+      },
+      {
+        "default": "http://127.0.0.1:5000/v1",
+        "group": {
+          "id": "textgen",
+          "names": {
+            "en": "Text Generation WebUI"
+          }
+        },
+        "id": "textgen_url",
+        "max_length": 200,
+        "names": {
+          "en": "Address",
+          "zh-Hant": "位址"
+        },
+        "pattern": "https?://(127\\.0\\.0\\.1|localhost|\\[::1\\])(:[0-9]{1,5})?(/[A-Za-z0-9._~/-]*)?",
+        "type": "text"
+      },
+      {
+        "default": true,
+        "group": {
+          "id": "koboldcpp",
+          "names": {
+            "en": "KoboldCpp"
+          }
+        },
+        "id": "koboldcpp_on",
+        "names": {
+          "en": "Use",
+          "zh-Hant": "使用"
+        },
+        "type": "boolean"
+      },
+      {
+        "default": "http://127.0.0.1:5001/v1",
+        "group": {
+          "id": "koboldcpp",
+          "names": {
+            "en": "KoboldCpp"
+          }
+        },
+        "id": "koboldcpp_url",
+        "max_length": 200,
+        "names": {
+          "en": "Address",
+          "zh-Hant": "位址"
+        },
+        "pattern": "https?://(127\\.0\\.0\\.1|localhost|\\[::1\\])(:[0-9]{1,5})?(/[A-Za-z0-9._~/-]*)?",
+        "type": "text"
+      },
+      {
+        "default": true,
+        "group": {
+          "id": "xinference",
+          "names": {
+            "en": "Xinference"
+          }
+        },
+        "id": "xinference_on",
+        "names": {
+          "en": "Use",
+          "zh-Hant": "使用"
+        },
+        "type": "boolean"
+      },
+      {
+        "default": "http://127.0.0.1:9997/v1",
+        "group": {
+          "id": "xinference",
+          "names": {
+            "en": "Xinference"
+          }
+        },
+        "id": "xinference_url",
+        "max_length": 200,
+        "names": {
+          "en": "Address",
+          "zh-Hant": "位址"
+        },
+        "pattern": "https?://(127\\.0\\.0\\.1|localhost|\\[::1\\])(:[0-9]{1,5})?(/[A-Za-z0-9._~/-]*)?",
+        "type": "text"
+      },
+      {
+        "default": true,
+        "group": {
+          "id": "docker",
+          "names": {
+            "en": "Docker Model Runner"
+          }
+        },
+        "id": "docker_on",
+        "names": {
+          "en": "Use",
+          "zh-Hant": "使用"
+        },
+        "type": "boolean"
+      },
+      {
+        "default": "http://127.0.0.1:12434/engines/v1",
+        "group": {
+          "id": "docker",
+          "names": {
+            "en": "Docker Model Runner"
+          }
+        },
+        "id": "docker_url",
+        "max_length": 200,
+        "names": {
+          "en": "Address",
+          "zh-Hant": "位址"
+        },
+        "pattern": "https?://(127\\.0\\.0\\.1|localhost|\\[::1\\])(:[0-9]{1,5})?(/[A-Za-z0-9._~/-]*)?",
+        "type": "text"
+      },
+      {
+        "default": true,
+        "group": {
+          "id": "sglang",
+          "names": {
+            "en": "SGLang"
+          }
+        },
+        "id": "sglang_on",
+        "names": {
+          "en": "Use",
+          "zh-Hant": "使用"
+        },
+        "type": "boolean"
+      },
+      {
+        "default": "http://127.0.0.1:30000/v1",
+        "group": {
+          "id": "sglang",
+          "names": {
+            "en": "SGLang"
+          }
+        },
+        "id": "sglang_url",
+        "max_length": 200,
+        "names": {
+          "en": "Address",
+          "zh-Hant": "位址"
+        },
+        "pattern": "https?://(127\\.0\\.0\\.1|localhost|\\[::1\\])(:[0-9]{1,5})?(/[A-Za-z0-9._~/-]*)?",
+        "type": "text"
+      },
+      {
+        "default": true,
+        "group": {
+          "id": "exo",
+          "names": {
+            "en": "exo"
+          }
+        },
+        "id": "exo_on",
+        "names": {
+          "en": "Use",
+          "zh-Hant": "使用"
+        },
+        "type": "boolean"
+      },
+      {
+        "default": "http://127.0.0.1:52415/v1",
+        "group": {
+          "id": "exo",
+          "names": {
+            "en": "exo"
+          }
+        },
+        "id": "exo_url",
+        "max_length": 200,
+        "names": {
+          "en": "Address",
+          "zh-Hant": "位址"
+        },
+        "pattern": "https?://(127\\.0\\.0\\.1|localhost|\\[::1\\])(:[0-9]{1,5})?(/[A-Za-z0-9._~/-]*)?",
+        "type": "text"
+      },
+      {
+        "default": [],
+        "descriptions": {
+          "en": "OpenAI-compatible servers on this computer that are not listed above, one address per line, such as http://127.0.0.1:9000/v1.",
+          "zh-Hant": "上方未列出、這台電腦上的 OpenAI 相容伺服器，每行一個位址，例如 http://127.0.0.1:9000/v1。"
+        },
+        "id": "servers",
+        "max_items": 8,
+        "max_length": 200,
+        "names": {
+          "en": "Other model servers",
+          "zh-Hant": "其他模型伺服器"
+        },
+        "pattern": "https?://(127\\.0\\.0\\.1|localhost|\\[::1\\])(:[0-9]{1,5})?(/[A-Za-z0-9._~/-]*)?",
+        "type": "list"
+      },
+      {
+        "default": "",
+        "descriptions": {
+          "en": "Used when a call names no model, such as qwen3:8b. Empty: the first model found.",
+          "zh-Hant": "呼叫未指定模型時使用，例如 qwen3:8b。留空則使用找到的第一個模型。"
+        },
+        "id": "model",
+        "max_length": 200,
+        "names": {
+          "en": "Default model",
+          "zh-Hant": "預設模型"
+        },
+        "pattern": "[A-Za-z0-9][A-Za-z0-9_.:/@+-]{0,199}",
+        "type": "text"
+      }
+    ],
+    "version": "0.1.9-beta"
+  },
+  "version": "0.1.9-beta"
+}

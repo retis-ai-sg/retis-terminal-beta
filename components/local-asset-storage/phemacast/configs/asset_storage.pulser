@@ -1,0 +1,786 @@
+{
+  "name": "AssetStorage",
+  "type": "phemacast.pulsers.asset_storage_pulser.AssetStoragePulser",
+  "host": "127.0.0.1",
+  "port": 8199,
+  "role": "pulser",
+  "description": "Keeps pictures, audio, video, documents, data files and archives for agents, and for users who choose to keep their own files.",
+  "tags": [
+    "storage",
+    "asset",
+    "files"
+  ],
+  "pools": [
+    {
+      "type": "FileSystemPool",
+      "name": "asset_storage_pool",
+      "description": "AssetStorage agent records",
+      "root_path": "phemacast/storage/asset_storage/agent"
+    }
+  ],
+  "asset_storage": {
+    "mode": "site",
+    "metadata_pool": {
+      "type": "SQLitePool",
+      "name": "asset_metadata",
+      "db_path": "phemacast/storage/asset_storage/assets.sqlite"
+    },
+    "blob_pool": {
+      "type": "FileSystemPool",
+      "name": "asset_blobs",
+      "root_path": "phemacast/storage/asset_storage/blobs"
+    },
+    "limits": {},
+    "sweep_seconds": 3600
+  },
+  "supported_pulses": [
+    {
+      "party": "System",
+      "name": "asset_put",
+      "description": "Keep a file. Send content_base64 (one part, at most part_bytes) to keep it at once, or size and sha256 to start an upload and send its parts with asset_put_part.",
+      "pulse_address": "plaza://pulse/asset_put",
+      "tags": [
+        "storage",
+        "asset"
+      ],
+      "cost": 0,
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "asset_type": {
+            "type": "string",
+            "enum": [
+              "image",
+              "audio",
+              "video",
+              "document",
+              "data",
+              "archive"
+            ]
+          },
+          "media_type": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 1000
+          },
+          "tags": {
+            "type": "array",
+            "maxItems": 20,
+            "items": {
+              "type": "string",
+              "maxLength": 40
+            }
+          },
+          "labels": {
+            "type": "object",
+            "description": "Title by language, e.g. {\"zh-Hant\": \"...\"}."
+          },
+          "visibility": {
+            "type": "string",
+            "enum": [
+              "private",
+              "owner",
+              "site"
+            ]
+          },
+          "expires_at": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "Unix seconds."
+          },
+          "source_ref": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "owner": {
+            "type": "string",
+            "enum": [
+              "agent",
+              "user",
+              "site"
+            ],
+            "default": "agent"
+          },
+          "replace": {
+            "type": "string",
+            "description": "Asset id to give a new file (a new revision)."
+          },
+          "size": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "content_base64": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "asset_type",
+          "media_type"
+        ],
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "asset": {
+            "type": "object",
+            "properties": {
+              "asset_id": {
+                "type": "string"
+              },
+              "asset_type": {
+                "type": "string"
+              },
+              "media_type": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              },
+              "tags": {
+                "type": "array"
+              },
+              "labels": {
+                "type": "object"
+              },
+              "size": {
+                "type": "integer"
+              },
+              "sha256": {
+                "type": "string"
+              },
+              "revision": {
+                "type": "integer"
+              },
+              "visibility": {
+                "type": "string"
+              },
+              "owner_kind": {
+                "type": "string"
+              },
+              "mine": {
+                "type": "boolean"
+              },
+              "source_ref": {
+                "type": "string"
+              },
+              "created_at": {
+                "type": "string"
+              },
+              "updated_at": {
+                "type": "string"
+              },
+              "expires_at": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          },
+          "upload_id": {
+            "type": "string"
+          },
+          "part_bytes": {
+            "type": "integer"
+          },
+          "parts": {
+            "type": "integer"
+          },
+          "expires_at": {
+            "type": "string"
+          }
+        }
+      },
+      "cost_points": 0
+    },
+    {
+      "party": "System",
+      "name": "asset_put_part",
+      "description": "Send one part of an upload; the last part checks the whole file and keeps it.",
+      "pulse_address": "plaza://pulse/asset_put_part",
+      "tags": [
+        "storage",
+        "asset"
+      ],
+      "cost": 0,
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "upload_id": {
+            "type": "string"
+          },
+          "index": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "content_base64": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "upload_id",
+          "index",
+          "content_base64"
+        ],
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "upload_id": {
+            "type": "string"
+          },
+          "received": {
+            "type": "integer"
+          },
+          "parts": {
+            "type": "integer"
+          },
+          "asset": {
+            "type": "object",
+            "properties": {
+              "asset_id": {
+                "type": "string"
+              },
+              "asset_type": {
+                "type": "string"
+              },
+              "media_type": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              },
+              "tags": {
+                "type": "array"
+              },
+              "labels": {
+                "type": "object"
+              },
+              "size": {
+                "type": "integer"
+              },
+              "sha256": {
+                "type": "string"
+              },
+              "revision": {
+                "type": "integer"
+              },
+              "visibility": {
+                "type": "string"
+              },
+              "owner_kind": {
+                "type": "string"
+              },
+              "mine": {
+                "type": "boolean"
+              },
+              "source_ref": {
+                "type": "string"
+              },
+              "created_at": {
+                "type": "string"
+              },
+              "updated_at": {
+                "type": "string"
+              },
+              "expires_at": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          }
+        }
+      },
+      "cost_points": 0
+    },
+    {
+      "party": "System",
+      "name": "asset_get",
+      "description": "Read an asset's details and one part of its bytes (from offset, at most part_bytes).",
+      "pulse_address": "plaza://pulse/asset_get",
+      "tags": [
+        "storage",
+        "asset"
+      ],
+      "cost": 0,
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "asset_id": {
+            "type": "string"
+          },
+          "offset": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "length": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "metadata_only": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "asset_id"
+        ],
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "asset": {
+            "type": "object",
+            "properties": {
+              "asset_id": {
+                "type": "string"
+              },
+              "asset_type": {
+                "type": "string"
+              },
+              "media_type": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              },
+              "tags": {
+                "type": "array"
+              },
+              "labels": {
+                "type": "object"
+              },
+              "size": {
+                "type": "integer"
+              },
+              "sha256": {
+                "type": "string"
+              },
+              "revision": {
+                "type": "integer"
+              },
+              "visibility": {
+                "type": "string"
+              },
+              "owner_kind": {
+                "type": "string"
+              },
+              "mine": {
+                "type": "boolean"
+              },
+              "source_ref": {
+                "type": "string"
+              },
+              "created_at": {
+                "type": "string"
+              },
+              "updated_at": {
+                "type": "string"
+              },
+              "expires_at": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          },
+          "offset": {
+            "type": "integer"
+          },
+          "content_base64": {
+            "type": "string"
+          },
+          "next_offset": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          }
+        }
+      },
+      "cost_points": 0
+    },
+    {
+      "party": "System",
+      "name": "asset_list",
+      "description": "List assets: scope 'mine' (yours, as owner agent/user/site) or 'site' (shared with the site); at most 50 at a time, newest first.",
+      "pulse_address": "plaza://pulse/asset_list",
+      "tags": [
+        "storage",
+        "asset"
+      ],
+      "cost": 0,
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "scope": {
+            "type": "string",
+            "enum": [
+              "mine",
+              "site"
+            ]
+          },
+          "owner": {
+            "type": "string",
+            "enum": [
+              "agent",
+              "user",
+              "site"
+            ]
+          },
+          "asset_type": {
+            "type": "string",
+            "enum": [
+              "image",
+              "audio",
+              "video",
+              "document",
+              "data",
+              "archive"
+            ]
+          },
+          "tag": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 50
+          },
+          "cursor": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "scope"
+        ],
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "assets": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "asset_id": {
+                  "type": "string"
+                },
+                "asset_type": {
+                  "type": "string"
+                },
+                "media_type": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "description": {
+                  "type": "string"
+                },
+                "tags": {
+                  "type": "array"
+                },
+                "labels": {
+                  "type": "object"
+                },
+                "size": {
+                  "type": "integer"
+                },
+                "sha256": {
+                  "type": "string"
+                },
+                "revision": {
+                  "type": "integer"
+                },
+                "visibility": {
+                  "type": "string"
+                },
+                "owner_kind": {
+                  "type": "string"
+                },
+                "mine": {
+                  "type": "boolean"
+                },
+                "source_ref": {
+                  "type": "string"
+                },
+                "created_at": {
+                  "type": "string"
+                },
+                "updated_at": {
+                  "type": "string"
+                },
+                "expires_at": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              }
+            }
+          },
+          "next_cursor": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "test_data": {
+        "scope": "mine"
+      },
+      "cost_points": 0
+    },
+    {
+      "party": "System",
+      "name": "asset_update",
+      "description": "Change an asset's name, description, tags, labels, visibility, expiry or source reference.",
+      "pulse_address": "plaza://pulse/asset_update",
+      "tags": [
+        "storage",
+        "asset"
+      ],
+      "cost": 0,
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "asset_id": {
+            "type": "string"
+          },
+          "changes": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "maxLength": 200
+              },
+              "description": {
+                "type": "string",
+                "maxLength": 1000
+              },
+              "tags": {
+                "type": "array",
+                "maxItems": 20,
+                "items": {
+                  "type": "string",
+                  "maxLength": 40
+                }
+              },
+              "labels": {
+                "type": "object",
+                "description": "Title by language, e.g. {\"zh-Hant\": \"...\"}."
+              },
+              "visibility": {
+                "type": "string",
+                "enum": [
+                  "private",
+                  "owner",
+                  "site"
+                ]
+              },
+              "expires_at": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "description": "Unix seconds."
+              },
+              "source_ref": {
+                "type": "string",
+                "maxLength": 200
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "asset_id",
+          "changes"
+        ],
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "asset": {
+            "type": "object",
+            "properties": {
+              "asset_id": {
+                "type": "string"
+              },
+              "asset_type": {
+                "type": "string"
+              },
+              "media_type": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              },
+              "tags": {
+                "type": "array"
+              },
+              "labels": {
+                "type": "object"
+              },
+              "size": {
+                "type": "integer"
+              },
+              "sha256": {
+                "type": "string"
+              },
+              "revision": {
+                "type": "integer"
+              },
+              "visibility": {
+                "type": "string"
+              },
+              "owner_kind": {
+                "type": "string"
+              },
+              "mine": {
+                "type": "boolean"
+              },
+              "source_ref": {
+                "type": "string"
+              },
+              "created_at": {
+                "type": "string"
+              },
+              "updated_at": {
+                "type": "string"
+              },
+              "expires_at": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          }
+        }
+      },
+      "cost_points": 0
+    },
+    {
+      "party": "System",
+      "name": "asset_delete",
+      "description": "Remove an asset; nothing of it is kept.",
+      "pulse_address": "plaza://pulse/asset_delete",
+      "tags": [
+        "storage",
+        "asset"
+      ],
+      "cost": 0,
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "asset_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "asset_id"
+        ],
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "deleted": {
+            "type": "boolean"
+          },
+          "asset_id": {
+            "type": "string"
+          }
+        }
+      },
+      "cost_points": 0
+    },
+    {
+      "party": "System",
+      "name": "asset_usage",
+      "description": "What you keep and your quota.",
+      "pulse_address": "plaza://pulse/asset_usage",
+      "tags": [
+        "storage",
+        "asset"
+      ],
+      "cost": 0,
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "owner": {
+            "type": "string",
+            "enum": [
+              "agent",
+              "user",
+              "site"
+            ]
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "bytes": {
+            "type": "integer"
+          },
+          "assets": {
+            "type": "integer"
+          },
+          "uploads": {
+            "type": "integer"
+          },
+          "quota_bytes": {
+            "type": "integer"
+          },
+          "quota_assets": {
+            "type": "integer"
+          }
+        }
+      },
+      "cost_points": 0
+    }
+  ]
+}

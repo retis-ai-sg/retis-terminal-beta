@@ -30,6 +30,14 @@ class RunEscrow:
         self.points = 0
         self.held = []
         self.capture_started = False
+        # The sources this run drew data from through the Terminal's data requests, each once ({agentId, sourceId}).
+        # Whoever reads the run's result can then honour those sources' terms (an AI app may not see some sources' data).
+        self.drawn = []
+
+    def drew(self, agent_id, source_id=''):
+        entry = {'agentId': str(agent_id or ''), 'sourceId': str(source_id or '')}
+        if entry['agentId'] and entry not in self.drawn:
+            self.drawn.append(entry)
 
     def admit(self, points):
         """Count a step's quoted points against the run; refuse a step that would pass the Phema's limit."""
@@ -64,8 +72,9 @@ def failed(result):
     return result.get('status') in FAILED or response.get('status') in FAILED
 
 
-async def run(user, work):
-    """Run `work()` (an async callable) as one escrow outcome for this user's run."""
+async def run(user, work, drawn=None):
+    """Run `work()` (an async callable) as one escrow outcome for this user's run. A `drawn` list receives the sources
+    the run drew data from ({agentId, sourceId})."""
     escrow = RunEscrow(user.get('_permissionMaxPoints') if isinstance(user.get('_permissionMaxPoints'), int) else None)
     token = CURRENT.set(escrow)
     try:
@@ -75,6 +84,8 @@ async def run(user, work):
         raise
     finally:
         CURRENT.reset(token)
+        if drawn is not None:
+            drawn.extend(entry for entry in escrow.drawn if entry not in drawn)
     if failed(result):
         await escrow.refund()
     else:

@@ -1,0 +1,1211 @@
+{
+  "content_hash": "a885e08c62019f1ffd6ebbfcddb2ec3dc8103f2fb72e9f73ba1e2c11cd2b5c09",
+  "endpoints": [
+    {
+      "authentication": {
+        "required": false,
+        "scheme": "public_provider"
+      },
+      "category": "News and feeds",
+      "cost": {
+        "amount": 0,
+        "currency": "USD",
+        "model": "free",
+        "notes": [],
+        "provider_cost": "Public feeds are free to read; each publisher sets its own terms.",
+        "unit": "request"
+      },
+      "description": "Read up to 20 public RSS 2.0, RSS 1.0 (RDF) or Atom feeds and return their newest articles as plain text. Sending the ETag or Last-Modified from an earlier read asks only for what changed.",
+      "documentation_url": "https://www.rssboard.org/rss-specification",
+      "endpoint_id": "rss.read_feeds",
+      "executable": true,
+      "extensions": {
+        "attas.http_method": "GET",
+        "attas.max_response_bytes": 220000,
+        "attas.schema_provenance": "curated_provider_documentation",
+        "attas.specification_only": false,
+        "attas.vendor_version": ""
+      },
+      "name": "Read feeds",
+      "operation": "rss.read_feeds",
+      "parameters": [
+        {
+          "default": null,
+          "description": "The feeds to read: each a public http(s) address on the standard port, with its optional name, enabled flag, refresh interval and validators.",
+          "examples": [
+            [
+              {
+                "name": "Example",
+                "url": "https://example.com/feed.xml"
+              }
+            ]
+          ],
+          "location": "body",
+          "name": "feeds",
+          "required": true,
+          "schema": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "enabled": {
+                  "type": "boolean"
+                },
+                "etag": {
+                  "maxLength": 512,
+                  "pattern": "^[^\r\n]*$",
+                  "type": "string"
+                },
+                "last_modified": {
+                  "maxLength": 128,
+                  "pattern": "^[^\r\n]*$",
+                  "type": "string"
+                },
+                "name": {
+                  "maxLength": 100,
+                  "type": "string"
+                },
+                "refresh_seconds": {
+                  "enum": [
+                    0,
+                    60,
+                    300,
+                    900,
+                    1800,
+                    3600,
+                    21600,
+                    86400
+                  ],
+                  "type": "integer"
+                },
+                "url": {
+                  "maxLength": 2048,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              },
+              "required": [
+                "url"
+              ],
+              "type": "object"
+            },
+            "maxItems": 20,
+            "type": "array"
+          }
+        },
+        {
+          "default": 20,
+          "description": "The most articles to return from each feed (1 to 30).",
+          "examples": [],
+          "location": "body",
+          "name": "limit",
+          "required": false,
+          "schema": {
+            "maximum": 30,
+            "minimum": 1,
+            "type": "integer"
+          }
+        }
+      ],
+      "pulse_name": "",
+      "quality": {
+        "notes": [
+          "Articles are what each feed publishes, often an excerpt; HTML becomes plain text.",
+          "Feed content belongs to its publishers."
+        ],
+        "status": "provider_documented"
+      },
+      "response_schema": {
+        "description": "The feeds read, in the order requested.",
+        "properties": {
+          "feeds": {
+            "description": "One result for each feed requested.",
+            "items": {
+              "description": "What reading one feed gave.",
+              "properties": {
+                "checked_at": {
+                  "description": "When the feed was read, ISO 8601 in UTC.",
+                  "format": "date-time",
+                  "type": "string"
+                },
+                "error": {
+                  "description": "Why the feed could not be read.",
+                  "type": "string"
+                },
+                "etag": {
+                  "description": "ETag the publisher sent, for the next conditional read.",
+                  "type": "string"
+                },
+                "items": {
+                  "description": "The newest articles, at most `limit`.",
+                  "items": {
+                    "description": "One article of the feed, as plain text.",
+                    "properties": {
+                      "author": {
+                        "description": "Author named by the entry.",
+                        "type": "string"
+                      },
+                      "content": {
+                        "description": "Article text the feed supplies (possibly an excerpt), HTML converted to plain text.",
+                        "type": "string"
+                      },
+                      "id": {
+                        "description": "Stable id of the article: a hash of the feed address and the entry guid, id, link or title.",
+                        "type": "string"
+                      },
+                      "published_at": {
+                        "description": "When the article was published or last updated, ISO 8601 in UTC.",
+                        "format": "date-time",
+                        "type": "string"
+                      },
+                      "publisher": {
+                        "description": "The outlet an aggregator's entry names in its source element (RSS 2.0 <source>).",
+                        "type": "string"
+                      },
+                      "summary": {
+                        "description": "Summary or description of the article, plain text, at most 500 characters.",
+                        "type": "string"
+                      },
+                      "title": {
+                        "description": "Headline of the article, plain text.",
+                        "type": "string"
+                      },
+                      "url": {
+                        "description": "Public address of the article on the publisher's site, when the entry gives one.",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "title"
+                    ],
+                    "type": "object"
+                  },
+                  "type": "array"
+                },
+                "last_modified": {
+                  "description": "Last-Modified the publisher sent, for the next conditional read.",
+                  "type": "string"
+                },
+                "name": {
+                  "description": "The name the user gave the feed.",
+                  "type": "string"
+                },
+                "site_url": {
+                  "description": "Public address of the feed's site.",
+                  "type": "string"
+                },
+                "status": {
+                  "description": "ready (articles read), not_modified (unchanged since the validators sent), disabled or error.",
+                  "enum": [
+                    "ready",
+                    "not_modified",
+                    "disabled",
+                    "error"
+                  ],
+                  "type": "string"
+                },
+                "title": {
+                  "description": "The feed's own title.",
+                  "type": "string"
+                },
+                "truncated": {
+                  "description": "True when articles were left out to keep the answer under its size limit.",
+                  "type": "boolean"
+                },
+                "url": {
+                  "description": "The feed address as requested.",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "url",
+                "status",
+                "checked_at"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "source_mode": {
+            "description": "Always parameters: the feeds came with the request.",
+            "enum": [
+              "parameters"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "source_mode",
+          "feeds"
+        ],
+        "type": "object"
+      },
+      "transport": "https",
+      "vendor_id": "rss"
+    },
+    {
+      "authentication": {
+        "required": false,
+        "scheme": "public_provider"
+      },
+      "category": "News and feeds",
+      "cost": {
+        "amount": 0,
+        "currency": "USD",
+        "model": "free",
+        "notes": [],
+        "provider_cost": "Public feeds are free to read; each publisher sets its own terms.",
+        "unit": "request"
+      },
+      "description": "List the default feeds (public Chinese-language finance and business feeds) with their tags; reads no feed.",
+      "documentation_url": "https://www.rssboard.org/rss-specification",
+      "endpoint_id": "rss.feeds",
+      "executable": true,
+      "extensions": {
+        "attas.http_method": "GET",
+        "attas.max_response_bytes": 220000,
+        "attas.schema_provenance": "curated_provider_documentation",
+        "attas.specification_only": false,
+        "attas.vendor_version": ""
+      },
+      "name": "Default feeds",
+      "operation": "rss.feeds",
+      "parameters": [
+        {
+          "default": null,
+          "description": "Only feeds that have every one of these tags, such as [\"tw\", \"stocks\"].",
+          "examples": [],
+          "location": "body",
+          "name": "tags",
+          "required": false,
+          "schema": {
+            "description": "Only feeds that have every one of these tags.",
+            "items": {
+              "pattern": "^[A-Za-z][A-Za-z-]{0,30}$",
+              "type": "string"
+            },
+            "maxItems": 8,
+            "type": "array",
+            "uniqueItems": true
+          }
+        }
+      ],
+      "pulse_name": "",
+      "quality": {
+        "notes": [
+          "Articles are what each default feed publishes, often an excerpt; HTML becomes plain text.",
+          "A keyword feed is a news search; its matches are the search's, not this source's.",
+          "Feed content belongs to its publishers."
+        ],
+        "status": "provider_documented"
+      },
+      "response_schema": {
+        "description": "The default feeds.",
+        "properties": {
+          "feeds": {
+            "items": {
+              "description": "One default feed.",
+              "properties": {
+                "id": {
+                  "description": "The feed id the news endpoints take.",
+                  "type": "string"
+                },
+                "keyword": {
+                  "description": "For a keyword feed: the keyword it searches when read as a default feed.",
+                  "type": "string"
+                },
+                "language": {
+                  "description": "zh-Hant or zh-Hans.",
+                  "type": "string"
+                },
+                "name": {
+                  "description": "The feed's name.",
+                  "type": "string"
+                },
+                "tags": {
+                  "description": "The feed's tags: region, language and topics.",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "template": {
+                  "description": "For a keyword feed: its address with {keyword} where stock news puts the keyword.",
+                  "type": "string"
+                },
+                "url": {
+                  "description": "The feed's public address.",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "url",
+                "tags"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "tags": {
+            "description": "Every tag the listed feeds have.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "feeds",
+          "tags"
+        ],
+        "type": "object"
+      },
+      "transport": "https",
+      "vendor_id": "rss"
+    },
+    {
+      "authentication": {
+        "required": false,
+        "scheme": "public_provider"
+      },
+      "category": "News and feeds",
+      "cost": {
+        "amount": 0,
+        "currency": "USD",
+        "model": "free",
+        "notes": [],
+        "provider_cost": "Public feeds are free to read; each publisher sets its own terms.",
+        "unit": "request"
+      },
+      "description": "The newest articles across the default feeds, newest first, one copy of each: headline, time, address, a short summary, its feed and tags. Narrow it by tags or by feed id.",
+      "documentation_url": "https://www.rssboard.org/rss-specification",
+      "endpoint_id": "rss.news_list",
+      "executable": true,
+      "extensions": {
+        "attas.http_method": "GET",
+        "attas.max_response_bytes": 220000,
+        "attas.schema_provenance": "curated_provider_documentation",
+        "attas.specification_only": false,
+        "attas.vendor_version": ""
+      },
+      "name": "News list",
+      "operation": "rss.news_list",
+      "parameters": [
+        {
+          "default": null,
+          "description": "Only feeds that have every one of these tags.",
+          "examples": [
+            [
+              "tw",
+              "stocks"
+            ]
+          ],
+          "location": "body",
+          "name": "tags",
+          "required": false,
+          "schema": {
+            "description": "Only feeds that have every one of these tags.",
+            "items": {
+              "pattern": "^[A-Za-z][A-Za-z-]{0,30}$",
+              "type": "string"
+            },
+            "maxItems": 8,
+            "type": "array",
+            "uniqueItems": true
+          }
+        },
+        {
+          "default": null,
+          "description": "Only these default feeds, by id.",
+          "examples": [],
+          "location": "body",
+          "name": "feeds",
+          "required": false,
+          "schema": {
+            "items": {
+              "pattern": "^[a-z0-9][a-z0-9-]{0,63}$",
+              "type": "string"
+            },
+            "maxItems": 30,
+            "type": "array",
+            "uniqueItems": true
+          }
+        },
+        {
+          "default": null,
+          "description": "The most articles to return (1 to 100, default 30).",
+          "examples": [],
+          "location": "body",
+          "name": "limit",
+          "required": false,
+          "schema": {
+            "maximum": 100,
+            "minimum": 1,
+            "type": "integer"
+          }
+        }
+      ],
+      "pulse_name": "",
+      "quality": {
+        "notes": [
+          "Articles are what each default feed publishes, often an excerpt; HTML becomes plain text.",
+          "A keyword feed is a news search; its matches are the search's, not this source's.",
+          "Feed content belongs to its publishers."
+        ],
+        "status": "provider_documented"
+      },
+      "response_schema": {
+        "description": "The newest articles across the chosen default feeds.",
+        "properties": {
+          "feeds": {
+            "items": {
+              "description": "How reading one feed went.",
+              "properties": {
+                "checked_at": {
+                  "description": "When it was read, ISO 8601 in UTC; an earlier time when the read was kept from the last few minutes.",
+                  "format": "date-time",
+                  "type": "string"
+                },
+                "error": {
+                  "description": "Why the feed could not be read.",
+                  "type": "string"
+                },
+                "feed": {
+                  "description": "The feed, as `feed` names it on articles.",
+                  "type": "string"
+                },
+                "name": {
+                  "description": "The feed's name.",
+                  "type": "string"
+                },
+                "status": {
+                  "description": "ready or error.",
+                  "enum": [
+                    "ready",
+                    "error"
+                  ],
+                  "type": "string"
+                }
+              },
+              "required": [
+                "feed",
+                "name",
+                "status"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "items": {
+            "items": {
+              "description": "One article, newest first in a list.",
+              "properties": {
+                "feed": {
+                  "description": "The feed it came from: a default feed id, or keyword:<feed id>:<keyword> for a keyword search.",
+                  "type": "string"
+                },
+                "id": {
+                  "description": "Stable id of the article; rss.article takes it with `feed`.",
+                  "type": "string"
+                },
+                "published_at": {
+                  "description": "When it was published or last updated, ISO 8601 in UTC.",
+                  "format": "date-time",
+                  "type": "string"
+                },
+                "publisher": {
+                  "description": "The outlet that published it: the one an aggregator names, else the feed.",
+                  "type": "string"
+                },
+                "source": {
+                  "description": "Name of that feed.",
+                  "type": "string"
+                },
+                "summary": {
+                  "description": "Summary, plain text, at most 200 characters.",
+                  "type": "string"
+                },
+                "tags": {
+                  "description": "The feed's tags: region, language and topics.",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "title": {
+                  "description": "Headline, plain text.",
+                  "type": "string"
+                },
+                "url": {
+                  "description": "Public address of the article on the publisher's site (an aggregator's link for its entries).",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "feed",
+                "source",
+                "title"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "truncated": {
+            "description": "True when the oldest articles were left out to keep the answer under its size limit.",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "items",
+          "feeds"
+        ],
+        "type": "object"
+      },
+      "transport": "https",
+      "vendor_id": "rss"
+    },
+    {
+      "authentication": {
+        "required": false,
+        "scheme": "public_provider"
+      },
+      "category": "News and feeds",
+      "cost": {
+        "amount": 0,
+        "currency": "USD",
+        "model": "free",
+        "notes": [],
+        "provider_cost": "Public feeds are free to read; each publisher sets its own terms.",
+        "unit": "request"
+      },
+      "description": "One article from its feed, with the text the feed carries (often an excerpt) and its publisher's address.",
+      "documentation_url": "https://www.rssboard.org/rss-specification",
+      "endpoint_id": "rss.article",
+      "executable": true,
+      "extensions": {
+        "attas.http_method": "GET",
+        "attas.max_response_bytes": 220000,
+        "attas.schema_provenance": "curated_provider_documentation",
+        "attas.specification_only": false,
+        "attas.vendor_version": ""
+      },
+      "name": "Article",
+      "operation": "rss.article",
+      "parameters": [
+        {
+          "default": null,
+          "description": "The article's `feed`, as the news list or stock news gave it.",
+          "examples": [],
+          "location": "body",
+          "name": "feed",
+          "required": true,
+          "schema": {
+            "description": "A default feed id, or keyword:<feed id>:<keyword> for an article stock news found.",
+            "maxLength": 120,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        {
+          "default": null,
+          "description": "The article's `id`.",
+          "examples": [],
+          "location": "body",
+          "name": "id",
+          "required": true,
+          "schema": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          }
+        }
+      ],
+      "pulse_name": "",
+      "quality": {
+        "notes": [
+          "Articles are what each default feed publishes, often an excerpt; HTML becomes plain text.",
+          "A keyword feed is a news search; its matches are the search's, not this source's.",
+          "Feed content belongs to its publishers."
+        ],
+        "status": "provider_documented"
+      },
+      "response_schema": {
+        "description": "One article with the text its feed carries.",
+        "properties": {
+          "article": {
+            "description": "One article, newest first in a list.",
+            "properties": {
+              "author": {
+                "description": "Author named by the entry.",
+                "type": "string"
+              },
+              "content": {
+                "description": "The text the feed carries, often an excerpt; HTML converted to plain text.",
+                "type": "string"
+              },
+              "feed": {
+                "description": "The feed it came from: a default feed id, or keyword:<feed id>:<keyword> for a keyword search.",
+                "type": "string"
+              },
+              "id": {
+                "description": "Stable id of the article; rss.article takes it with `feed`.",
+                "type": "string"
+              },
+              "published_at": {
+                "description": "When it was published or last updated, ISO 8601 in UTC.",
+                "format": "date-time",
+                "type": "string"
+              },
+              "publisher": {
+                "description": "The outlet that published it: the one an aggregator names, else the feed.",
+                "type": "string"
+              },
+              "source": {
+                "description": "Name of that feed.",
+                "type": "string"
+              },
+              "summary": {
+                "description": "Summary, plain text, at most 500 characters.",
+                "type": "string"
+              },
+              "tags": {
+                "description": "The feed's tags: region, language and topics.",
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "title": {
+                "description": "Headline, plain text.",
+                "type": "string"
+              },
+              "url": {
+                "description": "Public address of the article on the publisher's site (an aggregator's link for its entries).",
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "feed",
+              "source",
+              "title"
+            ],
+            "type": "object"
+          },
+          "feed": {
+            "description": "How reading one feed went.",
+            "properties": {
+              "checked_at": {
+                "description": "When it was read, ISO 8601 in UTC; an earlier time when the read was kept from the last few minutes.",
+                "format": "date-time",
+                "type": "string"
+              },
+              "error": {
+                "description": "Why the feed could not be read.",
+                "type": "string"
+              },
+              "feed": {
+                "description": "The feed, as `feed` names it on articles.",
+                "type": "string"
+              },
+              "name": {
+                "description": "The feed's name.",
+                "type": "string"
+              },
+              "status": {
+                "description": "ready or error.",
+                "enum": [
+                  "ready",
+                  "error"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "feed",
+              "name",
+              "status"
+            ],
+            "type": "object"
+          }
+        },
+        "required": [
+          "article",
+          "feed"
+        ],
+        "type": "object"
+      },
+      "transport": "https",
+      "vendor_id": "rss"
+    },
+    {
+      "authentication": {
+        "required": false,
+        "scheme": "public_provider"
+      },
+      "category": "News and feeds",
+      "cost": {
+        "amount": 0,
+        "currency": "USD",
+        "model": "free",
+        "notes": [],
+        "provider_cost": "Public feeds are free to read; each publisher sets its own terms.",
+        "unit": "request"
+      },
+      "description": "Articles about a keyword, such as a stock code (2330, AAPL): each keyword feed searched for it, and the default feeds' articles whose headline or summary mention it or an alias (a company name such as 台積電).",
+      "documentation_url": "https://www.rssboard.org/rss-specification",
+      "endpoint_id": "rss.stock_news",
+      "executable": true,
+      "extensions": {
+        "attas.http_method": "GET",
+        "attas.max_response_bytes": 220000,
+        "attas.schema_provenance": "curated_provider_documentation",
+        "attas.specification_only": false,
+        "attas.vendor_version": ""
+      },
+      "name": "Stock news",
+      "operation": "rss.stock_news",
+      "parameters": [
+        {
+          "default": null,
+          "description": "What to search for: a stock code or name.",
+          "examples": [
+            "2330"
+          ],
+          "location": "body",
+          "name": "keyword",
+          "required": true,
+          "schema": {
+            "maxLength": 40,
+            "minLength": 1,
+            "pattern": "\\S",
+            "type": "string"
+          }
+        },
+        {
+          "default": null,
+          "description": "Up to four other words for it, matched in the default feeds.",
+          "examples": [
+            [
+              "台積電"
+            ]
+          ],
+          "location": "body",
+          "name": "aliases",
+          "required": false,
+          "schema": {
+            "items": {
+              "maxLength": 40,
+              "minLength": 1,
+              "pattern": "\\S",
+              "type": "string"
+            },
+            "maxItems": 4,
+            "type": "array",
+            "uniqueItems": true
+          }
+        },
+        {
+          "default": null,
+          "description": "Only feeds that have every one of these tags.",
+          "examples": [],
+          "location": "body",
+          "name": "tags",
+          "required": false,
+          "schema": {
+            "description": "Only feeds that have every one of these tags.",
+            "items": {
+              "pattern": "^[A-Za-z][A-Za-z-]{0,30}$",
+              "type": "string"
+            },
+            "maxItems": 8,
+            "type": "array",
+            "uniqueItems": true
+          }
+        },
+        {
+          "default": null,
+          "description": "The most articles to return (1 to 50, default 20).",
+          "examples": [],
+          "location": "body",
+          "name": "limit",
+          "required": false,
+          "schema": {
+            "maximum": 50,
+            "minimum": 1,
+            "type": "integer"
+          }
+        }
+      ],
+      "pulse_name": "",
+      "quality": {
+        "notes": [
+          "Articles are what each default feed publishes, often an excerpt; HTML becomes plain text.",
+          "A keyword feed is a news search; its matches are the search's, not this source's.",
+          "Feed content belongs to its publishers."
+        ],
+        "status": "provider_documented"
+      },
+      "response_schema": {
+        "description": "Articles about a keyword, such as a stock code.",
+        "properties": {
+          "aliases": {
+            "description": "The aliases asked for.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "feeds": {
+            "items": {
+              "description": "How reading one feed went.",
+              "properties": {
+                "checked_at": {
+                  "description": "When it was read, ISO 8601 in UTC; an earlier time when the read was kept from the last few minutes.",
+                  "format": "date-time",
+                  "type": "string"
+                },
+                "error": {
+                  "description": "Why the feed could not be read.",
+                  "type": "string"
+                },
+                "feed": {
+                  "description": "The feed, as `feed` names it on articles.",
+                  "type": "string"
+                },
+                "name": {
+                  "description": "The feed's name.",
+                  "type": "string"
+                },
+                "status": {
+                  "description": "ready or error.",
+                  "enum": [
+                    "ready",
+                    "error"
+                  ],
+                  "type": "string"
+                }
+              },
+              "required": [
+                "feed",
+                "name",
+                "status"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "items": {
+            "items": {
+              "description": "One article, newest first in a list.",
+              "properties": {
+                "feed": {
+                  "description": "The feed it came from: a default feed id, or keyword:<feed id>:<keyword> for a keyword search.",
+                  "type": "string"
+                },
+                "id": {
+                  "description": "Stable id of the article; rss.article takes it with `feed`.",
+                  "type": "string"
+                },
+                "matched": {
+                  "description": "The keyword and aliases its headline or summary mention; a keyword search result always names the keyword.",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "published_at": {
+                  "description": "When it was published or last updated, ISO 8601 in UTC.",
+                  "format": "date-time",
+                  "type": "string"
+                },
+                "publisher": {
+                  "description": "The outlet that published it: the one an aggregator names, else the feed.",
+                  "type": "string"
+                },
+                "source": {
+                  "description": "Name of that feed.",
+                  "type": "string"
+                },
+                "summary": {
+                  "description": "Summary, plain text, at most 200 characters.",
+                  "type": "string"
+                },
+                "tags": {
+                  "description": "The feed's tags: region, language and topics.",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "title": {
+                  "description": "Headline, plain text.",
+                  "type": "string"
+                },
+                "url": {
+                  "description": "Public address of the article on the publisher's site (an aggregator's link for its entries).",
+                  "type": "string"
+                },
+                "via": {
+                  "description": "keyword_feed (a keyword feed searched for the keyword) or default_feed (a default feed article that mentions it).",
+                  "enum": [
+                    "keyword_feed",
+                    "default_feed"
+                  ],
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "feed",
+                "source",
+                "title",
+                "matched",
+                "via"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "keyword": {
+            "description": "The keyword asked for.",
+            "type": "string"
+          },
+          "truncated": {
+            "description": "True when the oldest articles were left out to keep the answer under its size limit.",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "keyword",
+          "items",
+          "feeds"
+        ],
+        "type": "object"
+      },
+      "transport": "https",
+      "vendor_id": "rss"
+    },
+    {
+      "authentication": {
+        "required": false,
+        "scheme": "public_provider"
+      },
+      "category": "News and feeds",
+      "cost": {
+        "amount": 0,
+        "currency": "USD",
+        "model": "free",
+        "notes": [],
+        "provider_cost": "Public feeds are free to read; each publisher sets its own terms.",
+        "unit": "request"
+      },
+      "description": "Groups of public feeds by language (zh-Hant, zh-Hans, en, ja) and topic, from the reviewed directory: each feed was read through this source before it was listed. Reads no feed; a reader takes a group's feeds to read them.",
+      "documentation_url": "https://www.rssboard.org/rss-specification",
+      "endpoint_id": "rss.groups",
+      "executable": true,
+      "extensions": {
+        "attas.http_method": "GET",
+        "attas.max_response_bytes": 220000,
+        "attas.schema_provenance": "curated_provider_documentation",
+        "attas.specification_only": false,
+        "attas.vendor_version": ""
+      },
+      "name": "Feed groups",
+      "operation": "rss.groups",
+      "parameters": [
+        {
+          "default": null,
+          "description": "Only groups in this language.",
+          "examples": [
+            "en"
+          ],
+          "location": "body",
+          "name": "language",
+          "required": false,
+          "schema": {
+            "enum": [
+              "zh-Hant",
+              "zh-Hans",
+              "en",
+              "ja"
+            ],
+            "type": "string"
+          }
+        },
+        {
+          "default": null,
+          "description": "Only groups with this topic, such as stocks or technology.",
+          "examples": [
+            "markets"
+          ],
+          "location": "body",
+          "name": "topic",
+          "required": false,
+          "schema": {
+            "pattern": "^[A-Za-z][A-Za-z-]{0,30}$",
+            "type": "string"
+          }
+        },
+        {
+          "default": null,
+          "description": "Only groups whose names, description or feed names have these words.",
+          "examples": [],
+          "location": "body",
+          "name": "query",
+          "required": false,
+          "schema": {
+            "description": "Words in a group or feed name or description.",
+            "maxLength": 40,
+            "minLength": 1,
+            "pattern": "\\S",
+            "type": "string"
+          }
+        }
+      ],
+      "pulse_name": "",
+      "quality": {
+        "notes": [
+          "Articles are what each default feed publishes, often an excerpt; HTML becomes plain text.",
+          "A keyword feed is a news search; its matches are the search's, not this source's.",
+          "Feed content belongs to its publishers."
+        ],
+        "status": "provider_documented"
+      },
+      "response_schema": {
+        "description": "Groups of public feeds from the reviewed directory.",
+        "properties": {
+          "groups": {
+            "description": "The matching groups, in the directory's order.",
+            "items": {
+              "properties": {
+                "description": {
+                  "description": "What the group covers, in en and zh-Hant.",
+                  "type": "object"
+                },
+                "feeds": {
+                  "items": {
+                    "properties": {
+                      "checked": {
+                        "description": "When the feed was last read through this source.",
+                        "format": "date",
+                        "type": "string"
+                      },
+                      "name": {
+                        "description": "The feed's name.",
+                        "type": "string"
+                      },
+                      "url": {
+                        "description": "The feed's public address.",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "url"
+                    ],
+                    "type": "object"
+                  },
+                  "type": "array"
+                },
+                "id": {
+                  "description": "The group id.",
+                  "type": "string"
+                },
+                "language": {
+                  "description": "The feeds' language: zh-Hant, zh-Hans, en or ja.",
+                  "type": "string"
+                },
+                "name": {
+                  "description": "The group name in English (en) and Traditional Chinese (zh-Hant).",
+                  "type": "object"
+                },
+                "region": {
+                  "description": "Where the feeds come from, such as tw, hk, cn, jp, asia or intl.",
+                  "type": "string"
+                },
+                "topics": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "language",
+                "topics",
+                "feeds"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "languages": {
+            "description": "The languages groups may have.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "reviewed": {
+            "description": "When the directory was last reviewed.",
+            "format": "date",
+            "type": "string"
+          },
+          "topics": {
+            "description": "Every topic a group has.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "version": {
+            "description": "The directory's version; a changed directory has a higher one.",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "version",
+          "groups"
+        ],
+        "type": "object"
+      },
+      "transport": "https",
+      "vendor_id": "rss"
+    }
+  ],
+  "parser_version": "RSSCatalog:3",
+  "retrieved_at": "2026-11-23T00:00:00+00:00",
+  "sources": [
+    {
+      "description": "RSS 2.0 specification; the endpoint is curated from it.",
+      "kind": "document",
+      "location": "https://www.rssboard.org/rss-specification",
+      "media_type": "text/html",
+      "options": {
+        "curated": true
+      },
+      "source_id": "rss-2-0-specification",
+      "vendor_id": "rss",
+      "vendor_version": ""
+    },
+    {
+      "description": "The Atom Syndication Format (RFC 4287).",
+      "kind": "document",
+      "location": "https://www.rfc-editor.org/rfc/rfc4287",
+      "media_type": "text/html",
+      "options": {
+        "curated": true
+      },
+      "source_id": "atom-rfc-4287",
+      "vendor_id": "rss",
+      "vendor_version": ""
+    }
+  ],
+  "vendor_id": "rss",
+  "warnings": []
+}

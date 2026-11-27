@@ -57,6 +57,39 @@ def candidates(directory, refs):
     return {'panels': len(wanted), 'sources': rows[:40]}
 
 
+def by_panel(directory, refs, overrides):
+    """Each data panel's own choice, for the source menu in its heading: the sources this viewer can use for that
+    panel's model and the one chosen for it (None: automatic)."""
+    wanted = panels(refs)
+    able = [e for e in directory or [] if isinstance(e, dict) and usable(e) and fetches(e)] if wanted else []
+    result = {}
+    for path, model in wanted.items():
+        rows = [{'id': e['id'], 'name': str(e.get('name') or e['id'])[:120], 'local': bool(e.get('localId'))}
+                for e in able if model_of(e, model)]
+        rows.sort(key=lambda row: (row['name'].lower(), row['id']))
+        result[path] = {'sources': rows[:20], 'chosen': ((overrides or {}).get(path) or {}).get(FIELD)}
+    return result
+
+
+def apply_one(overrides, refs, path, entry):
+    """Set (or, with no entry, clear) the source of one data panel; returns the changed paths ([path] or [])."""
+    wanted = panels(refs)
+    if path not in wanted:
+        raise ValueError('Choose the source of one of this Browser\'s data panels.')
+    if entry is not None and not model_of(entry, wanted[path]):
+        raise ValueError('That source does not serve this panel.')
+    result = copy.deepcopy(overrides or {})
+    current = dict(result.get(path) or {})
+    before = current.pop(FIELD, None)
+    if entry is not None:
+        current[FIELD] = entry['id']
+    if current:
+        result[path] = current
+    else:
+        result.pop(path, None)
+    return result, ([path] if current.get(FIELD) != before else [])
+
+
 def chosen(overrides, refs):
     """The source chosen for this Browser's data panels, or None for the automatic choice."""
     picks = {(overrides.get(path) or {}).get(FIELD) for path in panels(refs)}

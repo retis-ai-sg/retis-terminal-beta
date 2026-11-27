@@ -36,6 +36,7 @@ BATCH_LIMIT = 200
 BATCH_BYTES = 4 * 1024 * 1024
 ANSWER_BYTES = 64 * 1024 * 1024
 KEPT_TICKETS = 20000
+SELF_REPORT_SEC = 60
 # Fields Plaza decides for each row; the observer's answer adds only what the reports say.
 PLAZA_FIELDS = ('name', 'type', 'owner_id', 'trusted', 'monitoring_authorized', 'registration_state', 'logs_allowed',
                 'endpoint', 'description', 'version', 'tags', 'owner_name')
@@ -60,7 +61,16 @@ def masked(observed: dict) -> dict:
                         for j in observed.get('jobs', []) if isinstance(j, dict)]
     observed.pop('status_message', None)
     observed.pop('display_name', None)
+    if isinstance(observed.get('metrics'), list):
+        from .observability_routes import owner_only_metric
+        observed['metrics'] = [m for m in observed['metrics'] if not owner_only_metric(m)]
     return observed
+
+
+def owner_metrics_hidden(hour: dict) -> dict:
+    """One hour of an agent's history without the numbers marked for its owner."""
+    from .observability_routes import owner_only_metric
+    return {**hour, 'metrics': [m for m in hour.get('metrics') or [] if not owner_only_metric(m)]}
 
 
 def plaza_rows(rows: list, answered) -> list:
@@ -98,6 +108,7 @@ class ObserverLink:
         self._sender = None
         self._stopping = threading.Event()
         self._warned_at = 0.0
+        self._reported_self = 0.0
 
     # -- which observer -----------------------------------------------------------------------------------------
 
@@ -207,8 +218,20 @@ class ObserverLink:
                 return kept
             kept += self._send(batch)
 
+    def report_self_if_due(self) -> bool:
+        """Queue Plaza's own report every SELF_REPORT_SEC, so its numbers reach the hourly history without a reader."""
+        if self.clock() - self._reported_self < SELF_REPORT_SEC:
+            return False
+        self._reported_self = self.clock()
+        try:
+            self.service.observe_self()
+        except Exception as exc:  # Plaza's own numbers are skipped this time; agents' reports carry on
+            LOGGER.warning("Plaza's own monitoring report failed: %s", type(exc).__name__)
+        return True
+
     def _send_loop(self):
         while not self._stopping.is_set():
+            self.report_self_if_due()
             try:
                 first = self.reports.get(timeout=0.5)
             except queue.Empty:

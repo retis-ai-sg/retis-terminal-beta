@@ -5,6 +5,7 @@ import {ui as uiHTML,setUIText,applyUI} from './i18n.js';
 import {refreshSavedLayouts} from './layout-updates.js';
 import {browserDesign} from './browser-instruments.js';
 import {renderBrowserPanels,installLayoutTabs} from './layout-tabs.js';
+import {browserLayoutStyle,installSplitters} from './layout-splitters.js';
 import {refreshPanels} from './panel-refresh.js';
 import {layoutFetchStatus,statusHTML as fetchStatusHTML,updateStatus} from './layout-status.js';
 import {connect,runtime,api,esc,attachBrowserInstance,browserState,panelHTML,settingsHTML,setBrowserLanguage,browserCompany,discussionHTML,loadCatalog} from './connected.js';
@@ -20,7 +21,7 @@ function render(b){
  setUIText(root.querySelector('header strong'),'{0} · {1}',{uiMessage:b.design.title,args:[]},browserCompany(b));
  let layout=main.querySelector('.browser-layout');if(!layout){main.innerHTML=uiHTML`<div class="browser-layout composed-browser-layout"></div>`;layout=main.firstElementChild;}
  let toolbar=main.querySelector('.phema-edit-toolbar');const markup=phemaEditToolbar(b);if(toolbar)toolbar.outerHTML=markup;else if(markup)main.insertAdjacentHTML('afterbegin',markup);
- layout.setAttribute('style',layoutStyle(b.design.layout));refreshPanels(layout,renderBrowserPanels(b));mountPhemaEdit(root,b);
+ layout.setAttribute('style',browserLayoutStyle(b));refreshPanels(layout,renderBrowserPanels(b));mountPhemaEdit(root,b);
  const status=root.querySelector('.layout-fetch-status'),value=layoutFetchStatus(browserState(b),b.design.dataRequirements);if(status){updateStatus(status,value);}
 }
 if(!runtime.user){root.innerHTML=uiHTML`<section class="browser-launch"><h1>Data Browser</h1>${settingsHTML()}</section>`;}
@@ -49,3 +50,5 @@ installLayoutTabs(async()=>{
 },browserId=>browser?.id===browserId?browser:null);
 
 installPhemaEdit({find:id=>browser?.id===id?browser:null,render:b=>render(b)});
+// A split-container border here lasts while the page is open; the Terminal's windows keep theirs in the workspace.
+installSplitters(browserId=>browser?.id===browserId?browser:null,b=>render(b));

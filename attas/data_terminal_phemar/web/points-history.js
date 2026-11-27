@@ -1,8 +1,9 @@
 // Plaza points this account spent: the latest few in settings, the whole history in a
-// dialog that filters and saves to CSV. Agents show by name, never by ID.
+// dialog that filters and saves to CSV. Agents show by name, never by ID; operations by the name their agent gives them.
 import {ui as uiHTML,label,setUIText,t} from './i18n.js';
 import {displayDateTime,displayTimezone} from './time-display.js';
 import {csvCell} from './transactions-model.js';
+import {operationHTML,operationText,plainOperation} from './operation-names.js';
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
 const STATES={settled:'Charged',refunded:'Refunded',uncertain:'Needs checking',progress:'In progress'};
@@ -12,11 +13,17 @@ const agentLabel=(row,agentName)=>agentName(row.agentId)||row.agentName||'';
 // Plaza's ledger entries that pay for an execution. Transfers, top-ups and earnings are not spending.
 const CHARGES=new Set(['remote_practice_charge','report_generation_charge','report_quote_charge','scope_payment_charge','report_escrow_reserve','report_escrow_capture','report_escrow_refund']);
 const seconds=value=>typeof value==='number'?value:(Date.parse(value)||0)/1000;
+// When an execution ran: its first Plaza ledger entry (the reservation), not the last change to its record, which a
+// later capture or a reconciliation moves.
+const began=entries=>Math.min(...(entries||[]).map(entry=>seconds(entry.created_at)).filter(Boolean));
+const ranAt=row=>row.startedAt||row.updatedAt;
 
 /** Every execution this account paid for: Plaza's ledger, which also records what agents such as the
  * Strategy Producer charge, with this Terminal's own record in place of the same execution (it can be reconciled). */
 export function spendingRows(terminalRows=[],ledger=null){
- const own=new Set(terminalRows.map(row=>row.id)),charged=new Map();
+ const own=new Set(terminalRows.map(row=>row.id)),charged=new Map(),labels=new Map();
+ // The name the provider's quote gave the operation (operation-names.js), where Plaza recorded one.
+ const runLabel=entries=>(entries||[]).map(entry=>entry.operationLabel).find(Boolean)||'';
  // Plaza settles each of this Terminal's executions; where its ledger holds the whole run (reserved, then captured or
  // refunded), its net is what the run cost. Older records kept the quote even when Plaza paid no provider.
  for(const run of ledger?.executions||[]){
@@ -24,8 +31,17 @@ export function spendingRows(terminalRows=[],ledger=null){
   if(!actions.has('report_escrow_reserve')||!(actions.has('report_escrow_capture')||actions.has('report_escrow_refund')))continue;
   for(const entry of run.entries)if(own.has(entry.executionId))charged.set(entry.executionId,Math.max(0,-run.net));
  }
- const rows=terminalRows.map(row=>{
-  const points=charged.get(row.id);
+ const starts=new Map();
+ for(const run of ledger?.executions||[]){
+  const name=runLabel(run.entries),start=began(run.entries);
+  for(const entry of run.entries||[])if(own.has(entry.executionId)){
+   if(name)labels.set(entry.executionId,name);
+   if(Number.isFinite(start))starts.set(entry.executionId,Math.min(start,starts.get(entry.executionId)??Infinity));
+  }
+ }
+ const rows=terminalRows.map(saved=>{
+  const named=labels.has(saved.id)&&!saved.label?{...saved,label:labels.get(saved.id)}:saved;
+  const row=starts.has(saved.id)?{...named,startedAt:starts.get(saved.id)}:named,points=charged.get(row.id);
   if(points===undefined||!['settled','refunded'].includes(row.state)||points===Number(row.points))return row;
   return {...row,points,...(points===0?{state:'refunded',explanation:'No Plaza points charge: Plaza paid no provider and returned the reserved points.'}:{})};
  });
@@ -33,43 +49,44 @@ export function spendingRows(terminalRows=[],ledger=null){
   const entries=run.entries||[];
   if(!(run.net<0)||!entries.some(entry=>CHARGES.has(entry.action))||entries.some(entry=>own.has(entry.executionId)))continue;
   const paid=entries.find(entry=>entry.agent_id||entry.agent_name)||entries[0]||{};
-  rows.push({id:'plaza:'+run.id,updatedAt:seconds(run.createdAt),agentId:paid.agent_id||'',agentName:paid.agent_name||'',pulse:paid.pulse||'',
+  const start=began(entries);
+  rows.push({id:'plaza:'+run.id,updatedAt:seconds(run.createdAt),...(Number.isFinite(start)?{startedAt:start}:{}),agentId:paid.agent_id||'',agentName:paid.agent_name||'',pulse:paid.pulse||'',label:runLabel(entries),
    state:run.status==='No settlement in returned history'?'progress':'settled',points:-run.net,canReconcile:false,
    recipient:(run.payees||[])[0]?.provider_username||'',explanation:'Charge recorded on Plaza.'});
  }
- return rows.sort((a,b)=>seconds(b.updatedAt)-seconds(a.updatedAt));
+ return rows.sort((a,b)=>seconds(ranAt(b))-seconds(ranAt(a)));
 }
 
-export function pointsRowsHTML(rows,agentName){
- return uiHTML`<table class="points-table"><thead><tr><th>Date / time</th><th>Agent</th><th>Operation</th><th>State</th><th class="numeric">Points</th></tr></thead><tbody>${rows.map(row=>`<tr><td class="nowrap">${esc(displayDateTime(row.updatedAt))}</td><td>${agentLabel(row,agentName)?esc(agentLabel(row,agentName)):label('Unlisted agent')}</td><td>${esc(row.pulse||'—')}</td><td title="${esc(row.explanation)}">${label(STATES[stateGroup(row)])}${row.canReconcile?uiHTML` <button type="button" data-connected-action="reconcile" data-id="${esc(row.id)}">Reconcile reservation</button>`:''}</td><td class="numeric">${esc(row.points)}</td></tr>`).join('')}</tbody></table>`;
+export function pointsRowsHTML(rows,agentName,operationName=plainOperation){
+ return uiHTML`<table class="points-table"><thead><tr><th>Date / time</th><th>Agent</th><th>Operation</th><th>State</th><th class="numeric">Points</th></tr></thead><tbody>${rows.map(row=>`<tr><td class="nowrap">${esc(displayDateTime(ranAt(row)))}</td><td>${agentLabel(row,agentName)?esc(agentLabel(row,agentName)):label('Unlisted agent')}</td><td>${operationHTML(operationName(row))}</td><td title="${esc(row.explanation)}">${label(STATES[stateGroup(row)])}${row.canReconcile?uiHTML` <button type="button" data-connected-action="reconcile" data-id="${esc(row.id)}">Reconcile reservation</button>`:''}</td><td class="numeric">${esc(row.points)}</td></tr>`).join('')}</tbody></table>`;
 }
 
-export function filterPoints(rows,{query='',state='',from='',to=''}={},agentName=()=>''){
+export function filterPoints(rows,{query='',state='',from='',to=''}={},agentName=()=>'',operationName=plainOperation){
  const needle=query.trim().toLowerCase();
  return rows.filter(row=>{
-  const day=displayDateTime(row.updatedAt).slice(0,10);
+  const day=displayDateTime(ranAt(row)).slice(0,10);
   return (!state||stateGroup(row)===state)&&(!from||day>=from)&&(!to||day<=to)
-   &&(!needle||[agentLabel(row,agentName),row.agentId,row.pulse].join(' ').toLowerCase().includes(needle));
+   &&(!needle||[agentLabel(row,agentName),row.agentId,operationText(operationName(row)),row.pulse].join(' ').toLowerCase().includes(needle));
  });
 }
 
-export function pointsCSV(rows,agentName=()=>''){
+export function pointsCSV(rows,agentName=()=>'',operationName=plainOperation){
  const zone=displayTimezone();
- const lines=[['Date/time','Time zone','Agent','Agent ID','Operation','State','Points','Recipient','Note','Execution ID'].map(csvCell).join(',')];
- for(const row of rows)lines.push([displayDateTime(row.updatedAt),zone,agentLabel(row,agentName),row.agentId,row.pulse,row.state,row.points,row.recipient,row.explanation,row.id].map(csvCell).join(','));
+ const lines=[['Date/time','Time zone','Agent','Agent ID','Operation','State','Points','Recipient','Note','Execution ID','Pulse'].map(csvCell).join(',')];
+ for(const row of rows)lines.push([displayDateTime(ranAt(row)),zone,agentLabel(row,agentName),row.agentId,operationText(operationName(row)),row.state,row.points,row.recipient,row.explanation,row.id,row.pulse].map(csvCell).join(','));
  return '﻿'+lines.join('\r\n');
 }
 
-export function openPointsHistory({load,agentName}){
+export function openPointsHistory({load,agentName,operationName=plainOperation}){
  const dialog=document.createElement('dialog');dialog.className='points-history';
  dialog.innerHTML=uiHTML`<header class="points-history-header"><div><h2>Points spending history</h2><small data-points-count></small></div><button type="button" data-points-close aria-label="Close">×</button></header><form class="points-history-filters" data-points-filters><label>Search<input type="search" name="query" placeholder="Agent or operation"></label><label>State<select name="state"><option value="">All states</option></select></label><label>From<input type="date" name="from"></label><label>To<input type="date" name="to"></label><button type="reset" class="button">Clear</button><button type="button" class="button" data-points-csv disabled>Save as CSV</button></form><div class="points-history-body"><div data-points-table></div><p data-points-status role="status"></p></div>`;
  document.body.append(dialog);dialog.showModal();
  const form=dialog.querySelector('[data-points-filters]');let rows=[];
- const selected=()=>filterPoints(rows,Object.fromEntries(new FormData(form)),agentName);
+ const selected=()=>filterPoints(rows,Object.fromEntries(new FormData(form)),agentName,operationName);
  function render(){
   const shown=selected(),points=shown.reduce((total,row)=>total+(Number(row.points)||0),0);
   setUIText(dialog.querySelector('[data-points-count]'),'{0} of {1} executions · {2} points',shown.length,rows.length,points);
-  dialog.querySelector('[data-points-table]').innerHTML=shown.length?pointsRowsHTML(shown,agentName):'';
+  dialog.querySelector('[data-points-table]').innerHTML=shown.length?pointsRowsHTML(shown,agentName,operationName):'';
   dialog.querySelector('[data-points-status]').innerHTML=!rows.length?label('No points spent yet.'):!shown.length?label('No executions match these filters.'):'';
   dialog.querySelector('[data-points-csv]').disabled=!shown.length;
  }
@@ -84,14 +101,16 @@ export function openPointsHistory({load,agentName}){
  }
  // A reconciled execution changes state; show it without reopening.
  document.addEventListener('connected:settings',refresh);
- dialog.addEventListener('close',()=>{document.removeEventListener('connected:settings',refresh);dialog.remove();},{once:true});
+ // Agent and operation names come from the catalog, which may arrive after the dialog opens.
+ document.addEventListener('catalog:updated',render);
+ dialog.addEventListener('close',()=>{document.removeEventListener('connected:settings',refresh);document.removeEventListener('catalog:updated',render);dialog.remove();},{once:true});
  form.addEventListener('submit',event=>event.preventDefault());
  form.addEventListener('input',render);
  form.addEventListener('reset',()=>setTimeout(render,0));
  dialog.addEventListener('click',event=>{
   if(event.target.closest('[data-points-close]'))dialog.close();
   if(!event.target.closest('[data-points-csv]'))return;
-  const url=URL.createObjectURL(new Blob([pointsCSV(selected(),agentName)],{type:'text/csv;charset=utf-8'})),link=document.createElement('a');
+  const url=URL.createObjectURL(new Blob([pointsCSV(selected(),agentName,operationName)],{type:'text/csv;charset=utf-8'})),link=document.createElement('a');
   link.href=url;link.download='points-spending-'+new Date().toISOString().slice(0,10)+'.csv';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
  });
  refresh();

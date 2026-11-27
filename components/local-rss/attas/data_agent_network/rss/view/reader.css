@@ -1,0 +1,70 @@
+/* The reader (revision 5), on top of viewer.css: tabs, collapsible groups, the directory and the add form. */
+#rss-viewer .rsr-source{max-width:220px}
+#rss-viewer .rsr-tabs{display:flex;border:1px solid var(--line);border-radius:4px;overflow:hidden}
+#rss-viewer .rsr-tabs .rsr-tab{border:0;border-radius:0;background:transparent}
+#rss-viewer .rsr-tabs .rsr-tab+.rsr-tab{border-left:1px solid var(--line)}
+#rss-viewer .rsr-tabs .rsr-active{background:var(--accent);color:var(--panel)}
+#rss-viewer .rsr-tools{display:flex;gap:7px;flex-wrap:wrap;margin:0 0 8px}#rss-viewer .rsr-tools input{width:200px}
+#rss-viewer .rsr-subs h3{font-size:13px;margin:12px 0 6px;color:var(--muted);font-weight:600}
+#rss-viewer .rsr-groups,#rss-viewer .rsr-directory{display:flex;flex-direction:column;gap:5px}
+#rss-viewer .rsr-group{border:1px solid var(--line);border-radius:5px;background:var(--panel);padding:0 10px}
+#rss-viewer .rsr-group>summary{cursor:pointer;padding:7px 0;display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+#rss-viewer .rsr-group>summary small{color:var(--muted)}#rss-viewer .rsr-group[open]>summary{border-bottom:1px solid var(--line)}
+#rss-viewer .rsr-group-name{font-weight:600}
+#rss-viewer .rsr-group-controls{display:flex;gap:6px;align-items:center;flex-wrap:wrap;padding:7px 0}
+#rss-viewer .rsr-group-controls input[type=text]{width:150px}
+#rss-viewer .rsr-check{display:flex;gap:4px;align-items:center}
+#rss-viewer .rsr-group .rss-feed{border-top:1px solid var(--line);padding:5px 0}
+#rss-viewer .rsr-dir-row{display:flex;gap:7px;align-items:flex-start}#rss-viewer .rsr-dir-row>details{flex:1;min-width:0}
+#rss-viewer .rsr-dir-row>button{margin-top:4px;white-space:nowrap}
+#rss-viewer .rsr-description{color:var(--muted);margin:6px 0}
+#rss-viewer .rsr-dir-feed{display:flex;flex-direction:column;padding:3px 0 3px 10px;border-top:1px solid var(--line)}
+#rss-viewer .rsr-dir-feed small{color:var(--muted);overflow-wrap:anywhere;font-size:11px}
+#rss-viewer .rsr-add .rss-form{margin-bottom:6px}
+/* Three panels, each scrolling on its own: the list, the story and the note (collapsible to a strip), with bars that
+ * move between them. Each panel has its own text size (a scale the viewer picks, kept). */
+#rss-viewer .rsr-articles .rss-split{grid-template-columns:var(--rsr-list,minmax(200px,28%)) 6px minmax(0,1fr) 6px var(--rsr-note,280px)}
+#rss-viewer .rsr-articles .rss-split.rsr-notes-closed{grid-template-columns:var(--rsr-list,minmax(200px,28%)) 6px minmax(0,1fr) 0 32px}
+#rss-viewer .rsr-articles .rss-split>*{min-height:0}
+#rss-viewer .rsr-notes-closed .rsr-divider-note{visibility:hidden}
+#rss-viewer .rsr-notes-closed .rsr-notes{border-left:1px solid var(--line)}
+#rss-viewer .rsr-articles .rss-list{border-right:0;display:flex;flex-direction:column;font-size:calc(13px*var(--rsr-list-scale,1))}
+#rss-viewer .rsr-articles .rss-list .rss-meta{font-size:.85em}
+#rss-viewer .rsr-articles .rss-list .rss-preview{font-size:.92em}
+#rss-viewer .rsr-articles .rss-reader{font-size:calc(16px*var(--rsr-story-scale,1))}
+#rss-viewer .rsr-articles .rss-reader h2{font-size:1.56em}
+#rss-viewer .rsr-articles .rss-reader .rss-body{font-size:1em}
+#rss-viewer .rsr-articles .rss-reader .rss-meta{font-size:.69em}
+#rss-viewer .rsr-divider{cursor:col-resize;background:var(--line);touch-action:none}
+#rss-viewer .rsr-divider:hover,#rss-viewer .rsr-divider:focus-visible{background:var(--accent);outline:none}
+#rss-viewer .rsr-dragging{user-select:none;cursor:col-resize}
+#rss-viewer .rsr-when,#rss-viewer .rsr-order{max-width:150px}
+#rss-viewer .rsr-pane-head{position:sticky;top:0;z-index:1;display:flex;align-items:center;gap:4px;padding:4px 8px;background:var(--panel);border-bottom:1px solid var(--line);font-size:12px}
+#rss-viewer .rsr-pane-title{margin-right:auto;color:var(--muted);font-weight:600}
+#rss-viewer .rsr-sizes{display:inline-flex;gap:3px}
+#rss-viewer .rsr-size{padding:1px 6px;font-size:11px;line-height:1.3}
+/* The tags analysts gave a story: chips, each with its members, analyst and time as its tooltip. */
+#rss-viewer .rsr-tags{display:flex;flex-wrap:wrap;gap:4px;margin:5px 0 0}
+#rss-viewer .rsr-tag{font-size:.8em;line-height:1.6;padding:0 7px;border-radius:9px;border:1px solid var(--line);background:var(--bg);color:var(--muted);cursor:help;white-space:nowrap}
+#rss-viewer .rss-reader .rsr-tags{margin:-4px 0 12px}
+#rss-viewer .rss-reader .rsr-tag{font-size:.75em}
+#rss-viewer .rss-story[aria-pressed=true] .rsr-tag{border-color:var(--accent)}
+/* One story's tools. */
+#rss-viewer .rsr-story-tools{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:0 0 12px;font-size:13px}
+#rss-viewer .rsr-story-tools select{max-width:260px}
+#rss-viewer .rsr-story-tools .rsr-sizes{margin-left:auto}
+#rss-viewer .rsr-url{color:var(--muted);font-size:12px;overflow-wrap:anywhere;user-select:text}
+#rss-viewer .rsr-translated{color:var(--muted);font-size:.75em;margin:-6px 0 8px}
+/* The note panel. */
+#rss-viewer .rsr-notes{overflow:auto;display:flex;flex-direction:column;background:var(--panel);font-size:calc(14px*var(--rsr-note-scale,1))}
+#rss-viewer .rsr-notes-body{display:flex;flex-direction:column;gap:6px;padding:8px 10px;flex:1;min-height:0}
+#rss-viewer .rsr-notes-body select{max-width:100%;font-size:12px}
+#rss-viewer .rsr-note-text{display:block;width:100%;box-sizing:border-box;flex:1;min-height:9em;font:inherit;line-height:1.5;resize:vertical;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:4px;padding:6px 8px}
+#rss-viewer .rsr-note-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:12px}
+#rss-viewer .rsr-note-said{color:var(--muted)}
+#rss-viewer .rsr-notes-toggle{writing-mode:vertical-rl;border:0;border-radius:0;width:100%;height:100%;min-height:120px;padding:10px 0;background:transparent;color:var(--muted);font-size:12px;cursor:pointer}
+#rss-viewer .rsr-notes-toggle:hover{color:var(--accent)}
+@media(max-width:640px){#rss-viewer .rsr-dir-row{flex-direction:column}#rss-viewer .rsr-source{max-width:150px}
+ #rss-viewer .rsr-articles .rss-split,#rss-viewer .rsr-articles .rss-split.rsr-notes-closed{grid-template-columns:1fr}
+ #rss-viewer .rsr-divider{display:none}#rss-viewer .rsr-notes{max-height:300px;border-top:1px solid var(--line)}
+ #rss-viewer .rsr-notes-toggle{writing-mode:horizontal-tb;min-height:0;height:auto}}

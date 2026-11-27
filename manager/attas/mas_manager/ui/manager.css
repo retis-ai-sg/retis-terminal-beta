@@ -1,9 +1,17 @@
 /* Retis MAS Manager. The view runs in its own frame over the Terminal panel. */
-:root[data-theme=dark]{color-scheme:dark}:root[data-theme=light]{color-scheme:light}:root,:root body{background:transparent}
+:root[data-theme=dark]{color-scheme:dark}:root[data-theme=light]{color-scheme:light}
+/* The page fills its frame, and the frame fills the window: no margin, and every level as tall as the window. */
+:root,:root body{background:transparent;height:100%;margin:0}
+:root body>main{height:100%;margin:0}
 :root{font-family:"Avenir Next","Segoe UI",sans-serif;font-size:13px;-webkit-font-smoothing:antialiased}
 .mm[data-theme=light]{--text:#24394b;--surface:#fff;--raised:#f1f5f8;--line:#c7d3dc;--muted:#50697e;--accent:#9a6a1f;--bad:#c0392b;--good:#1e8449;--wait:#b7791f}
 .mm[data-theme=dark]{--text:#e7ecf2;--surface:#121820;--raised:#171e28;--line:#26303b;--muted:#8a98aa;--accent:#e0b577;--bad:#ff6b5e;--good:#3ccf7e;--wait:#e0b577}
-.mm{color:var(--text,#24394b);display:flex;flex-direction:column;gap:6px}
+.mm{color:var(--text,#24394b);display:flex;flex-direction:column;gap:6px;box-sizing:border-box;height:100%;padding:6px 8px;overflow:auto}
+/* Everything keeps its own height except what holds a list: the component list, an open log and the recent events.
+ * They share the window and scroll inside, never capped at a fixed height. */
+.mm>*{flex:none}
+/* The list is as tall as its rows, and gives way (scrolling inside) only when the window is too short for them. */
+.mm>.mm-list{flex:0 1 auto;min-height:72px;overflow:auto}
 .mm [hidden]{display:none!important}
 .mm button,.mm input{font:inherit;color:inherit}
 .mm button{background:var(--raised,#f1f5f8);border:1px solid var(--line,#c7d3dc);border-radius:4px;padding:2px 8px;cursor:pointer}
@@ -29,17 +37,66 @@
 .mm-table small{display:block;font-size:11px;color:var(--muted,#50697e)}
 .mm-table .mm-badge{color:var(--accent,#9a6a1f)}
 .mm-table .mm-error{color:var(--bad,#c0392b)}
-.mm-actions{display:flex;gap:4px;flex-wrap:wrap}
+/* The buttons sit in a box inside the last cell: a cell that is itself a flex box stops being a table cell, and its
+ * borders fall out of line with the rest of its row (most clearly on a row with no buttons). */
+.mm-actions{display:flex;gap:3px;flex-wrap:nowrap}
+/* Each row stays one line, also in a narrow panel: the version and the state don't wrap (a reason or an error under
+ * the state still does), and the name gives way first. */
+.mm-table .mm-version,.mm-table .mm-state{white-space:nowrap}
+.mm-table .mm-state small{white-space:normal}
+.mm .mm-up{color:var(--accent,#9a6a1f);font-weight:600;margin-left:4px;cursor:default}
+/* Row actions are icons; the name stays as text for screen readers (.mm-sr) and as the hover text. */
+.mm .mm-icon{width:26px;height:24px;padding:0;display:inline-flex;align-items:center;justify-content:center}
+.mm .mm-icon svg{width:15px;height:15px;pointer-events:none}
+.mm .mm-primary{color:var(--accent,#9a6a1f)}
+.mm .mm-sr{position:absolute;width:1px;height:1px;margin:-1px;padding:0;border:0;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+/* CPU, memory and disk use: an icon beside the state, opened on demand. */
+.mm .mm-usage{display:inline-block;vertical-align:middle;margin-left:6px}
+.mm .mm-usage[open]{display:block;margin:2px 0 0 14px}
+.mm .mm-usage>summary{list-style:none;cursor:pointer;display:inline-flex;color:var(--muted,#50697e)}
+.mm .mm-usage>summary::-webkit-details-marker{display:none}
+.mm .mm-usage>summary svg{width:13px;height:13px}
 .mm-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;background:var(--muted,#50697e)}
 .mm-dot[data-state=running]{background:var(--good,#1e8449)}
 .mm-dot[data-state=unhealthy]{background:var(--bad,#c0392b)}
 .mm-dot[data-state=installing],.mm-dot[data-state=starting],.mm-dot[data-state=restarting],.mm-dot[data-state=changing],.mm-dot[data-state=waiting],.mm-dot[data-state=needs_data],.mm-dot[data-state=not_paired]{background:var(--wait,#b7791f)}
 .mm-logs .mm-note{margin:0 0 4px;font-size:12px;color:var(--muted,#50697e)}
-.mm-logs pre{max-height:260px;overflow:auto;background:var(--raised,#f1f5f8);border:1px solid var(--line,#c7d3dc);border-radius:4px;padding:6px;font-size:11px;margin:0 0 4px}
+.mm>.mm-logs{flex:1 1 0;min-height:140px;display:flex;flex-direction:column}
+.mm-logs>*{flex:none}
+.mm-logs>pre{flex:1 1 0;min-height:48px;overflow:auto;background:var(--raised,#f1f5f8);border:1px solid var(--line,#c7d3dc);border-radius:4px;padding:6px;font-size:11px;margin:0 0 4px}
 .mm-events{font-size:12px;color:var(--muted,#50697e)}
-.mm-events summary{cursor:pointer}
-.mm-events ul{margin:4px 0 0;padding-left:18px;max-height:160px;overflow:auto}
+/* Recent events take the rest of the window below the list; the list of events scrolls under its title. */
+.mm>.mm-events{flex:1 1 0;min-height:96px;display:flex;flex-direction:column;border-top:1px solid var(--line,#c7d3dc);padding-top:4px}
+.mm-events>h3{flex:none;font-size:12px;color:var(--muted,#50697e)}
+.mm-events>ul{flex:1 1 0;min-height:0;overflow:auto;margin:0;padding-left:18px}
+.mm-events .mm-none{list-style:none;margin-left:-18px}
 .mm-alerts{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px}
 .mm-alert{font-size:12px;padding:3px 8px;border-radius:4px;border:1px solid var(--line,#c7d3dc);background:var(--raised,#f1f5f8)}
 .mm-alert[data-severity=error]{border-color:var(--bad,#c0392b);color:var(--bad,#c0392b)}
 .mm-alert[data-severity=warning]{border-color:var(--wait,#b7791f)}
+/* A popup over the page; a component's settings open in it. */
+.mm .mm-modal{position:fixed;inset:0;z-index:20;display:flex;align-items:flex-start;justify-content:center;padding:24px 12px;box-sizing:border-box;background:rgba(8,12,18,.45)}
+.mm .mm-modal-box{width:min(760px,100%);max-height:100%;display:flex;flex-direction:column;background:var(--surface,#fff);color:var(--text,#24394b);border:1px solid var(--line,#c7d3dc);border-radius:6px;box-shadow:0 10px 30px rgba(0,0,0,.3)}
+.mm .mm-modal-head{display:flex;align-items:center;gap:8px;padding:8px 10px;border-bottom:1px solid var(--line,#c7d3dc)}
+.mm .mm-modal-head h3{margin:0;flex:1}
+.mm .mm-modal-body{padding:10px;overflow:auto;min-height:0}
+.mm .mm-modal-foot{display:flex;gap:6px;justify-content:flex-end;padding:8px 10px;border-top:1px solid var(--line,#c7d3dc)}
+.mm .mm-modal .mm-error{color:var(--bad,#c0392b);margin:6px 0 0;font-size:12px}
+/* A component's settings: one compact form, each field's name above its control. */
+.mm .mm-settings{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:8px 12px;margin:0 0 6px}
+.mm .mm-field{display:flex;flex-direction:column;gap:2px;font-size:12px}
+.mm .mm-field.mm-check{flex-direction:row;flex-wrap:wrap;align-items:center;gap:4px}
+.mm .mm-field input[type=text],.mm .mm-field input[type=number],.mm .mm-field select,.mm .mm-field textarea{font:inherit;color:inherit;background:var(--surface,#fff);border:1px solid var(--line,#c7d3dc);border-radius:4px;padding:3px 5px}
+.mm .mm-field textarea{resize:vertical;font-family:ui-monospace,Menlo,monospace;font-size:11px}
+.mm .mm-field small{color:var(--muted,#50697e);flex-basis:100%}
+.mm .mm-logs .mm-error{color:var(--bad,#c0392b);margin:0 0 4px;font-size:12px}
+/* One row per thing a component manages (a model server): its switch, its name, its fields and what it says now. */
+.mm .mm-groups{grid-column:1/-1;border-collapse:collapse;font-size:12px}
+.mm .mm-groups td{padding:2px 8px 2px 0;vertical-align:middle;border-bottom:1px solid var(--line,#c7d3dc)}
+.mm .mm-groups input[type=text]{width:260px;max-width:100%;font:inherit;color:inherit;background:var(--surface,#fff);border:1px solid var(--line,#c7d3dc);border-radius:4px;padding:2px 5px}
+.mm .mm-groups .mm-check{display:flex;align-items:center;gap:4px}
+.mm .mm-group-name{font-weight:600;white-space:nowrap}
+.mm .mm-group-state{color:var(--muted,#50697e);white-space:nowrap}
+.mm .mm-groups tr[data-state=ready] .mm-group-state{color:var(--good,#2e7d32)}
+.mm .mm-groups tr[data-state=empty] .mm-group-state,.mm .mm-groups tr[data-state=key] .mm-group-state{color:var(--warn,#b26a00)}
+.mm .mm-entries{margin:2px 0 0;padding-left:16px;font-size:11px;color:var(--muted,#50697e)}

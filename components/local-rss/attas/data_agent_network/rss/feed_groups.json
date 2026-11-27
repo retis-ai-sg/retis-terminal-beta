@@ -1,0 +1,758 @@
+{
+ "schema": "rss-feed-groups/1",
+ "version": 1,
+ "reviewed": "2026-11-23",
+ "note": "Public feeds by language and topic. Each feed was read through this source on its checked date. Feed content belongs to its publishers and comes under their terms.",
+ "groups": [
+  {
+   "id": "tw-stocks",
+   "name": {
+    "en": "Taiwan stocks",
+    "zh-Hant": "台股"
+   },
+   "language": "zh-Hant",
+   "region": "tw",
+   "topics": [
+    "stocks",
+    "markets"
+   ],
+   "description": {
+    "en": "Taiwan stock market news, market moves and research notes.",
+    "zh-Hant": "台股新聞、盤勢與研究報告。"
+   },
+   "feeds": [
+    {
+     "name": "經濟日報 證券",
+     "url": "https://money.udn.com/rssfeed/news/1001/5590?ch=money",
+     "checked": "2026-11-23"
+    },
+    {
+     "name": "MoneyDJ 即時新聞",
+     "url": "https://www.moneydj.com/KMDJ/RssCenter.aspx?svc=NR&fno=1&arg=MB010000",
+     "checked": "2026-11-23"
+    },
+    {
+     "name": "Yahoo股市 最新新聞",
+     "url": "https://tw.stock.yahoo.com/rss?category=news",
+     "checked": "2026-11-23"
+    },
+    {
+     "name": "Yahoo股市 台股盤勢",
+     "url": "https://tw.stock.yahoo.com/rss?category=tw-market",
+     "checked": "2026-11-23"
+    },
+    {
+     "name": "Yahoo股市 研究報告",
+     "url": "https://tw.stock.yahoo.com/rss?category=research",
+     "checked": "2026-11-23"
+    },
+    {
+     "name": "鉅亨網 台股",
+     "url": "https://news.cnyes.com/rss/v1/news/category/tw_stock",
+     "checked": "2026-11-23"
+    },
+    {
+     "name": "Google News 台股",
+     "url": "https://news.google.com/rss/search?q=%E5%8F%B0%E8%82%A1&hl=zh-TW&gl=TW&ceid=TW:zh-Hant",
+     "checked": "2026-11-23"
+    }
+   ]
+  },
+  {
+   "id": "tw-industry-tech",
+   "name": {
+    "en": "Taiwan industry and technology",
+    "zh-Hant": "產業與科技"
+   },
+   "language": "zh-Hant",
+   "region": "tw",
+   "topics": [
+    "industry",
+    "technology"
+   ],
+   "description": {
+    "en": "Taiwan industry, semiconductors and technology news.",
+    "zh-Hant": "台灣產業、半導體與科技新聞。"
+   },
+   "feeds": [
+    {
+     "name": "經濟日報 產業",
+     "url": "https://money.udn.com/rssfeed/news/1001/5591?ch=money",
+     "checked": "2026-11-23"
+    },
+    {
+     "name": "中央社 科技",
+     "url": "https://feeds.feedburner.com/rsscna/technology",
+     "checked": "2026-11-23"
+    },
+    {
+     "name": "財經新報",
+     "url": "https://finance.technews.tw/feed/",
+     "checked": "2026-11-23"
+    },
+    {
+     "name": "科技新報",
+     "url": "https://technews.tw/feed/",
+     "checked": "2026-11-23"
+    },
+    {
+     "name": "iThome",
+     "url": "https://www.ithome.com.tw/rss",
+     "checked": "2026-11-23"
+    }
+   ]
+  },
+  {
+   "id": "tw-international",
+   "name": {
+    "en": "International and cross-strait",
+    "zh-Hant": "國際與兩岸"
+   },
+   "language": "zh-Hant",
+   "region": "tw",
+   "topics": [
+    "international",
+    "cross-strait"
+   ],
+   "description": {
+    "en": "World economy and cross-strait news in Traditional Chinese.",
+    "zh-Hant": "國際經濟與兩岸新聞。"
+   },
+   "feeds": [
+    {
+     "name": "經濟日報 國際",
+     "url": "https://money.udn.com/rssfeed/news/1001/5588?ch=money",
+     "checked": "2026-11-23"
+    },
+    {
+     "name": "經濟日報 兩岸",
+     "url": "https://money.udn.com/rssfeed/news/1001/5589?ch=money",
+     "checked": "2026-11-23"
+    },
+    {
+     "name": "Yahoo股市 國際財經",
+     "url": "https://tw.stock.yahoo.com/rss?category=intl-markets",
+     "checked": "2026-11-23"
+    },
+    {
+     "name": "中央社 國際",
+     "url": "https://feeds.feedburner.com/rsscna/intworld",
+     "checked": "2026-11-23"
+    },
+    {
+     "name": "中央社 兩岸",
+     "url": "https://feeds.feedburner.com/rsscna/mainland",
+     "checked": "2026-11-23"
+    },
+    {
+     "name": "BBC 中文 繁體",
+     "url": "https://feeds.bbci.co.uk/zhongwen/trad/rss.xml",
+     "checked": "2026-11-23"
+    }
+   ]
+  },
+  {
+   "id": "tw-finance",
+   "name": {
+    "en": "Taiwan business news",
+    "zh-Hant": "綜合財經"
+   },
+   "language": "zh-Hant",
+   "region": "tw",
+   "topics": [
+    "finance",
+    "business"
+   ],
+   "description": {
+    "en": "Taiwan's main newsrooms' finance and business sections.",
+    "zh-Hant": "台灣主要媒體的財經與商業新聞。"
+   },
+   "feeds": [
+    {
+     "name": "中央社 產經",
+     "url": "https://feeds.feedburner.com/rsscna/finance",
+     "checked": "2026-11-23"
+    },
+    {
+     "name": "自由時報 財經",
+     "url": "https://news.ltn.com.tw/rss/business.xml",
+     "checked": "2026-11-23"
+    },
+    {
+     "name": "ETtoday 財經",
+     "url": "https://feeds.feedburner.com/ettoday/finance",
+     "checked": "2026-11-23"
+    },
+    {
+     "name": "Google News 台灣 商業",
+     "url": "https://news.google.com/rss/headlines/section/topic/BUSINESS?hl=zh-TW&gl=TW&ceid=TW:zh-Hant",
+     "checked": "2026-11-23"
+    }
+   ]
+  },
+  {
+   "id": "tw-personal-finance",
+   "name": {
+    "en": "Personal finance",
+    "zh-Hant": "理財"
+   },
+   "language": "zh-Hant",
+   "region": "tw",
+   "topics": [
+    "personal-finance"
+   ],
+   "description": {
+    "en": "Banking, funds, property and money management.",
+    "zh-Hant": "金融、基金、房市與理財。"
+   },
+   "feeds": [
+    {
+     "name": "經濟日報 理財",
+     "url": "https://money.udn.com/rssfeed/news/1001/5592?ch=money",
+     "checked": "2026-11-23"
+    },
+    {
+     "name": "經濟日報 金融",
+     "url": "https://money.udn.com/rssfeed/news/1001/12017?ch=money",
+     "checked": "2026-11-23"
+    },
+    {
+     "name": "經濟日報 房市",
+     "url": "https://money.udn.com/rssfeed/news/1001/5593?ch=money",
+     "checked": "2026-11-23"
+    },
+    {
+     "name": "Yahoo股市 基金",
+     "url": "https://tw.stock.yahoo.com/rss?category=funds-news",
+     "checked": "2026-11-23"
+    }
+   ]
+  },
+  {
+   "id": "hk-finance",
+   "name": {
+    "en": "Hong Kong finance",
+    "zh-Hant": "香港財經"
+   },
+   "language": "zh-Hant",
+   "region": "hk",
+   "topics": [
+    "finance",
+    "markets"
+   ],
+   "description": {
+    "en": "Hong Kong economy and markets.",
+    "zh-Hant": "香港經濟與市場。"
+   },
+   "feeds": [
+    {
+     "name": "明報 經濟",
+     "url": "https://news.mingpao.com/rss/pns/s00004.xml",
+     "checked": "2026-11-23"
+    },
+    {
+     "name": "明報 即時 經濟",
+     "url": "https://news.mingpao.com/rss/ins/s00002.xml",
+     "checked": "2026-11-23"
+    },
+    {
+     "name": "Google News 香港 商業",
+     "url": "https://news.google.com/rss/headlines/section/topic/BUSINESS?hl=zh-HK&gl=HK&ceid=HK:zh-Hant",
+     "checked": "2026-11-23"
+    },
+    {
+     "name": "香港政府新聞 財經",
+     "url": "https://www.news.gov.hk/tc/categories/finance/html/articlelist.rss.xml",
+     "checked": "2026-11-23"
+    }
+   ]
+  },
+  {
+   "id": "cn-international",
+   "name": {
+    "en": "International finance (Simplified Chinese)",
+    "zh-Hant": "国际财经"
+   },
+   "language": "zh-Hans",
+   "region": "intl",
+   "topics": [
+    "international",
+    "finance"
+   ],
+   "description": {
+    "en": "International outlets publishing in Simplified Chinese.",
+    "zh-Hant": "以简体中文出版的国际媒体财经新闻。"
+   },
+   "feeds": [
+    {
+     "name": "FT中文网",
+     "url": "https://www.ftchinese.com/rss/feed",
+     "checked": "2026-11-23"
+    },
+    {
+     "name": "纽约时报中文网 商业",
+     "url": "https://cn.nytimes.com/rss/business/",
+     "checked": "2026-11-23"
+    },
+    {
+     "name": "DW 中文 經濟",
+     "url": "https://rss.dw.com/rdf/rss-chi-eco",
+     "checked": "2026-11-23"
+    },
+    {
+     "name": "BBC 中文 简体",
+     "url": "https://feeds.bbci.co.uk/zhongwen/simp/rss.xml",
+     "checked": "2026-11-23"
+    }
+   ]
+  },
+  {
+   "id": "cn-business",
+   "name": {
+    "en": "China business and technology",
+    "zh-Hant": "商业与科技"
+   },
+   "language": "zh-Hans",
+   "region": "cn",
+   "topics": [
+    "business",
+    "technology"
+   ],
+   "description": {
+    "en": "Mainland China business and technology media.",
+    "zh-Hant": "中国大陆商业与科技媒体。"
+   },
+   "feeds": [
+    {
+     "name": "Google News 中国 商业",
+     "url": "https://news.google.com/rss/headlines/section/topic/BUSINESS?hl=zh-CN&gl=CN&ceid=CN:zh-Hans",
+     "checked": "2026-11-23"
+    },
+    {
+     "name": "钛媒体",
+     "url": "https://www.tmtpost.com/rss.xml",
+     "checked": "2026-11-23"
+    },
+    {
+     "name": "IT之家",
+     "url": "https://www.ithome.com/rss/",
+     "checked": "2026-11-23"
+    },
+    {
+     "name": "少数派",
+     "url": "https://sspai.com/feed",
+     "checked": "2026-11-23"
+    },
+    {
+     "name": "爱范儿",
+     "url": "https://www.ifanr.com/feed",
+     "checked": "2026-11-23"
+    },
+    {
+     "name": "极客公园",
+     "url": "https://www.geekpark.net/rss",
+     "checked": "2026-11-23"
+    }
+   ]
+  },
+  {
+   "id": "en-markets",
+   "name": {
+    "en": "Markets",
+    "zh-Hant": "美股與市場"
+   },
+   "language": "en",
+   "region": "intl",
+   "topics": [
+    "markets",
+    "stocks"
+   ],
+   "description": {
+    "en": "US and global markets news.",
+    "zh-Hant": "美國與全球市場新聞（英文）。"
+   },
+   "feeds": [
+    {
+     "name": "CNBC Top News",
+     "url": "https://www.cnbc.com/id/100003114/device/rss/rss.html",
+     "checked": "2026-11-23"
+    },
+    {
+     "name": "CNBC Markets",
+     "url": "https://www.cnbc.com/id/20910258/device/rss/rss.html",
+     "checked": "2026-11-23"
+    },
+    {
+     "name": "MarketWatch Top Stories",
+     "url": "https://feeds.content.dowjones.io/public/rss/mw_topstories",
+     "checked": "2026-11-23"
+    },
+    {
+     "name": "WSJ Markets",
+     "url": "https://feeds.content.dowjones.io/public/rss/RSSMarketsMain",
+     "checked": "2026-11-23"
+    },
+    {
+     "name": "Investing.com News",
+     "url": "https://www.investing.com/rss/news.rss",
+     "checked": "2026-11-23"
+    },
+    {
+     "name": "Seeking Alpha Market Currents",
+     "url": "https://seekingalpha.com/market_currents.xml",
+     "checked": "2026-11-23"
+    }
+   ]
+  },
+  {
+   "id": "en-business",
+   "name": {
+    "en": "Business",
+    "zh-Hant": "國際商業"
+   },
+   "language": "en",
+   "region": "intl",
+   "topics": [
+    "business",
+    "finance"
+   ],
+   "description": {
+    "en": "Business and economy coverage from major English-language newsrooms.",
+    "zh-Hant": "英文主要媒體的商業與經濟新聞。"
+   },
+   "feeds": [
+    {
+     "name": "BBC Business",
+     "url": "https://feeds.bbci.co.uk/news/business/rss.xml",
+     "checked": "2026-11-23"
+    },
+    {
+     "name": "NYT Business",
+     "url": "https://rss.nytimes.com/services/xml/rss/nyt/Business.xml",
+     "checked": "2026-11-23"
+    },
+    {
+     "name": "The Guardian Business",
+     "url": "https://www.theguardian.com/uk/business/rss",
+     "checked": "2026-11-23"
+    },
+    {
+     "name": "NPR Business",
+     "url": "https://feeds.npr.org/1006/rss.xml",
+     "checked": "2026-11-23"
+    },
+    {
+     "name": "The Economist Finance",
+     "url": "https://www.economist.com/finance-and-economics/rss.xml",
+     "checked": "2026-11-23"
+    },
+    {
+     "name": "Forbes Business",
+     "url": "https://www.forbes.com/business/feed/",
+     "checked": "2026-11-23"
+    },
+    {
+     "name": "WSJ Business",
+     "url": "https://feeds.content.dowjones.io/public/rss/WSJcomUSBusiness",
+     "checked": "2026-11-23"
+    }
+   ]
+  },
+  {
+   "id": "en-technology",
+   "name": {
+    "en": "Technology",
+    "zh-Hant": "國際科技"
+   },
+   "language": "en",
+   "region": "intl",
+   "topics": [
+    "technology"
+   ],
+   "description": {
+    "en": "Technology industry news in English.",
+    "zh-Hant": "英文科技產業新聞。"
+   },
+   "feeds": [
+    {
+     "name": "TechCrunch",
+     "url": "https://techcrunch.com/feed/",
+     "checked": "2026-11-23"
+    },
+    {
+     "name": "The Verge",
+     "url": "https://www.theverge.com/rss/index.xml",
+     "checked": "2026-11-23"
+    },
+    {
+     "name": "Ars Technica",
+     "url": "https://feeds.arstechnica.com/arstechnica/index",
+     "checked": "2026-11-23"
+    },
+    {
+     "name": "Hacker News",
+     "url": "https://hnrss.org/frontpage",
+     "checked": "2026-11-23"
+    },
+    {
+     "name": "Wired",
+     "url": "https://www.wired.com/feed/rss",
+     "checked": "2026-11-23"
+    },
+    {
+     "name": "MIT Technology Review",
+     "url": "https://www.technologyreview.com/feed/",
+     "checked": "2026-11-23"
+    }
+   ]
+  },
+  {
+   "id": "en-asia",
+   "name": {
+    "en": "Asia business",
+    "zh-Hant": "亞洲商業"
+   },
+   "language": "en",
+   "region": "asia",
+   "topics": [
+    "business",
+    "markets",
+    "international"
+   ],
+   "description": {
+    "en": "Business and markets across Asia, in English.",
+    "zh-Hant": "亞洲各地的商業與市場新聞（英文）。"
+   },
+   "feeds": [
+    {
+     "name": "Nikkei Asia",
+     "url": "https://asia.nikkei.com/rss/feed/nar",
+     "checked": "2026-11-23"
+    },
+    {
+     "name": "SCMP Business",
+     "url": "https://www.scmp.com/rss/92/feed",
+     "checked": "2026-11-23"
+    },
+    {
+     "name": "CNA Singapore Business",
+     "url": "https://www.channelnewsasia.com/api/v1/rss-outbound-feed?_format=xml&category=6936",
+     "checked": "2026-11-23"
+    },
+    {
+     "name": "The Straits Times Business",
+     "url": "https://www.straitstimes.com/news/business/rss.xml",
+     "checked": "2026-11-23"
+    },
+    {
+     "name": "Taipei Times",
+     "url": "https://www.taipeitimes.com/xml/index.rss",
+     "checked": "2026-11-23"
+    },
+    {
+     "name": "The Japan Times",
+     "url": "https://www.japantimes.co.jp/feed/",
+     "checked": "2026-11-23"
+    },
+    {
+     "name": "Bangkok Post Business",
+     "url": "https://www.bangkokpost.com/rss/data/business.xml",
+     "checked": "2026-11-23"
+    },
+    {
+     "name": "Economic Times Markets",
+     "url": "https://economictimes.indiatimes.com/markets/rssfeeds/1977021501.cms",
+     "checked": "2026-11-23"
+    }
+   ]
+  },
+  {
+   "id": "en-crypto",
+   "name": {
+    "en": "Crypto",
+    "zh-Hant": "加密貨幣"
+   },
+   "language": "en",
+   "region": "intl",
+   "topics": [
+    "crypto"
+   ],
+   "description": {
+    "en": "Crypto assets and blockchain news.",
+    "zh-Hant": "加密資產與區塊鏈新聞（英文）。"
+   },
+   "feeds": [
+    {
+     "name": "CoinDesk",
+     "url": "https://www.coindesk.com/arc/outboundfeeds/rss/",
+     "checked": "2026-11-23"
+    },
+    {
+     "name": "Cointelegraph",
+     "url": "https://cointelegraph.com/rss",
+     "checked": "2026-11-23"
+    },
+    {
+     "name": "Decrypt",
+     "url": "https://decrypt.co/feed",
+     "checked": "2026-11-23"
+    },
+    {
+     "name": "The Block",
+     "url": "https://www.theblock.co/rss.xml",
+     "checked": "2026-11-23"
+    }
+   ]
+  },
+  {
+   "id": "en-central-banks",
+   "name": {
+    "en": "Central banks",
+    "zh-Hant": "央行"
+   },
+   "language": "en",
+   "region": "intl",
+   "topics": [
+    "central-banks"
+   ],
+   "description": {
+    "en": "Press releases and speeches from central banks.",
+    "zh-Hant": "各國央行的新聞稿與演講（英文）。"
+   },
+   "feeds": [
+    {
+     "name": "Federal Reserve press releases",
+     "url": "https://www.federalreserve.gov/feeds/press_all.xml",
+     "checked": "2026-11-23"
+    },
+    {
+     "name": "ECB press",
+     "url": "https://www.ecb.europa.eu/rss/press.html",
+     "checked": "2026-11-23"
+    },
+    {
+     "name": "Bank of England news",
+     "url": "https://www.bankofengland.co.uk/rss/news",
+     "checked": "2026-11-23"
+    },
+    {
+     "name": "BIS central bank speeches",
+     "url": "https://www.bis.org/doclist/cbspeeches.rss",
+     "checked": "2026-11-23"
+    },
+    {
+     "name": "Bank of Japan (English)",
+     "url": "https://www.boj.or.jp/en/rss/whatsnew.xml",
+     "checked": "2026-11-23"
+    }
+   ]
+  },
+  {
+   "id": "ja-economy",
+   "name": {
+    "en": "Japan economy",
+    "zh-Hant": "日本經濟"
+   },
+   "language": "ja",
+   "region": "jp",
+   "topics": [
+    "finance",
+    "business"
+   ],
+   "description": {
+    "en": "Japanese economy and business news, in Japanese.",
+    "zh-Hant": "日本經濟與商業新聞（日文）。"
+   },
+   "feeds": [
+    {
+     "name": "東洋経済オンライン",
+     "url": "https://toyokeizai.net/list/feed/rss",
+     "checked": "2026-11-23"
+    },
+    {
+     "name": "Google ニュース ビジネス",
+     "url": "https://news.google.com/rss/headlines/section/topic/BUSINESS?hl=ja&gl=JP&ceid=JP:ja",
+     "checked": "2026-11-23"
+    },
+    {
+     "name": "Yahoo!ニュース 経済",
+     "url": "https://news.yahoo.co.jp/rss/topics/business.xml",
+     "checked": "2026-11-23"
+    },
+    {
+     "name": "朝日新聞 経済",
+     "url": "https://www.asahi.com/rss/asahi/business.rdf",
+     "checked": "2026-11-23"
+    },
+    {
+     "name": "産経ニュース 経済",
+     "url": "https://www.sankei.com/arc/outboundfeeds/rss/?outputType=xml&category=economy",
+     "checked": "2026-11-23"
+    },
+    {
+     "name": "日経ビジネス",
+     "url": "https://business.nikkei.com/rss/sns/nb.rdf",
+     "checked": "2026-11-23"
+    },
+    {
+     "name": "ZUU online",
+     "url": "https://zuuonline.com/feed",
+     "checked": "2026-11-23"
+    },
+    {
+     "name": "日本銀行 新着情報",
+     "url": "https://www.boj.or.jp/rss/whatsnew.xml",
+     "checked": "2026-11-23"
+    }
+   ]
+  },
+  {
+   "id": "ja-technology",
+   "name": {
+    "en": "Japan technology",
+    "zh-Hant": "日本科技"
+   },
+   "language": "ja",
+   "region": "jp",
+   "topics": [
+    "technology"
+   ],
+   "description": {
+    "en": "Japanese technology news, in Japanese.",
+    "zh-Hant": "日本科技新聞（日文）。"
+   },
+   "feeds": [
+    {
+     "name": "ITmedia NEWS",
+     "url": "https://rss.itmedia.co.jp/rss/2.0/news_bursts.xml",
+     "checked": "2026-11-23"
+    },
+    {
+     "name": "GIGAZINE",
+     "url": "https://gigazine.net/news/rss_2.0/",
+     "checked": "2026-11-23"
+    },
+    {
+     "name": "Impress Watch",
+     "url": "https://www.watch.impress.co.jp/data/rss/1.0/ipw/feed.rdf",
+     "checked": "2026-11-23"
+    },
+    {
+     "name": "ASCII.jp",
+     "url": "https://ascii.jp/rss.xml",
+     "checked": "2026-11-23"
+    },
+    {
+     "name": "Publickey",
+     "url": "https://www.publickey1.jp/atom.xml",
+     "checked": "2026-11-23"
+    },
+    {
+     "name": "Yahoo!ニュース IT",
+     "url": "https://news.yahoo.co.jp/rss/topics/it.xml",
+     "checked": "2026-11-23"
+    }
+   ]
+  }
+ ]
+}

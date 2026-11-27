@@ -36,10 +36,12 @@ def outcome(result):
     return failed, status + (f', {len(rows)} rows' if isinstance(rows, list) else '') + (': ' + error if error else '')
 
 
-def public_card(agent):
-    # Do not expose owner accounts, arbitrary card extensions, or credentials.
+def public_card(agent, *, views=False):
+    # Do not expose owner accounts, arbitrary card extensions, or credentials. A source that serves its own agent views
+    # also names them (the card's agent-view catalog), so this computer's Terminal can open them.
     meta = (agent.agent_card or {}).get('meta', {})
-    result = {key: copy.deepcopy(meta[key]) for key in ('data_source', 'data_consultant_runtime', 'supported_pulses', 'model_outputs') if key in meta}
+    keys = ('data_source', 'data_consultant_runtime', 'supported_pulses', 'model_outputs') + (('phemacast_agent_views',) if views else ())
+    result = {key: copy.deepcopy(meta[key]) for key in keys if key in meta}
     return {'meta': result}
 
 
@@ -47,8 +49,12 @@ def source_local(source):
     config = source._config_data.get('local_network')
     if not config or not config.get('acceptLocalConnections'):return
     handlers = {}
-    for pulse in ('data_spec', 'data_availability', 'schema_query', 'data_fetch'):
-        if pulse == 'data_fetch' and not config.get('allowExecution'):continue
+    # A source may offer more on this computer (its `local_extras(config)`): its own pulses beside the data pulses, which
+    # run only where execution is allowed, as data_fetch does, and the agent views and Phemas of a reader it ships.
+    extras = source.local_extras(config) if callable(getattr(source, 'local_extras', None)) else {}
+    own = tuple(pulse for pulse in extras.get('pulses', ()) if pulse not in ('data_spec', 'data_availability', 'schema_query', 'data_fetch'))
+    for pulse in ('data_spec', 'data_availability', 'schema_query', 'data_fetch', *own):
+        if pulse in ('data_fetch', *own) and not config.get('allowExecution'):continue
         async def operation(parameters, context, pulse=pulse):
             if any(k in parameters for k in ('auth_context', 'connection_id', 'api_key', 'caller_user_token', 'billing')):
                 raise HTTPException(422, 'Local clients cannot select another client’s credentials or payment authority.')
@@ -91,7 +97,11 @@ def source_local(source):
                 async for event in events:yield event
             finally:await events.aclose()
         streams['quotes'] = quote_stream
-    source._local_resource = install_local_resource(source.app, config, lambda: public_card(source), handlers, streams=streams)
+    # Only a source that ships a reader passes its views and Phemas; every other source installs exactly as before.
+    views = extras.get('views')
+    shipped = {key: extras[key] for key in ('views', 'phemas') if extras.get(key)}
+    source._local_resource = install_local_resource(source.app, config, lambda: public_card(source, views=bool(views)), handlers,
+                                                    streams=streams, **shipped)
 
 
 def __getattr__(name):

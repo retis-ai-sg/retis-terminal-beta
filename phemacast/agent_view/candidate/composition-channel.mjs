@@ -9,6 +9,7 @@ const HASH=/^[a-f0-9]{64}$/;
 const failures={
  'authentication-required':'Source authentication expired. Reload this Phema to refresh its session.',
  'access-denied':'Source access was denied. Check the current account and source permissions.',
+ 'points-insufficient':'Not enough Plaza points for this request.',
  'request-rejected':'The source rejected the request.',
  'input-rejected':'The source rejected the supplied inputs.',
  'request-conflict':'The source reports a conflicting or unfinished request. Check its result before retrying.',
@@ -22,13 +23,22 @@ const mountScope=state=>encoded([state.generation??null,...scopeParts(state)]);
 // Page settings that no "$param" in the Phema binds are values Phemars on the page keep for themselves (a Monitor's
 // tab, the backtest it shows). One view saving one must not disconnect the others: they read settings when they need
 // them. A bound input (a page's instruments) is part of every view's mount, so changing it still asks for a reload.
+// What the host reads live as the page changes binds nothing a view's mount holds: a port's value (the
+// phemacast:ports extension) and a control's own media (phemacast:control.*: its dataBindings, data sources and
+// events). A row clicked in a table control or a value from a linked page therefore leaves the page's views connected,
+// and they read the new value as they read any page setting.
+const LIVE_EXTENSION='phemacast:ports';
+// A control's media and a viewer panel's (the page or picture the person chooses) bind page values the person changes
+// in that panel; a view on the same page is not mounted on them.
+const liveControl=value=>typeof value?.renderer?.id==='string'&&(value.renderer.id.startsWith('phemacast:control.')||value.renderer.id==='phemacast:media.viewer');
 function boundNames(phema){
  const names=new Set();
  const walk=value=>{
   if(Array.isArray(value)){value.forEach(walk);return;}
   if(!value||typeof value!=='object')return;
   if(typeof value.$param==='string'){const [,first]=value.$param.split('/');names.add(first===undefined||first===''?'*':first.replace(/~1/g,'/').replace(/~0/g,'~'));}
-  for(const child of Object.values(value))walk(child);
+  const control=liveControl(value);
+  for(const [key,child] of Object.entries(value))if(key!==LIVE_EXTENSION&&!(control&&key==='media'))walk(child);
  };
  walk(phema);return names;
 }
@@ -62,7 +72,8 @@ function content(phema,path){
  if(!composition)throw Error('Mounted composition is unavailable.');return composition;
 }
 export class CompositionViewChannel{
- constructor({request,instance,prefix='',reference,timeoutMs=255000,onStale=()=>{},parameters=null}){
+ constructor({request,instance,prefix='',reference,timeoutMs=255000,onStale=()=>{},parameters=null,panels=null}){
+  this.otherPanels=panels;
   if(typeof request!=='function'||typeof instance!=='function')throw Error('Actual container adapters are required.');
   this.request=request;this.instance=instance;this.onStale=onStale;this.updateParameters=parameters;this.prefix=prefix;this.reference=structuredClone(reference);this.timeoutMs=timeoutMs;
   const declaration=reference.extensions?.['phemacast:composition-references'];
@@ -89,7 +100,7 @@ export class CompositionViewChannel{
    await new Promise(resolve=>setTimeout(resolve,50));
   }
   this.remoteId=selected.remoteId;
-  const state=await this.read();this.phemaDigest=await sha256(encoded(state.phema));this.scopeDigest=await sha256(mountScope(state));
+  const state=await this.read();this.phemaDigest=await sha256(encoded(state.phema));this.scopeDigest=await sha256(mountScope(state));this.generation=state.generation??null;
   this.mountDigest=await sha256(encoded(scopeParts(state)));this.boundDigest=await sha256(boundScope(state));
   await this.verify(state);
  }
@@ -100,6 +111,14 @@ export class CompositionViewChannel{
    if(!ref||ref.kind!=='pulse'||ref.target.agentId!==this.reference.agentId||ref.refresh?.trigger!=='manual'||!ref.interaction||
     await sha256(encoded(ref.interaction.inputSchema))!==hash)throw Error('The mounted reference differs from the declared owner view.');
   }
+  // Light reads: the view's references that cost nothing (their permission rule allows at most 0 points) and declare
+  // none of an action's effects (phemacast:operation-effects, every one false), such as a progress read. They answer
+  // beside the view's other calls, and a host that knows them resolves them beside the page's.
+  const rules=new Map((node.extensions?.['phemacast:permissions']?.references||[]).filter(rule=>rule&&typeof rule==='object').map(rule=>[rule.id,rule]));
+  const NO_EFFECTS=['writesState','externalSend','paidExecution','startsJob','opensStream'];
+  const declaresNone=ref=>{const effects=ref?.extensions?.['phemacast:operation-effects'];
+   return !!effects&&typeof effects==='object'&&Object.keys(effects).length===NO_EFFECTS.length&&NO_EFFECTS.every(name=>effects[name]===false);};
+  this.light=new Set([...this.bindings.keys()].filter(id=>rules.get(id)?.maxPoints===0&&declaresNone(node.references?.find(row=>row.id===id))));
  }
  async queued(task){
   const next=this.tail.catch(()=>{}).then(task);this.tail=next;
@@ -121,6 +140,32 @@ export class CompositionViewChannel{
    return {values:withDefaults(before,await this.adopt(expected))};
   });
  }
+ /** The other open Phemas this Terminal lists (title, Phema, workspace, link group, the values each shares and the
+  * ones it accepts). Only after the viewer allows this Phema to see them in its permission review. */
+ async panels(){await this.panelAccess();return {panels:this.otherPanels.list()};}
+ /** One other open Phema's shared page values. */
+ async panelParameters(value){
+  await this.panelAccess();
+  const panel=this.otherPanels.read(value?.panel);if(!panel)throw Error('That panel is not open.');
+  return {values:structuredClone(panel.parameters||{})};
+ }
+ /** Page values for another open Phema; it takes only the ones it shares for writing. */
+ async setPanelParameters(value){
+  if(this.closed)throw this.stale();
+  if((await this.panelAccess())!=='readWrite')throw Error('This Phema may only read your other panels.');
+  const values=value?.values;
+  if(typeof value?.panel!=='string'||!values||typeof values!=='object'||Array.isArray(values)||!Object.keys(values).length||Object.keys(values).length>64||Object.keys(values).some(key=>!NAME.test(key)))throw Error('Send named page values for one panel.');
+  if(encoded(values).length>280000)throw Error('Parameter values exceed the bound.');noSecrets(values);
+  if(!this.otherPanels.set(value.panel,structuredClone(values)))throw Error('That panel is not open.');
+  return {sent:true};
+ }
+ async panelAccess(){
+  if(!this.otherPanels||typeof this.otherPanels.access!=='function')throw Error('This Terminal cannot show other panels.');
+  const access=await this.otherPanels.access();
+  if(!access?.declared)throw Error('This Phema does not ask to see other panels.');
+  if(access.allowed!==true)throw Error('Allow this Phema to see your other panels in its permissions (♧).');
+  return access.declared;
+ }
  async adopt(expected){
   // The Terminal re-runs the instance with the new values; accept only that change.
   const deadline=Date.now()+30000,want=encoded(expected);
@@ -133,7 +178,7 @@ export class CompositionViewChannel{
    if(encoded(state.parameterValues||{})===want){
     await this.verify(state);
     this.remoteId=current.remoteId;this.phemaDigest=await sha256(encoded(state.phema));
-    this.scopeDigest=await sha256(mountScope(state));this.mountDigest=await sha256(encoded(scopeParts(state)));this.boundDigest=await sha256(boundScope(state));
+    this.scopeDigest=await sha256(mountScope(state));this.generation=state.generation??null;this.mountDigest=await sha256(encoded(scopeParts(state)));this.boundDigest=await sha256(boundScope(state));
     return structuredClone(state.parameterValues||{});
    }
    if(Date.now()>=deadline)throw this.stale('The Terminal did not apply the parameter values. Reload this view.');
@@ -168,13 +213,18 @@ export class CompositionViewChannel{
   return this.request('/api/instances/'+encodeURIComponent(this.remoteId)+'/kept',{method:'POST',
    body:{operation,key,...(operation==='write'?{value:value.value}:{}),...(this.release?{release:this.release}:{})}});
  }
- /** Results this view saved for its instance's Phema, newest first. */
+ /** Results saved for its instance's Phema, newest first: the ones this view saved, and whole-window snapshots (saved
+  * with the window's snapshot control, naming no references: `references` null), which hold this view's results too.
+  * `current` is the snapshot the window shows now, when it is in snapshot mode and listed here; null otherwise. */
  async snapshots(){
   return this.queued(async()=>{
-   await this.read();
+   const state=await this.read();
    const value=await this.request('/api/instances/'+encodeURIComponent(this.remoteId)+'/content'),paths=this.paths();
-   return {snapshots:(value.snapshots||[]).filter(row=>row.references?.length&&row.references.every(path=>paths.has(path)))
-    .map(row=>({id:row.id,createdAt:row.createdAt,label:row.label??null,references:row.references.map(path=>path.slice(this.prefix?this.prefix.length+1:0))}))};
+   const own=path=>path.slice(this.prefix?this.prefix.length+1:0);
+   const rows=(value.snapshots||[]).filter(row=>row.references==null||Array.isArray(row.references)&&row.references.length&&row.references.every(path=>paths.has(path)));
+   const shown=state.sourceMode==='snapshot'&&typeof state.content?.snapshotId==='string'?state.content.snapshotId:null;
+   return {snapshots:rows.map(row=>({id:row.id,createdAt:row.createdAt,label:row.label??null,references:Array.isArray(row.references)?row.references.map(own):null})),
+    current:shown&&rows.some(row=>row.id===shown)?shown:null};
   });
  }
  async readSnapshot(value){
@@ -263,7 +313,7 @@ export class CompositionViewChannel{
   const state=value.state||value;
   if(this.closed||this.instance()?.remoteId!==current.remoteId||(state.sourceMode||'parameters')!==this.reference.sourceMode||
    await sha256(encoded(state.phema))!==this.phemaDigest||await sha256(encoded(scopeParts(state)))!==this.mountDigest&&!await this.keptOnly(state))throw this.stale();
-  this.remoteId=current.remoteId;this.scopeDigest=await sha256(mountScope(state));this.mountDigest=await sha256(encoded(scopeParts(state)));
+  this.remoteId=current.remoteId;this.scopeDigest=await sha256(mountScope(state));this.generation=state.generation??null;this.mountDigest=await sha256(encoded(scopeParts(state)));
  }
  async read(){
   if(this.closed)throw this.stale();
@@ -275,16 +325,21 @@ export class CompositionViewChannel{
   if(this.phemaDigest&&await sha256(encoded(state.phema))!==this.phemaDigest)throw this.stale('The Phema changed. Reload this view before another operation.');
   if(this.scopeDigest&&await sha256(mountScope(state))!==this.scopeDigest){
    if(!await this.keptOnly(state))throw this.stale('The mounted parameters or generation changed. Reload this view before another operation.');
-   this.scopeDigest=await sha256(mountScope(state));this.mountDigest=await sha256(encoded(scopeParts(state)));
+   this.scopeDigest=await sha256(mountScope(state));this.generation=state.generation??null;this.mountDigest=await sha256(encoded(scopeParts(state)));
   }
   return state;
  }
  /** True when, of this view's mount, only page settings nothing binds changed (another Phemar saved one), and no
   * call of this view is still owed a reply by the instance as it was. The Phema itself was already compared. */
  async keptOnly(state){
-  return !!this.boundDigest&&![...this.pending.values()].some(record=>record.dispatched)&&await sha256(boundScope(state))===this.boundDigest;
+  if(!this.boundDigest||await sha256(boundScope(state))!==this.boundDigest)return false;
+  // A call already sent is still answered by the instance when it kept its generation: a page value saved in place
+  // (a viewer's picture, a control's value) does not re-run it. A re-run might drop the reply, so it asks for a reload.
+  return ![...this.pending.values()].some(record=>record.dispatched)||(state.generation??null)===this.generation;
  }
  async invoke(message){
+  // A light read (see verify) does not wait for the view's other calls; it still waits for its own previous one.
+  if(this.light?.has(message?.compositionReference))return this.invokeSelected(message);
   // References share the instance's interaction lifecycle. Waiting requests
   // do not start a host deadline or prepare another active intent.
   const next=this.tail.catch(()=>{}).then(()=>this.invokeSelected(message));this.tail=next;

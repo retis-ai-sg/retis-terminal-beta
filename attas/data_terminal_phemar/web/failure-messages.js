@@ -8,6 +8,7 @@ const MESSAGES={
  'source-unavailable':'The data source does not offer this data.',
  'access-denied':'Your account has no access to this data.',
  'authentication-required':'Your Plaza sign-in expired or is being renewed. Press ↻ again in a few seconds; if it repeats, sign in again.',
+ 'points-insufficient':'Not enough Plaza points for this request.',
  'request-rejected':'The data source rejected this request.',
  'input-rejected':'The data source could not use these inputs. Check the symbols.',
  'request-conflict':'The request changed while loading. Press ↻ to try again.',
@@ -15,10 +16,27 @@ const MESSAGES={
  'Snapshot belongs to another Phema revision.':'This snapshot was saved from an older version of this layout. Open it with parameters, then save a new snapshot.'};
 /** The message key for a closed failure category, or null for any other reason. */
 export function failureMessage(reason){return typeof reason==='string'&&Object.hasOwn(MESSAGES,reason)?MESSAGES[reason]:null;}
+/** A panel whose program on this computer is not answering (browser/engine.py NOT_ANSWERING). */
+export const NOT_ANSWERING='local-not-answering';
+// What the Terminal says then (local_resources.not_answering), each read in the window's language.
+const NAMED_PROGRAM='{0} is not answering on this computer. Start it again in Retis MAS Manager.';
+const NAMED=/^(.{1,80}) is not answering on this computer\. Start it again in Retis MAS Manager\.$/;
+const PROGRAM='The program on this computer that shows this view is not answering. Start it again in Retis MAS Manager.';
+const MANAGER='Retis MAS Manager is not answering on this computer. Try again in a few minutes; if it still does not answer, restart the computer.';
+/** The Terminal's not-answering sentence as a message key and its arguments; any other text reads as the unnamed one. */
+export function notAnswering(message){
+ if(message===PROGRAM||message===MANAGER)return {key:message,args:[]};
+ const named=typeof message==='string'&&NAMED.exec(message);
+ return named?{key:NAMED_PROGRAM,args:[named[1]]}:{key:PROGRAM,args:[]};
+}
 /** Tooltip text: the sentence with the code kept for reports, or any other reason as it is. */
-export function failureText(reason){const key=failureMessage(reason);return key?t(key)+' ('+reason+')':String(reason||'');}
-/** A failed request as the viewer reads it: the Terminal's own transport failure in the interface language, saying Plaza is
- * still connected (the status bar shows Plaza, not each agent); any other answer as it came. */
+export function failureText(reason,message){
+ if(reason===NOT_ANSWERING){const said=notAnswering(message);return t(said.key,...said.args);}
+ const key=failureMessage(reason);return key?t(key)+' ('+reason+')':String(reason||'');
+}
+/** A failed request as the viewer reads it: the Terminal's own transport failure in the interface language. The failed
+ * upstream may be an agent or Plaza itself (a site restarting answers 502), so it points at the Plaza status in the bar
+ * instead of saying Plaza is connected; any other answer as it came. */
 // Local access refused: the same advice as the page's notice, in the window's language.
 export const NOT_APPROVED='This account has not approved this Terminal yet. Open Terminal settings → Plaza account and choose Request access.';
 const WRONG_ACCOUNT='Another account requested access for this window. Sign in to Plaza as this window’s account, then request access again.';
@@ -27,11 +45,14 @@ export function requestFailure(detail){
   // A Terminal answer with its own plain sentence above (a snapshot that no longer matches its layout) reads as that
   // sentence, in the window's language; the window title and the Browser showed the raw answer.
   const known=failureMessage(detail);if(known)return t(known);
-  if(detail==='Registered upstream is unavailable.')return t('An agent is temporarily unreachable. Plaza is still connected; try again in a moment.');
+  if(detail==='Registered upstream is unavailable.')return t('An agent or Plaza is temporarily unreachable. Try again in a moment; the Plaza status at the top shows whether Plaza itself is connected.');
   // A panel the Terminal no longer has, usually because the Terminal restarted under this tab.
   if(detail==='Browser unavailable in this Terminal window.')return t('This panel is no longer open in this Terminal. Reload this tab.');
   const app=typeof detail==='string'&&/^Open this Terminal from the (.{1,60}) icon's menu: choose Open\.$/.exec(detail);
   if(app)return t('To sign in, open this Terminal from the {0} icon\'s menu: choose Open.',app[1]);
+  // A program on this computer that shows a view and no longer answers, by its name (local_resources.not_answering).
+  const program=typeof detail==='string'&&NAMED.exec(detail);
+  if(program)return t('{0} is not answering on this computer. Start it again in Retis MAS Manager.',program[1]);
   if(detail===KIT_ACCESS)return t('To sign in, open this Terminal from the address that "python3 terminal.py up" printed, or run "python3 terminal.py open".');
   // Each account approves this Terminal for itself.
   if(detail===NOT_APPROVED||detail===WRONG_ACCOUNT)return t(detail);

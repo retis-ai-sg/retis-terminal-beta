@@ -12,7 +12,7 @@ from jsonschema import Draft202012Validator
 from jsonschema.exceptions import ValidationError
 from prompits.core.capabilities import negotiate, validate_requirement, consolidate_requirements
 from phemacast.core.composition_media import MEDIA, validate_media, validate_custom
-from phemacast.core.composition_contracts import CUSTOM_SCHEMAS
+from phemacast.core.composition_contracts import CUSTOM_SCHEMAS, CUSTOM_VERSIONS
 from phemacast.core.layout import GRAMMAR, CAPABILITY, from_layout, layout_requirements
 from .layout_document import to_document, from_document
 
@@ -40,7 +40,7 @@ def advertisement():
         {'id': 'phemacast:pulse-chat', 'version': '1.0.0'},
         *({'id': 'phemacast:media.' + name, 'version': '1.1.0', **({'features':['mesh','timeline','gltf','glb']} if name=='scene' else {})} for name in sorted(MEDIA)),
         *({'id': 'phemacast:resolve.' + name, 'version': '1.1.0'} for name in ('pulse','api','channel','phemar-snapshot','phemar-generate','asset')),
-        *({'id': id, 'version':'1.1.0'} for id in CUSTOM_SCHEMAS),
+        *({'id': id, 'version': CUSTOM_VERSIONS.get(id, '1.1.0')} for id in CUSTOM_SCHEMAS),
     ]}
 
 

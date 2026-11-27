@@ -461,6 +461,9 @@ CWA = {
         'license': 'Open Government Data License, Taiwan v1.0 (https://data.gov.tw/license): any use, with this notice '
                    'naming the agency and dataset; without it the licence is not granted.',
         'attribution': '交通部中央氣象署 Central Weather Administration open data, under the Open Government Data License, Taiwan v1.0 (data.gov.tw/license)',
+        # The description and licence in Traditional Chinese; licence names, credits and links stay as published.
+        'translations': {'zh-TW': {'description': '交通部中央氣象署開放資料：含震央與規模的地震報告，以及自動與人工氣象站的觀測。',
+                                   'license': '政府資料開放授權條款－第1版（Open Government Data License, Taiwan v1.0，https://data.gov.tw/license）：可作任何用途，但須附上此聲明並載明機關與資料集名稱；未附聲明者不取得授權。'}},
         'documentation': CWA_DOCS,
     },
     'policy': {'base_url': 'https://opendata.cwa.gov.tw/api', 'auth': ('query', 'Authorization', ''),
@@ -515,6 +518,9 @@ MOENV = {
         'license': 'Open Government Data License, Taiwan v1.0 (https://data.gov.tw/license): any use, with this notice '
                    'naming the agency and dataset; without it the licence is not granted.',
         'attribution': '環境部 Ministry of Environment open data, under the Open Government Data License, Taiwan v1.0 (data.gov.tw/license)',
+        # The description and licence in Traditional Chinese; licence names, credits and links stay as published.
+        'translations': {'zh-TW': {'description': '環境部開放資料：各監測站每小時的空氣品質指標與污染物讀數。',
+                                   'license': '政府資料開放授權條款－第1版（Open Government Data License, Taiwan v1.0，https://data.gov.tw/license）：可作任何用途，但須附上此聲明並載明機關與資料集名稱；未附聲明者不取得授權。'}},
         'documentation': MOENV_DOCS,
     },
     'policy': {'base_url': 'https://data.moenv.gov.tw/api/v2', 'auth': ('query', 'api_key', ''),
@@ -646,6 +652,12 @@ OSM = {
         'license': 'Map data © OpenStreetMap contributors (ODbL); standard tiles CC BY-SA 2.0; OpenTopoMap tiles CC BY-SA 3.0.',
         # OpenTopoMap credits its map as "© OpenStreetMap contributors, SRTM | © OpenTopoMap (CC-BY-SA)".
         'attribution': '© OpenStreetMap contributors · topographic map: © OpenTopoMap (CC-BY-SA), SRTM',
+        # Each map's own credit, so a view showing only the standard map doesn't credit OpenTopoMap.
+        'attributions': {'openstreetmap.standard_tile': '© OpenStreetMap contributors',
+                         'openstreetmap.topographic_tile': '© OpenStreetMap contributors · topographic map: © OpenTopoMap (CC-BY-SA), SRTM'},
+        # The description and licence in Traditional Chinese; licence names, credits and links stay as published.
+        'translations': {'zh-TW': {'description': '以地圖圖磚呈現的 OpenStreetMap：OpenStreetMap 基金會圖磚伺服器的標準街道圖（縮放到 19），以及 OpenTopoMap 含等高線與地形陰影的地形圖（縮放到 17）。',
+                                   'license': '地圖資料 © OpenStreetMap contributors（ODbL）；標準街道圖圖磚 CC BY-SA 2.0；OpenTopoMap 圖磚 CC BY-SA 3.0。'}},
         'documentation': OSM_DOCS,
     },
     'policy': {'base_url': 'https://tile.openstreetmap.org', 'required': False,
@@ -713,6 +725,9 @@ STADIA = {
                    'on your device only, never on a server. © Stadia Maps, © OpenMapTiles, © OpenStreetMap contributors '
                    '(Stamen styles © Stamen Design).',
         'attribution': '© Stadia Maps © OpenMapTiles © OpenStreetMap contributors (Stamen styles © Stamen Design)',
+        # The description and licence in Traditional Chinese; licence names, credits and links stay as published.
+        'translations': {'zh-TW': {'description': 'Stadia Maps 的街道與地形圖磚：Alidade Smooth（亮色與暗色）、OSM Bright、Outdoors，以及 Stamen Terrain 與 Toner 樣式，以您自己的 Stadia Maps 金鑰讀取。',
+                                   'license': 'Stadia Maps 服務條款（https://stadiamaps.com/terms-of-service/）：在 Retis 使用須付費方案；圖磚只快取在您的裝置上，不存放於伺服器。© Stadia Maps、© OpenMapTiles、© OpenStreetMap contributors（Stamen 樣式 © Stamen Design）。'}},
         'documentation': STADIA_DOCS,
     },
     'policy': {'base_url': 'https://tiles.stadiamaps.com', 'auth': ('query', 'api_key', ''),
@@ -740,6 +755,9 @@ MAPTILER = {
         'license': 'MapTiler Cloud terms (https://www.maptiler.com/terms/cloud/): use in Retis needs a paid plan; tiles are cached on '
                    'your device only, never on a server. © MapTiler, © OpenStreetMap contributors.',
         'attribution': '© MapTiler © OpenStreetMap contributors',
+        # The description and licence in Traditional Chinese; licence names, credits and links stay as published.
+        'translations': {'zh-TW': {'description': 'MapTiler Cloud 的地圖圖磚：Streets、Outdoor、Topo、Basic 與 Satellite，以您自己的 MapTiler 金鑰讀取。',
+                                   'license': 'MapTiler Cloud 條款（https://www.maptiler.com/terms/cloud/）：在 Retis 使用須付費方案；圖磚只快取在您的裝置上，不存放於伺服器。© MapTiler、© OpenStreetMap contributors。'}},
         'documentation': MAPTILER_DOCS,
     },
     'policy': {'base_url': 'https://api.maptiler.com', 'auth': ('query', 'key', ''),
@@ -768,6 +786,9 @@ THUNDERFOREST = {
         'authentication_required': True,
         'license': 'Thunderforest terms; maps © Thunderforest, data © OpenStreetMap contributors.',
         'attribution': 'Maps © Thunderforest, Data © OpenStreetMap contributors',
+        # The description and licence in Traditional Chinese; licence names, credits and links stay as published.
+        'translations': {'zh-TW': {'description': 'Thunderforest 的地圖圖磚：OpenCycleMap、Transport、Landscape、Outdoors、Atlas 與 Neighbourhood，以您自己的 Thunderforest 金鑰讀取。',
+                                   'license': 'Thunderforest 條款；地圖 © Thunderforest，資料 © OpenStreetMap contributors。'}},
         'documentation': THUNDERFOREST_DOCS,
     },
     'policy': {'base_url': 'https://tile.thunderforest.com', 'auth': ('query', 'apikey', ''),

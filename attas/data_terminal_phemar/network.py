@@ -30,6 +30,21 @@ def unwrap(value):
     return value
 
 
+def pulse_title(record):
+    """A pulse's readable name as its owner publishes it: the definition's `title`, and its translations in the
+    definition's own phemacast:ui catalog. The page picks the window's language; without them the pulse name stands."""
+    title = record.get('title')
+    result = {'title': title[:200]} if isinstance(title, str) and title.strip() else {}
+    bundle = (record.get('extensions') or {}).get('phemacast:ui') if isinstance(record.get('extensions'), dict) else None
+    if not (isinstance(bundle, dict) and bundle.get('version') == 1 and isinstance(bundle.get('defaultLocale'), str)
+            and isinstance(bundle.get('messages'), dict) and len(bundle['messages']) <= 200):
+        return result
+    messages = {key: values for key, values in bundle['messages'].items()
+                if isinstance(key, str) and len(key) <= 200 and isinstance(values, dict) and len(values) <= 20
+                and all(isinstance(lang, str) and isinstance(text, str) and 0 < len(text) <= 200 for lang, text in values.items())}
+    return {**result, 'ui': {'version': 1, 'defaultLocale': bundle['defaultLocale'], 'messages': messages}} if messages else result
+
+
 
 
 
@@ -261,8 +276,16 @@ class Network:
             if practice != 'get_pulse_data' or billing:raise HTTPException(403, 'Plaza payment cannot be delegated to a local resource.')
             return await self.local_call(agent, name, parameters, token)
         # 'strategy_consultation' is the Strategy Consultant's consultation pulse (strategy_consultant.contracts).
-        execution_timeouts = {'strategy_consultation': 250, 'historical_prices': 90}
+        # 'llm_chat' is an LLM agent's model call: it may read and search pages before it answers, and the
+        # viewer's own-key calls already wait up to 120 s (direct_vendor.LLM_TIMEOUT).
+        execution_timeouts = {'strategy_consultation': 250, 'historical_prices': 90, 'llm_chat': 120}
         timeout = execution_timeouts.get(name, 40) if practice == 'get_pulse_data' else 40
+        from prompits.core.peer_transport import ScopedPeerTransport, pipeline_route
+        if pipeline_route(agent):
+            # An agent that takes no inbound connections (someone's own agent on another computer) is reached through
+            # its Pipeline node, with Plaza's connection grant for this account; the site's gateway has no route to it.
+            return await ScopedPeerTransport(self.plaza, self.registration, self.client).pipeline_pulse(
+                agent, name, parameters, token, timeout=timeout, practice=practice, billing=billing)
         path='/use_practice/'+practice
         payload={
             'sender':self.registration.agent_id,'receiver':agent['id'],
@@ -354,7 +377,9 @@ class Network:
                     'inputSchema':record.get('input_schema',{}), 'outputSchema':record.get('output_schema',{}),
                     'fields':record.get('fields',[]), 'mode':record.get('mode','snapshot'),
                     'category':record.get('category','Pulse'), 'schema':record.get('schema',''),
-                    'executionKind':'pulse', 'templates':record.get('templates',[])})
+                    'executionKind':'pulse', 'templates':record.get('templates',[]),
+                    # The owner's readable name and its translations, as a Phema names itself (phemacast:ui).
+                    **pulse_title(record)})
         return {'publishers':publishers, 'pulses':pulses, 'warnings':[]}
 
 

@@ -1,17 +1,22 @@
 """What components use (CPU, memory, disk), what needs attention, and the one-shot jobs that fetch their data.
 
 - `Usage`: CPU and memory of a component's process and its children, from psutil, sampled between calls.
-- `folder_size`: bytes under a folder, cached for a few minutes because data folders can hold gigabytes.
+- `folder_size`: bytes under a folder as last measured. Folders are walked on a background thread, never by
+  the caller, because data folders can hold gigabytes and a status page must answer at once.
 - `DataJobs`: a component's data download, run as its own process (the parts list names its command), with its
   output in its own log, so a download survives the page closing and is never part of the package.
 - `alerts`: the conditions the manager's page shows at the top: a component that keeps crashing or has been
-  unhealthy for a while, an update waiting, and low disk space.
+  unhealthy for a while, a data download that failed. Free disk space is shown, never warned about: the user's
+  disk is the user's business. An update waiting is no alert either: the component's own row says so (Alvin,
+  2026-11-26).
 """
 from __future__ import annotations
 
+import math
 import os
 import shutil
 import subprocess
+import threading
 import time
 from pathlib import Path
 from typing import Any, Callable
@@ -23,8 +28,6 @@ try:
 except ImportError:  # pragma: no cover
     psutil = None
 
-LOW_DISK_BYTES = 2 * 1024 ** 3
-LOW_DISK_SHARE = 0.05
 UNHEALTHY_ALERT_SECONDS = 600
 
 
@@ -65,18 +68,65 @@ class Usage:
 
 
 _SIZES: dict[str, tuple[float, int]] = {}
+_WANTED: dict[str, Callable[[], float]] = {}   # folders to measure, in the order asked, each with the clock it is kept by
+_MEASURING: list[str] = []                       # the folder being walked now, if any
+_CHANGED: set[str] = set()                       # folders that changed while being walked: their walk is out of date
+_SIZE_LOCK = threading.Condition()
+_SIZE_WORKER: list[threading.Thread] = []
 
 
 def forget_size(path: Path) -> None:
-    """Drop a folder's remembered size, so the next read walks it again."""
-    _SIZES.pop(str(path), None)
-
-
-def folder_size(path: Path, *, max_age: float = 300.0, clock: Callable[[], float] = time.monotonic) -> int:
+    """Measure a folder again at the next read; its last size is shown until the new one is known."""
     key = str(path)
-    cached = _SIZES.get(key)
-    if cached and clock() - cached[0] < max_age:
-        return cached[1]
+    with _SIZE_LOCK:
+        if key in _SIZES:
+            _SIZES[key] = (-math.inf, _SIZES[key][1])
+        if key in _MEASURING:   # a walk that started before the change may have missed it
+            _CHANGED.add(key)
+
+
+def folder_size(path: Path, *, max_age: float = 300.0, clock: Callable[[], float] = time.monotonic) -> int | None:
+    """Bytes under `path` as last measured, or None before the first measurement is done.
+
+    It never walks the folder itself: a measurement older than `max_age` is renewed on one background thread, one
+    folder at a time. A status page asks for every component's folders on each refresh, and walking tens of thousands
+    of files on a busy disk took the manager's status from milliseconds to minutes (2026-11-26)."""
+    key = str(path)
+    with _SIZE_LOCK:
+        cached = _SIZES.get(key)
+        if (cached is None or clock() - cached[0] >= max_age) and key not in _WANTED and key not in _MEASURING:
+            _WANTED[key] = clock
+            if not _SIZE_WORKER or not _SIZE_WORKER[0].is_alive():
+                _SIZE_WORKER[:] = [threading.Thread(target=_measure_folders, name='folder-sizes', daemon=True)]
+                _SIZE_WORKER[0].start()
+            _SIZE_LOCK.notify()
+        return cached[1] if cached else None
+
+
+def _measure_folders():
+    while True:
+        with _SIZE_LOCK:
+            while not _WANTED:
+                _SIZE_LOCK.wait()
+            key, clock = next(iter(_WANTED.items()))
+            del _WANTED[key]
+            _MEASURING[:] = [key]
+        try:
+            total = measure_folder(Path(key))
+        except Exception:   # never stops measuring: the folder keeps its last size and is asked for again later
+            total = None
+        with _SIZE_LOCK:
+            _MEASURING.clear()
+            last = _SIZES.get(key)
+            if total is None and last is None:
+                continue
+            # A walk that missed a change counts as old at once, so the next read measures it again.
+            _SIZES[key] = (-math.inf if key in _CHANGED or total is None else clock(), last[1] if total is None else total)
+            _CHANGED.discard(key)
+
+
+def measure_folder(path: Path) -> int:
+    """Bytes in the files under `path` now (links are counted, not followed); 0 when it does not exist."""
     total = 0
     for root, _, files in os.walk(path):
         for name in files:
@@ -84,14 +134,12 @@ def folder_size(path: Path, *, max_age: float = 300.0, clock: Callable[[], float
                 total += os.lstat(os.path.join(root, name)).st_size
             except OSError:
                 continue
-    _SIZES[key] = (clock(), total)
     return total
 
 
 def disk(path: Path) -> dict[str, Any]:
     usage = shutil.disk_usage(path)
-    low = usage.free < LOW_DISK_BYTES or usage.free < usage.total * LOW_DISK_SHARE
-    return {'free_bytes': usage.free, 'total_bytes': usage.total, 'low': low}
+    return {'free_bytes': usage.free, 'total_bytes': usage.total}
 
 
 class DataJobs:
@@ -145,7 +193,7 @@ class DataJobs:
         return {**job, 'last_line': lines[-1][:300] if lines else ''}
 
 
-def alerts(rows: list[dict[str, Any]], disk_state: dict[str, Any] | None, *, now: float) -> list[dict[str, Any]]:
+def alerts(rows: list[dict[str, Any]], *, now: float) -> list[dict[str, Any]]:
     found = []
     for row in rows:
         process = row.get('process') or {}
@@ -153,11 +201,7 @@ def alerts(rows: list[dict[str, Any]], disk_state: dict[str, Any] | None, *, now
             found.append({'kind': 'crash_loop', 'component': row['id'], 'severity': 'error'})
         elif row.get('state') == 'unhealthy' and process.get('started_at') and now - process['started_at'] > UNHEALTHY_ALERT_SECONDS:
             found.append({'kind': 'unhealthy', 'component': row['id'], 'severity': 'warning', 'reason': row.get('reason', '')})
-        if row.get('update'):
-            found.append({'kind': 'update', 'component': row['id'], 'severity': 'info', 'version': row['update']})
         job = row.get('data_job') or {}
         if job.get('state') == 'failed':
             found.append({'kind': 'data_failed', 'component': row['id'], 'severity': 'warning'})
-    if disk_state and disk_state.get('low'):
-        found.append({'kind': 'low_disk', 'component': None, 'severity': 'error', 'free_bytes': disk_state['free_bytes']})
     return found

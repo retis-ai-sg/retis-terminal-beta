@@ -1,29 +1,66 @@
 import {customHTML,mountCustom,configureRendererUI} from './composition-renderers.js';
+import './control-table.js';
+import './control-forms.js';
+import {linkScope} from './link-groups.js';
+import {agentChoices,choicePulses} from './agent-choices.js';
 import {MEDIA_TYPES,mediaHTML,mountScenes,mountMedia} from './composition-media.js';
 import {ui as uiHTML,label,applyUI,translate,currentLocale,resolvedLocale,scopedTranslate,setUIText,attribute} from './i18n.js';
 import {valueFormatter,currentDisplayFormat} from './display-format.js';
 import {displayTimezone,displayTime,displayDateTime,displayTimeTitle} from './time-display.js';
-import {failureMessage,failureText} from './failure-messages.js';
+import {failureMessage,failureText,notAnswering,NOT_ANSWERING} from './failure-messages.js';
+// A panel whose program on this computer is not answering says so in the window's language, with what to do.
+const notAnsweringLabel=message=>{const said=notAnswering(message);return label(said.key,...said.args);};
 configureRendererUI((host,context={})=>{const locale=host?resolvedLocale(host):context.locale||currentLocale();return {locale,formatValue:valueFormatter(locale),getLocale:()=>host?resolvedLocale(host):locale,label,setMessage:setUIText,translate:(key,...args)=>host?scopedTranslate(host,key,...args):translate(locale,key,...args),attribute};});
 // A kept result names when it was fetched: the time today, the date and time before today.
 const keptTime=at=>displayDateTime(at).slice(0,10)===displayDateTime(Date.now()).slice(0,10)?displayTime(at):displayDateTime(at);
 const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+// A data panel's own source menu, as the Semiconductor Watch has one on each block: Automatic, then each source this
+// viewer can use for the panel's data (the Terminal's per-panel choice). It shows when there is a choice to make.
+export function sourceMenu(panel,browser,sourceMode){
+ const menu=panel.referenceId?browser.panelSources?.[panel.referenceId]:null,rows=Array.isArray(menu?.sources)?menu.sources:[];
+ if(!rows.length||(rows.length<2&&!menu.chosen))return '';
+ const chosen=rows.some(row=>row.id===menu.chosen)?menu.chosen:'';
+ return uiHTML`<label class="panel-source" title="Data source"><span>${label('Source')}</span><select data-panel-source="${esc(browser.id+'/'+panel.referenceId)}" aria-label="Data source" ${sourceMode==='snapshot'?'disabled':''}><option value="">${label('Automatic')}</option>${rows.map(row=>uiHTML`<option value="${esc(row.id)}" ${row.id===chosen?'selected':''}>${esc(row.name)}${row.local?uiHTML` · ${label('Local')}`:''}</option>`).join('')}</select></label>`;
+}
+// The references a control binds ({"$result": …}), besides the panel's own.
+function boundReferences(value,found=new Set(),depth=0){
+ if(depth>12||!value||typeof value!=='object')return found;
+ if(!Array.isArray(value)&&Object.hasOwn(value,'$result')){const ref=value.$result;found.add(typeof ref==='string'?ref:ref?.reference);return found;}
+ for(const child of Object.values(value))boundReferences(child,found,depth+1);
+ return found;
+}
+// What a control draws from: its document, the page values (declared defaults under the Browser's own), the results it
+// binds, and the panel's field formats. Null while the panel's own data is still on its way, so it shows as waiting.
+function controlValue(panel,browser,state,result){
+ if(panel.referenceId&&result?.value===undefined)return null;
+ const defaults=Object.fromEntries(Object.entries(browser.design?.params||{}).filter(([,schema])=>schema&&Object.hasOwn(schema,'default')).map(([key,schema])=>[key,schema.default]));
+ const references=boundReferences(panel.media||{});if(panel.referenceId)references.add(panel.referenceId);
+ const results=Object.fromEntries([...references].filter(id=>state.content?.results?.[id]?.value!==undefined).map(id=>[id,state.content.results[id].value]));
+ // What it may read from other panels: its link group's values, the open Phemas, the panels it opened.
+ return {control:panel.media||{},parameters:{...defaults,...(browser.parameterValues||{})},results,own:panel.referenceId||null,fieldFormats:panel.fieldFormats||{},...linkScope(browser),agents:agentChoices(choicePulses(panel.media||{}))};
+}
 export function contentPanel(panel,browser,state,style){
  if(!MEDIA_TYPES.includes(panel.type)&&panel.type!=='custom')return null;
  const sourceMode=state.sourceMode||browser.sourceMode||'parameters';
  const result=state.content?.results?.[panel.referenceId],item=Array.isArray(result?.value)?result.value[0]:result?.value;
  let value=panel.media||item;
+ // An agent view runs in its window's source mode: in a snapshot window it mounts read-only and shows the saved results.
+ if(panel.type==='custom'&&panel.capability?.id==='phemacast:agent-view'&&sourceMode==='snapshot'&&panel.media&&typeof panel.media==='object')value={...panel.media,sourceMode:'snapshot'};
+ // A control (phemacast:control.*) draws its own document with this panel's page values and the results it binds.
+ if(panel.type==='custom'&&String(panel.capability?.id||'').startsWith('phemacast:control.'))value=controlValue(panel,browser,state,result);
  if(panel.type==='text'&&value&&!value.text)value={...value,text:value.comment||value.description||value.summary||value.title||JSON.stringify(value,null,2)};
  if(panel.type==='interactive')value={...panel.media,result:item,disabled:panel.media?.disabled===true||sourceMode==='snapshot'||state.status==='loading'};
+ // A viewer shows the page setting it names as the Browser holds it now: its owner binds the setting only when the page opens.
+ if(panel.type==='viewer'&&panel.media?.parameter&&browser.parameterValues&&Object.hasOwn(browser.parameterValues,panel.media.parameter))value={...panel.media,value:browser.parameterValues[panel.media.parameter]};
  const custom=panel.type==='custom',customBody=custom?customHTML(panel.capability,value,{locale:browser.uiLanguage||currentLocale(),security:state.security,fieldFormats:panel.fieldFormats||{},authored:!!panel.media&&!panel.referenceId}):null,unavailable=(custom?customBody===null:!value);
  const referenceStatus=result?.status||(panel.referenceId?(state.error?'unavailable':'pending'):null);
  const waiting=panel.referenceId&&!value&&['pending','resolving'].includes(referenceStatus);
  const missing=panel.referenceId&&!value&&['unavailable','failed'].includes(referenceStatus);
- const body=referenceStatus==='blocked'&&result?.reason==='trust-unconfirmed'?uiHTML`<div class="panel-approval" role="status"><strong>Can’t confirm trust, retrying…</strong><p>Plaza hasn’t confirmed this layout’s agents yet. It reloads by itself in a few seconds.</p></div>`:referenceStatus==='blocked'?uiHTML`<div class="panel-approval" role="note"><strong>Approval required</strong><p>Approve this layout to load its panels.</p><button type="button" class="button" data-phema-permissions="${esc(browser.id)}">Approve</button></div>`:unavailable&&result?.reason==='manual'?uiHTML`<p class="panel-note">Refresh content</p>`:unavailable&&panel.fallback?mediaHTML('text',panel.fallback):waiting?uiHTML`<div class="content-loading" role="status" aria-live="polite"><span class="content-loading-spinner" aria-hidden="true"></span><span>Loading data…</span></div>`:missing?failureMessage(result?.reason||state.error)?uiHTML`<p class="panel-note">${label(failureMessage(result?.reason||state.error))}</p>`:result?.reason||state.error?mediaHTML('text',{text:result?.reason||state.error}):uiHTML`<p class="panel-note">Data unavailable. Refresh to try again.</p>`:custom?customBody||uiHTML`<p class="panel-note">Renderer unavailable</p>`:mediaHTML(panel.type,value,{label:key=>translate(browser.uiLanguage||currentLocale(),key),uiLabel:label,uiAttribute:attribute,resourcePolicy:state.security});
+ const body=referenceStatus==='unavailable'&&result?.reason===NOT_ANSWERING?uiHTML`<p class="panel-note" role="status">${notAnsweringLabel(result.message)}</p>`:referenceStatus==='blocked'&&result?.reason==='trust-unconfirmed'?uiHTML`<div class="panel-approval" role="status"><strong>Can’t confirm trust, retrying…</strong><p>Plaza hasn’t confirmed this layout’s agents yet. It reloads by itself in a few seconds.</p></div>`:referenceStatus==='blocked'?uiHTML`<div class="panel-approval" role="note"><strong>Approval required</strong><p>Approve this layout in Phema permissions to load its panels.</p><button type="button" class="button" data-phema-permissions="${esc(browser.id)}">Approve</button>${state.security?.componentUpdate?.key?uiHTML`<button type="button" class="button" data-component-update="${esc(state.security.componentUpdate.key)}">Update to the current version</button>`:''}</div>`:unavailable&&result?.reason==='manual'?uiHTML`<p class="panel-note">Refresh content</p>`:unavailable&&panel.fallback?mediaHTML('text',panel.fallback):waiting?uiHTML`<div class="content-loading" role="status" aria-live="polite"><span class="content-loading-spinner" aria-hidden="true"></span><span>Loading data…</span></div>`:missing?failureMessage(result?.reason||state.error)?uiHTML`<p class="panel-note">${label(failureMessage(result?.reason||state.error))}</p>`:result?.reason||state.error?mediaHTML('text',{text:result?.reason||state.error}):uiHTML`<p class="panel-note">Data unavailable. Refresh to try again.</p>`:custom?customBody||uiHTML`<p class="panel-note">Renderer unavailable</p>`:mediaHTML(panel.type,value,{label:key=>translate(browser.uiLanguage||currentLocale(),key),uiLabel:label,uiAttribute:attribute,resourcePolicy:state.security});
  // A panel showing a result kept from an earlier fetch says when it was fetched, until ↻ fetches it anew.
  const keptAt=sourceMode!=='snapshot'&&result?.status==='ready'&&result.kept===true&&result.resolvedAt?result.resolvedAt:null;
- const renderKey=JSON.stringify([panel,value,referenceStatus,result?.reason,state.error,browser.editMode,style,sourceMode,currentDisplayFormat(),displayTimezone(),keptAt]);
- return uiHTML`<section data-panel-id="${esc(panel.id)}" data-content-render="${esc(renderKey)}" data-content-interaction="${esc(browser.id+'/'+(panel.referenceId||''))}" class="template-panel composition-content panel-${esc(panel.type)}" style="${esc(style)}"><div class="panel-heading">${uiHTML`<h3>${label(panel.title)}</h3>`}${panel.referenceId?uiHTML`<button type="button" class="block-refresh-button" data-content-refresh="${esc(browser.id+'/'+panel.referenceId)}" title="Refresh content" aria-label="Refresh content" ${sourceMode==='snapshot'||result?.status==='resolving'?'disabled':''}>↻</button>`:''}${browser.editMode?uiHTML`<button type="button" class="block-refresh-button" data-content-config="${esc(browser.id+'/'+(panel.referenceId||''))}" title="Configure component" aria-label="Phema content">⚙</button>`:''}<span class="muted" title="${esc(keptAt?displayTimeTitle(keptAt):failureText(result?.reason))}">${keptAt?label('Updated {0}',keptTime(keptAt)):label(sourceMode==='snapshot'?'Snapshot':({pending:'Pending',resolving:'Resolving',ready:'Ready',stale:'Stale',unavailable:'Unavailable',failed:'Failed'})[referenceStatus]||'Static content')}</span></div>${body}${unavailable&&panel.fallback?uiHTML`<small class="panel-note">Fallback content</small>`:''}</section>`;
+ const renderKey=JSON.stringify([panel,value,referenceStatus,result?.reason,state.error,browser.editMode,style,sourceMode,currentDisplayFormat(),displayTimezone(),keptAt,panel.referenceId?browser.panelSources?.[panel.referenceId]:null]);
+ return uiHTML`<section data-panel-id="${esc(panel.id)}" data-content-render="${esc(renderKey)}" data-content-interaction="${esc(browser.id+'/'+(panel.referenceId||''))}" class="template-panel composition-content panel-${esc(panel.type)}" style="${esc(style)}"><div class="panel-heading">${uiHTML`<h3>${label(panel.title)}</h3>`}${panel.referenceId?uiHTML`<button type="button" class="block-refresh-button" data-content-refresh="${esc(browser.id+'/'+panel.referenceId)}" title="Refresh content" aria-label="Refresh content" ${sourceMode==='snapshot'||result?.status==='resolving'?'disabled':''}>↻</button>`:''}${sourceMenu(panel,browser,sourceMode)}${browser.editMode?uiHTML`<button type="button" class="block-refresh-button" data-content-config="${esc(browser.id+'/'+(panel.referenceId||''))}" title="Configure component" aria-label="Phema content">⚙</button>`:''}<span class="muted" title="${esc(keptAt?displayTimeTitle(keptAt):failureText(result?.reason,result?.message))}">${keptAt?label('Updated {0}',keptTime(keptAt)):label(sourceMode==='snapshot'?'Snapshot':({pending:'Pending',resolving:'Resolving',ready:'Ready',stale:'Stale',unavailable:'Unavailable',failed:'Failed'})[referenceStatus]||'Static content')}</span></div>${body}${unavailable&&panel.fallback?uiHTML`<small class="panel-note">Fallback content</small>`:''}</section>`;
 }
 export function mountContent(root=document){mountScenes(root);mountMedia(root);mountCustom(root);}
 const SNAPSHOT_STATUS={ready:'Ready',partial:'Partial',completed:'Complete',loading:'Loading',waiting:'Waiting',unavailable:'Unavailable'};

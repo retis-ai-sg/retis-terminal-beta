@@ -2723,13 +2723,6 @@ export const MESSAGES = {
     "es": "Estado del consultor",
     "fr": "État du consultant"
   },
-  "Data Terminal · Research workspace": {
-    "zh-Hant": "資料終端 · 研究工作區",
-    "zh-Hans": "数据终端 · 研究工作区",
-    "ja": "データターミナル · リサーチワークスペース",
-    "es": "Terminal de datos · Espacio de investigación",
-    "fr": "Terminal de données · Espace de recherche"
-  },
   "Create workspace": {
     "zh-Hant": "建立工作區",
     "zh-Hans": "创建工作区",
@@ -2946,41 +2939,6 @@ export const MESSAGES = {
     "ja": "ブラウザーのコマンドバーを非表示",
     "es": "Ocultar barra de comandos",
     "fr": "Masquer la barre de commandes"
-  },
-  "Change layout for {0}": {
-    "zh-Hant": "變更 {0} 的版面",
-    "zh-Hans": "更改 {0} 的布局",
-    "ja": "{0} のレイアウトを変更",
-    "es": "Cambiar diseño de {0}",
-    "fr": "Changer la disposition de {0}"
-  },
-  "Duplicate {0} browser": {
-    "zh-Hant": "複製 {0} 瀏覽器",
-    "zh-Hans": "复制 {0} 浏览器",
-    "ja": "{0} ブラウザーを複製",
-    "es": "Duplicar navegador {0}",
-    "fr": "Dupliquer le navigateur {0}"
-  },
-  "Close {0} browser": {
-    "zh-Hant": "關閉 {0} 瀏覽器",
-    "zh-Hans": "关闭 {0} 浏览器",
-    "ja": "{0} ブラウザーを閉じる",
-    "es": "Cerrar navegador {0}",
-    "fr": "Fermer le navigateur {0}"
-  },
-  "Focus {0} browser": {
-    "zh-Hant": "聚焦 {0} 瀏覽器",
-    "zh-Hans": "聚焦 {0} 浏览器",
-    "ja": "{0} ブラウザーにフォーカス",
-    "es": "Enfocar navegador {0}",
-    "fr": "Mettre au premier plan le navigateur {0}"
-  },
-  "Move {0} window": {
-    "zh-Hant": "移動 {0} 視窗",
-    "zh-Hans": "移动 {0} 窗口",
-    "ja": "{0} ウィンドウを移動",
-    "es": "Mover ventana {0}",
-    "fr": "Déplacer la fenêtre {0}"
   },
   "Load workspace {0}": {
     "zh-Hant": "載入工作區 {0}",
@@ -7588,6 +7546,34 @@ export const MESSAGES = {
     "es": "Envía sus entradas a un agente de Plaza",
     "fr": "Envoie ses entrées à un agent de Plaza"
   },
+  "Sends its inputs to {0} on this computer": {
+    "zh-Hant": "將輸入內容送往這台電腦上的 {0}",
+    "zh-Hans": "将输入内容发送至这台电脑上的 {0}",
+    "ja": "入力内容をこのコンピューター上の {0} に送信します",
+    "es": "Envía sus entradas a {0} en este equipo",
+    "fr": "Envoie ses entrées à {0} sur cet ordinateur"
+  },
+  "Sends its inputs to a program on this computer": {
+    "zh-Hant": "將輸入內容送往這台電腦上的程式",
+    "zh-Hans": "将输入内容发送至这台电脑上的程序",
+    "ja": "入力内容をこのコンピューター上のプログラムに送信します",
+    "es": "Envía sus entradas a un programa de este equipo",
+    "fr": "Envoie ses entrées à un programme de cet ordinateur"
+  },
+  "Asks {0} on this computer for data; only the symbols are sent": {
+    "zh-Hant": "向這台電腦上的 {0} 取得資料；只送出代碼",
+    "zh-Hans": "向这台电脑上的 {0} 获取数据；只发送代码",
+    "ja": "このコンピューター上の {0} にデータを要求します（送信するのは銘柄コードのみ）",
+    "es": "Pide datos a {0} en este equipo; solo se envían los símbolos",
+    "fr": "Demande des données à {0} sur cet ordinateur ; seuls les symboles sont envoyés"
+  },
+  "Asks a program on this computer for data; only the symbols are sent": {
+    "zh-Hant": "向這台電腦上的程式取得資料；只送出代碼",
+    "zh-Hans": "向这台电脑上的程序获取数据；只发送代码",
+    "ja": "このコンピューター上のプログラムにデータを要求します（送信するのは銘柄コードのみ）",
+    "es": "Pide datos a un programa de este equipo; solo se envían los símbolos",
+    "fr": "Demande des données à un programme de cet ordinateur ; seuls les symboles sont envoyés"
+  },
   "Plaza trusts this layout’s owner and agents, so it loads without approval.": {
     "zh-Hant": "Plaza 已信任此版面的擁有者與代理，不需核准即可載入。",
     "zh-Hans": "Plaza 已信任此版面的所有者与代理，无需批准即可加载。",
@@ -7644,12 +7630,47 @@ export const MESSAGES = {
     "es": "Plaza no respondió a la comprobación de confianza. El diseño se recargará solo en unos segundos.",
     "fr": "Plaza n’a pas répondu à la vérification de confiance. La mise en page se recharge d’elle-même dans quelques secondes."
   },
-  "Approve this layout to load its panels.": {
-    "zh-Hant": "核准此版面後即可載入面板。",
-    "zh-Hans": "批准此布局后即可加载面板。",
-    "ja": "このレイアウトを承認するとパネルが読み込まれます。",
-    "es": "Aprueba este diseño para cargar sus paneles.",
-    "fr": "Approuvez cette disposition pour charger ses panneaux."
+  "Approve this layout in Phema permissions to load its panels.": {
+    "zh-Hant": "在「Phema 權限」核准此版面後即可載入面板。",
+    "zh-Hans": "在「Phema 权限」批准此布局后即可加载面板。",
+    "ja": "「Phema の権限」でこのレイアウトを承認するとパネルが読み込まれます。",
+    "es": "Aprueba este diseño en Permisos de Phema para cargar sus paneles.",
+    "fr": "Approuvez cette disposition dans Autorisations Phema pour charger ses panneaux."
+  },
+  "Update to the current version": {
+    "zh-Hant": "更新為目前的版本",
+    "zh-Hans": "更新为当前版本",
+    "ja": "現在のバージョンに更新",
+    "es": "Actualizar a la versión actual",
+    "fr": "Mettre à jour vers la version actuelle"
+  },
+  "{0} ships a newer version of this page. The current version loads without approval.": {
+    "zh-Hant": "{0} 有這個頁面的新版本，更新後不需要核准即可載入。",
+    "zh-Hans": "{0} 有这个页面的新版本，更新后无需批准即可加载。",
+    "ja": "{0} にこのページの新しいバージョンがあります。更新すると承認なしで読み込まれます。",
+    "es": "{0} tiene una versión más reciente de esta página. La versión actual se carga sin aprobación.",
+    "fr": "{0} propose une version plus récente de cette page. La version actuelle se charge sans approbation."
+  },
+  "A program on this computer ships a newer version of this page. The current version loads without approval.": {
+    "zh-Hant": "這台電腦上的程式有這個頁面的新版本，更新後不需要核准即可載入。",
+    "zh-Hans": "这台电脑上的程序有这个页面的新版本，更新后无需批准即可加载。",
+    "ja": "このコンピューター上のプログラムにこのページの新しいバージョンがあります。更新すると承認なしで読み込まれます。",
+    "es": "Un programa de este equipo tiene una versión más reciente de esta página. La versión actual se carga sin aprobación.",
+    "fr": "Un programme de cet ordinateur propose une version plus récente de cette page. La version actuelle se charge sans approbation."
+  },
+  "Updated to the current version.": {
+    "zh-Hant": "已更新為目前的版本。",
+    "zh-Hans": "已更新为当前版本。",
+    "ja": "現在のバージョンに更新しました。",
+    "es": "Actualizado a la versión actual.",
+    "fr": "Mis à jour vers la version actuelle."
+  },
+  "Open the current version from New Data Browser.": {
+    "zh-Hant": "請從「新增資料瀏覽器」開啟目前的版本。",
+    "zh-Hans": "请从「新建数据浏览器」打开当前版本。",
+    "ja": "「新規データブラウザー」から現在のバージョンを開いてください。",
+    "es": "Abra la versión actual desde Nuevo explorador de datos.",
+    "fr": "Ouvrez la version actuelle depuis Nouveau navigateur de données."
   },
   "The data source could not answer. Try ↻ again later.": {
     "zh-Hant": "資料來源暫時無法回應，請稍後再按 ↻。",
@@ -8827,6 +8848,34 @@ export const MESSAGES = {
     "es": "Cargando diseños…",
     "fr": "Chargement des dispositions…"
   },
+  "Finding {0} on {1}…": {
+    "zh-Hant": "正在 {1} 尋找 {0}…",
+    "zh-Hans": "正在 {1} 查找 {0}…",
+    "ja": "{1} で {0} を探しています…",
+    "es": "Buscando {0} en {1}…",
+    "fr": "Recherche de {0} sur {1}…"
+  },
+  "Asking {0} for the starter workspace…": {
+    "zh-Hant": "正在向 {0} 取得入門工作區…",
+    "zh-Hans": "正在向 {0} 获取入门工作区…",
+    "ja": "{0} に入門ワークスペースを問い合わせています…",
+    "es": "Pidiendo a {0} el espacio de trabajo inicial…",
+    "fr": "Demande de l’espace de travail de départ à {0}…"
+  },
+  "Reading {0} from {1} ({2} of {3})…": {
+    "zh-Hant": "正在向 {1} 讀取「{0}」的版面（{2}/{3}）…",
+    "zh-Hans": "正在向 {1} 读取“{0}”的布局（{2}/{3}）…",
+    "ja": "{1} から「{0}」のレイアウトを読み込んでいます（{2}/{3}）…",
+    "es": "Leyendo {0} desde {1} ({2} de {3})…",
+    "fr": "Lecture de {0} depuis {1} ({2} sur {3})…"
+  },
+  "{0} s": {
+    "zh-Hant": "{0} 秒",
+    "zh-Hans": "{0} 秒",
+    "ja": "{0} 秒",
+    "es": "{0} s",
+    "fr": "{0} s"
+  },
   "Checking Plaza access…": {
     "zh-Hant": "正在檢查 Plaza 存取權…",
     "zh-Hans": "正在检查 Plaza 访问权限…",
@@ -9625,12 +9674,19 @@ export const MESSAGES = {
     "es": "Abrir historial",
     "fr": "Ouvrir l’historique"
   },
-  "Latest {0} of {1}": {
-    "zh-Hant": "最近 {0} 筆，共 {1} 筆",
-    "zh-Hans": "最近 {0} 笔，共 {1} 笔",
-    "ja": "最新 {0} 件／全 {1} 件",
-    "es": "Últimas {0} de {1}",
-    "fr": "{0} plus récentes sur {1}"
+  "Latest {0} of {1} executions": {
+    "zh-Hant": "最近 {0} 次執行，共 {1} 次",
+    "zh-Hans": "最近 {0} 次执行，共 {1} 次",
+    "ja": "最新 {0} 件／全 {1} 件の実行",
+    "es": "Últimas {0} de {1} ejecuciones",
+    "fr": "{0} exécutions les plus récentes sur {1}"
+  },
+  "Each execution counts once here. Transaction history lists every ledger entry, and one execution can have several: its reservation, the settlement and the payment.": {
+    "zh-Hant": "這裡每次執行只算一次。交易紀錄列出每一筆帳本記錄，一次執行可能有多筆：預留、結算與付款。",
+    "zh-Hans": "这里每次执行只算一次。交易记录列出每一条账本记录，一次执行可能有多条：预留、结算与付款。",
+    "ja": "ここでは 1 回の実行を 1 件と数えます。取引履歴にはすべての台帳記録が表示され、1 回の実行に予約・精算・支払いの複数の記録がある場合があります。",
+    "es": "Aquí cada ejecución cuenta una vez. El historial de transacciones muestra cada asiento del libro, y una ejecución puede tener varios: su reserva, la liquidación y el pago.",
+    "fr": "Ici, chaque exécution compte une fois. L’historique des transactions liste chaque écriture du registre, et une exécution peut en avoir plusieurs : sa réservation, le règlement et le paiement."
   },
   "No points spent yet.": {
     "zh-Hant": "尚未支出點數。",
@@ -9731,8 +9787,8 @@ export const MESSAGES = {
     "fr": "Enregistrer en CSV"
   },
   "{0} of {1} executions · {2} points": {
-    "zh-Hant": "{1} 筆執行中的 {0} 筆 · {2} 點",
-    "zh-Hans": "{1} 笔执行中的 {0} 笔 · {2} 积分",
+    "zh-Hant": "{1} 次執行中的 {0} 次 · {2} 點",
+    "zh-Hans": "{1} 次执行中的 {0} 次 · {2} 积分",
     "ja": "{1} 件中 {0} 件の実行 · {2} ポイント",
     "es": "{0} de {1} ejecuciones · {2} puntos",
     "fr": "{0} sur {1} exécutions · {2} points"
@@ -9877,12 +9933,19 @@ export const MESSAGES = {
     "es": "{0} asientos · {1} asientos coincidentes",
     "fr": "{0} écritures · {1} écritures correspondantes"
   },
-  "{0} entries returned by Plaza · {1} — {2}.": {
-    "zh-Hant": "Plaza 傳回 {0} 筆記錄 · {1} — {2}。",
-    "zh-Hans": "Plaza 返回 {0} 条记录 · {1} — {2}。",
-    "ja": "Plaza から {0} 件の記録 · {1} — {2}。",
-    "es": "{0} asientos devueltos por Plaza · {1} — {2}.",
-    "fr": "{0} écritures renvoyées par Plaza · {1} — {2}."
+  "{0} ledger entries returned by Plaza · {1} — {2}.": {
+    "zh-Hant": "Plaza 傳回 {0} 筆帳本記錄 · {1} — {2}。",
+    "zh-Hans": "Plaza 返回 {0} 条账本记录 · {1} — {2}。",
+    "ja": "Plaza から {0} 件の台帳記録 · {1} — {2}。",
+    "es": "{0} asientos del libro devueltos por Plaza · {1} — {2}.",
+    "fr": "{0} écritures du registre renvoyées par Plaza · {1} — {2}."
+  },
+  "Credits and debits include reservations: {0} points held before executions and {1} returned when they settled or were refunded. These cancel out; the payment entries are the charges. So one execution can add several entries here, while Points spending in Terminal settings counts it once.": {
+    "zh-Hant": "入帳與扣款包含預留點數：執行前保留 {0} 點，結算或退款時退回 {1} 點。兩者互相抵銷，付款記錄才是實際收費。因此一次執行在這裡可能有多筆記錄，終端設定的點數支出則只算一次。",
+    "zh-Hans": "入账与扣款包含预留积分：执行前保留 {0} 积分，结算或退款时退回 {1} 积分。两者互相抵消，付款记录才是实际收费。因此一次执行在这里可能有多条记录，终端设置的积分支出则只算一次。",
+    "ja": "入金と出金には予約が含まれます：実行前に {0} ポイントを予約し、精算または返金時に {1} ポイントが戻りました。これらは相殺され、支払いの記録が実際の請求です。そのため 1 回の実行がここでは複数の記録になりますが、ターミナル設定のポイント利用では 1 件と数えます。",
+    "es": "Los abonos y cargos incluyen reservas: {0} puntos retenidos antes de las ejecuciones y {1} devueltos al liquidarse o reembolsarse. Se compensan entre sí; los asientos de pago son los cargos. Por eso una ejecución puede sumar varios asientos aquí, mientras que el gasto de puntos en la configuración del terminal la cuenta una vez.",
+    "fr": "Les crédits et débits incluent les réservations : {0} points retenus avant les exécutions et {1} restitués lors de leur règlement ou remboursement. Ils s’annulent ; les écritures de paiement sont les débits réels. Une exécution peut donc ajouter plusieurs écritures ici, alors que les dépenses de points dans les paramètres du terminal la comptent une fois."
   },
   "Totals cover this returned period.": {
     "zh-Hant": "總計僅涵蓋這段傳回的期間。",
@@ -10122,12 +10185,12 @@ export const MESSAGES = {
     "es": "Confiar en este propietario en Plaza",
     "fr": "Faire confiance à ce propriétaire sur Plaza"
   },
-  "An agent is temporarily unreachable. Plaza is still connected; try again in a moment.": {
-    "zh-Hant": "代理暫時無法連線，Plaza 仍保持連線；請稍後再試。",
-    "zh-Hans": "代理暂时无法连接，Plaza 仍保持连接；请稍后再试。",
-    "ja": "エージェントに一時的に接続できません。Plaza には接続されています。しばらくしてから再試行してください。",
-    "es": "Un agente no está disponible por el momento. Plaza sigue conectado; inténtalo de nuevo en un momento.",
-    "fr": "Un agent est momentanément injoignable. Plaza reste connecté ; réessayez dans un instant."
+  "An agent or Plaza is temporarily unreachable. Try again in a moment; the Plaza status at the top shows whether Plaza itself is connected.": {
+    "zh-Hant": "代理或 Plaza 暫時無法連線，請稍後再試；上方的 Plaza 狀態會顯示 Plaza 本身是否連線。",
+    "zh-Hans": "代理或 Plaza 暂时无法连接，请稍后再试；上方的 Plaza 状态会显示 Plaza 本身是否连接。",
+    "ja": "エージェントまたは Plaza に一時的に接続できません。しばらくしてから再試行してください。Plaza 自体の接続状態は上部の Plaza 表示で確認できます。",
+    "es": "Un agente o Plaza no está disponible por el momento. Inténtalo de nuevo en un momento; el estado de Plaza arriba indica si Plaza está conectado.",
+    "fr": "Un agent ou Plaza est momentanément injoignable. Réessayez dans un instant ; l’état de Plaza en haut indique si Plaza lui-même est connecté."
   },
   "Reads data": {
     "zh-Hant": "讀取資料",
@@ -10332,12 +10395,12 @@ export const MESSAGES = {
     "es": "Esta solicitud de inicio de sesión caducó. Cierre esta ventana e inicie sesión de nuevo desde su terminal.",
     "fr": "Cette demande de connexion a expiré. Fermez cette fenêtre et reconnectez-vous depuis votre terminal."
   },
-  "Add your {0} key in Terminal settings → LLM keys.": {
-    "zh-Hant": "請在「終端設定 → LLM 金鑰」加入您的 {0} 金鑰。",
-    "zh-Hans": "请在“终端设置 → LLM 密钥”中添加您的 {0} 密钥。",
-    "ja": "「ターミナル設定 → LLM キー」で {0} のキーを追加してください。",
-    "es": "Añada su clave de {0} en Configuración del terminal → Claves de LLM.",
-    "fr": "Ajoutez votre clé {0} dans Paramètres du terminal → Clés LLM."
+  "Add your {0} key in Terminal settings → Data sources → LLM keys.": {
+    "zh-Hant": "請在「終端設定 → 資料來源 → LLM 金鑰」加入您的 {0} 金鑰。",
+    "zh-Hans": "请在“终端设置 → 数据源 → LLM 密钥”中添加您的 {0} 密钥。",
+    "ja": "「ターミナル設定 → データソース → LLM キー」で {0} のキーを追加してください。",
+    "es": "Añada su clave de {0} en Configuración del terminal → Fuentes de datos → Claves de LLM.",
+    "fr": "Ajoutez votre clé {0} dans Paramètres du terminal → Sources de données → Clés LLM."
   },
   "Add your {0} key in Terminal settings → Data sources.": {
     "zh-Hant": "請在「終端設定 → 資料來源」加入您的 {0} 金鑰。",
@@ -10352,6 +10415,13 @@ export const MESSAGES = {
     "ja": "「ターミナル設定 → データソース」でキーを追加してください。",
     "es": "Añada su clave en Configuración del terminal → Fuentes de datos.",
     "fr": "Ajoutez votre clé dans Paramètres du terminal → Sources de données."
+  },
+  "This source cannot serve this model now.": {
+    "zh-Hant": "這個來源目前無法提供這項資料。",
+    "zh-Hans": "这个来源目前无法提供这项数据。",
+    "ja": "このソースは現在このデータを提供できません。",
+    "es": "Esta fuente no puede ofrecer estos datos ahora.",
+    "fr": "Cette source ne peut pas fournir ces données pour le moment."
   },
   "This window is still signed in. It continues by itself once {0} answers.": {
     "zh-Hant": "此視窗仍保持登入，{0} 恢復回應後會自動繼續。",
@@ -10927,6 +10997,13 @@ export const MESSAGES = {
     "es": "Este Terminal se reinició. Vuelve a cargar esta pestaña para continuar.",
     "fr": "Ce Terminal a redémarré. Rechargez cet onglet pour continuer."
   },
+  "{0} restarted. If it opened a new tab, this window moves there in a moment; otherwise reload this tab.": {
+    "zh-Hant": "{0} 已重新啟動。如果它開了新分頁，這個視窗稍後會移到那裡；沒有的話，請重新載入此分頁。",
+    "zh-Hans": "{0} 已重新启动。如果它打开了新标签页，这个窗口稍后会移到那里；没有的话，请重新加载此标签页。",
+    "ja": "{0} が再起動しました。新しいタブが開いた場合、このウィンドウはまもなくそのタブに移ります。開かない場合は、このタブを再読み込みしてください。",
+    "es": "{0} se reinició. Si abrió una pestaña nueva, esta ventana pasará a ella en un momento; si no, vuelve a cargar esta pestaña.",
+    "fr": "{0} a redémarré. S’il a ouvert un nouvel onglet, cette fenêtre y passera dans un instant ; sinon, rechargez cet onglet."
+  },
   "Reload this tab": {
     "zh-Hant": "重新載入此分頁",
     "zh-Hans": "重新加载此标签页",
@@ -10954,13 +11031,6 @@ export const MESSAGES = {
     "ja": "このパネルはこの Terminal で開かれていません。このタブを再読み込みしてください。",
     "es": "Este panel ya no está abierto en este Terminal. Vuelve a cargar esta pestaña.",
     "fr": "Ce panneau n’est plus ouvert dans ce Terminal. Rechargez cet onglet."
-  },
-  "{0} · Research workspace": {
-    "zh-Hant": "{0} · 研究工作區",
-    "zh-Hans": "{0} · 研究工作区",
-    "ja": "{0} · リサーチワークスペース",
-    "es": "{0} · Espacio de investigación",
-    "fr": "{0} · Espace de recherche"
   },
   "Plaza session expired. Sign in again.": {
     "zh-Hant": "Plaza 登入已過期，請重新登入。",
@@ -11213,5 +11283,1286 @@ export const MESSAGES = {
     "ja": "縮小しても画像が大きすぎます。よりシンプルな画像を選んでください。",
     "es": "La imagen sigue siendo demasiado grande tras reducirla. Elija una más sencilla.",
     "fr": "L’image reste trop lourde après réduction. Choisissez-en une plus simple."
+  },
+  "Local": {
+    "zh-Hant": "本機",
+    "zh-Hans": "本机",
+    "ja": "ローカル",
+    "es": "Local",
+    "fr": "Local"
+  },
+  "Block": {
+    "zh-Hant": "元件",
+    "zh-Hans": "元件",
+    "ja": "ブロック",
+    "es": "Bloque",
+    "fr": "Bloc"
+  },
+  "Search in": {
+    "zh-Hant": "搜尋範圍",
+    "zh-Hans": "搜索范围",
+    "ja": "検索対象",
+    "es": "Buscar en",
+    "fr": "Rechercher dans"
+  },
+  "Arrange windows": {
+    "zh-Hant": "排列視窗",
+    "zh-Hans": "排列窗口",
+    "ja": "ウィンドウを整列",
+    "es": "Organizar ventanas",
+    "fr": "Organiser les fenêtres"
+  },
+  "Tile all Data Browsers after opening": {
+    "zh-Hant": "開啟後重新排列所有資料瀏覽器",
+    "zh-Hans": "打开后重新排列所有数据浏览器",
+    "ja": "開いた後にすべてのデータブラウザーを並べる",
+    "es": "Organizar todos los exploradores de datos al abrir",
+    "fr": "Disposer tous les navigateurs de données après l’ouverture"
+  },
+  "Choose where to search.": {
+    "zh-Hant": "請選擇搜尋範圍。",
+    "zh-Hans": "请选择搜索范围。",
+    "ja": "検索対象を選んでください。",
+    "es": "Elige dónde buscar.",
+    "fr": "Choisissez où rechercher."
+  },
+  "{0} is still searching; until it answers, only Phemas that match are shown.": {
+    "zh-Hant": "{0} 仍在搜尋；回覆前只顯示確定符合的 Phema。",
+    "zh-Hans": "{0} 仍在搜索；回复前只显示确定符合的 Phema。",
+    "ja": "{0} はまだ検索中です。応答があるまで、一致する Phema だけを表示しています。",
+    "es": "{0} sigue buscando; hasta que responda, solo se muestran los Phemas que coinciden.",
+    "fr": "{0} cherche encore ; en attendant sa réponse, seuls les Phemas qui correspondent sont affichés."
+  },
+  "{0} could not be searched: {1}": {
+    "zh-Hant": "無法搜尋 {0}：{1}",
+    "zh-Hans": "无法搜索 {0}：{1}",
+    "ja": "{0} を検索できませんでした: {1}",
+    "es": "No se pudo buscar en {0}: {1}",
+    "fr": "Impossible de rechercher dans {0} : {1}"
+  },
+  "Other Phema storages could not be listed: {0}": {
+    "zh-Hant": "無法列出其他 Phema 儲存位置：{0}",
+    "zh-Hans": "无法列出其他 Phema 存储位置：{0}",
+    "ja": "ほかの Phema の保存先を一覧できませんでした: {0}",
+    "es": "No se pudieron listar los demás lugares con Phemas: {0}",
+    "fr": "Impossible de lister les autres emplacements de Phemas : {0}"
+  },
+  "Search Phemas": {
+    "zh-Hant": "搜尋 Phema",
+    "zh-Hans": "搜索 Phema",
+    "ja": "Phema を検索",
+    "es": "Buscar Phemas",
+    "fr": "Rechercher des Phemas"
+  },
+  "{0} Phemas": {
+    "zh-Hant": "找到 {0} 個 Phema",
+    "zh-Hans": "找到 {0} 个 Phema",
+    "ja": "{0} 件の Phema",
+    "es": "{0} Phemas",
+    "fr": "{0} Phemas"
+  },
+  "Loading Phemas…": {
+    "zh-Hant": "正在載入 Phema…",
+    "zh-Hans": "正在加载 Phema…",
+    "ja": "Phema を読み込み中…",
+    "es": "Cargando Phemas…",
+    "fr": "Chargement des Phemas…"
+  },
+  "No matching Phemas.": {
+    "zh-Hant": "找不到符合的 Phema。",
+    "zh-Hans": "找不到匹配的 Phema。",
+    "ja": "一致する Phema はありません。",
+    "es": "No hay Phemas que coincidan.",
+    "fr": "Aucun Phema correspondant."
+  },
+  "Opening Phema…": {
+    "zh-Hant": "正在開啟 Phema…",
+    "zh-Hans": "正在打开 Phema…",
+    "ja": "Phema を開いています…",
+    "es": "Abriendo Phema…",
+    "fr": "Ouverture du Phema…"
+  },
+  "Phemas": {
+    "zh-Hant": "Phema",
+    "zh-Hans": "Phema",
+    "ja": "Phema",
+    "es": "Phemas",
+    "fr": "Phemas"
+  },
+  "Phema preview": {
+    "zh-Hant": "Phema 預覽",
+    "zh-Hans": "Phema 预览",
+    "ja": "Phema のプレビュー",
+    "es": "Vista previa del Phema",
+    "fr": "Aperçu du Phema"
+  },
+  "Open Phema": {
+    "zh-Hant": "開啟 Phema",
+    "zh-Hans": "打开 Phema",
+    "ja": "Phema を開く",
+    "es": "Abrir Phema",
+    "fr": "Ouvrir le Phema"
+  },
+  "Catalog": {
+    "zh-Hant": "目錄",
+    "zh-Hans": "目录",
+    "ja": "カタログ",
+    "es": "Catálogo",
+    "fr": "Catalogue"
+  },
+  "Send feedback": {
+    "zh-Hant": "傳送意見回饋",
+    "zh-Hans": "发送意见反馈",
+    "ja": "フィードバックを送信",
+    "es": "Enviar comentarios",
+    "fr": "Envoyer un avis"
+  },
+  "Category": {
+    "zh-Hant": "類別",
+    "zh-Hans": "类别",
+    "ja": "カテゴリ",
+    "es": "Categoría",
+    "fr": "Catégorie"
+  },
+  "Bug": {
+    "zh-Hant": "錯誤",
+    "zh-Hans": "错误",
+    "ja": "不具合",
+    "es": "Error",
+    "fr": "Bogue"
+  },
+  "Idea": {
+    "zh-Hant": "建議",
+    "zh-Hans": "建议",
+    "ja": "アイデア",
+    "es": "Idea",
+    "fr": "Idée"
+  },
+  "Question": {
+    "zh-Hant": "問題",
+    "zh-Hans": "问题",
+    "ja": "質問",
+    "es": "Pregunta",
+    "fr": "Question"
+  },
+  "Reply to": {
+    "zh-Hant": "回覆至",
+    "zh-Hans": "回复至",
+    "ja": "返信先",
+    "es": "Responder a",
+    "fr": "Répondre à"
+  },
+  "Describe the bug, idea or question.": {
+    "zh-Hant": "請描述錯誤、建議或問題。",
+    "zh-Hans": "请描述错误、建议或问题。",
+    "ja": "不具合、アイデア、質問の内容を書いてください。",
+    "es": "Describe el error, la idea o la pregunta.",
+    "fr": "Décrivez le bogue, l’idée ou la question."
+  },
+  "Include technical details": {
+    "zh-Hant": "附上技術資訊",
+    "zh-Hans": "附上技术信息",
+    "ja": "技術情報を含める",
+    "es": "Incluir detalles técnicos",
+    "fr": "Inclure les détails techniques"
+  },
+  "Terminal version": {
+    "zh-Hant": "終端版本",
+    "zh-Hans": "终端版本",
+    "ja": "ターミナルのバージョン",
+    "es": "Versión del terminal",
+    "fr": "Version du terminal"
+  },
+  "Plaza host": {
+    "zh-Hant": "Plaza 主機",
+    "zh-Hans": "Plaza 主机",
+    "ja": "Plaza ホスト",
+    "es": "Host de Plaza",
+    "fr": "Hôte Plaza"
+  },
+  "Current Phema": {
+    "zh-Hant": "目前的 Phema",
+    "zh-Hans": "当前的 Phema",
+    "ja": "現在の Phema",
+    "es": "Phema actual",
+    "fr": "Phema actuel"
+  },
+  "Not known": {
+    "zh-Hant": "不明",
+    "zh-Hans": "未知",
+    "ja": "不明",
+    "es": "Desconocido",
+    "fr": "Inconnu"
+  },
+  "Keys, tokens and access links are removed before sending.": {
+    "zh-Hant": "傳送前會移除金鑰、權杖與存取連結。",
+    "zh-Hans": "发送前会移除密钥、令牌和访问链接。",
+    "ja": "送信前にキー、トークン、アクセスリンクは削除されます。",
+    "es": "Las claves, los tokens y los enlaces de acceso se eliminan antes de enviar.",
+    "fr": "Les clés, jetons et liens d’accès sont retirés avant l’envoi."
+  },
+  "Sending…": {
+    "zh-Hant": "傳送中…",
+    "zh-Hans": "发送中…",
+    "ja": "送信中…",
+    "es": "Enviando…",
+    "fr": "Envoi…"
+  },
+  "Sent. Thank you! Replies go to {0}.": {
+    "zh-Hant": "已傳送，謝謝！回覆會寄到 {0}。",
+    "zh-Hans": "已发送，谢谢！回复会寄到 {0}。",
+    "ja": "送信しました。ありがとうございます！返信は {0} に届きます。",
+    "es": "Enviado. ¡Gracias! Las respuestas llegarán a {0}.",
+    "fr": "Envoyé. Merci ! Les réponses arriveront à {0}."
+  },
+  "Not sent: {0}": {
+    "zh-Hant": "未傳送：{0}",
+    "zh-Hans": "未发送：{0}",
+    "ja": "送信できませんでした：{0}",
+    "es": "No enviado: {0}",
+    "fr": "Non envoyé : {0}"
+  },
+  "Write a message first.": {
+    "zh-Hant": "請先輸入訊息。",
+    "zh-Hans": "请先输入消息。",
+    "ja": "先にメッセージを入力してください。",
+    "es": "Escribe primero un mensaje.",
+    "fr": "Écrivez d’abord un message."
+  },
+  "Enter one email address to reply to.": {
+    "zh-Hant": "請輸入一個回覆用的電子郵件地址。",
+    "zh-Hans": "请输入一个回复用的电子邮件地址。",
+    "ja": "返信先のメールアドレスを 1 つ入力してください。",
+    "es": "Introduce una dirección de correo para la respuesta.",
+    "fr": "Saisissez une adresse e-mail pour la réponse."
+  },
+  "You have sent {0} messages in the last hour. Try again after {1}.": {
+    "zh-Hant": "你在過去一小時內已傳送 {0} 則訊息，請在 {1} 之後再試。",
+    "zh-Hans": "你在过去一小时内已发送 {0} 条消息，请在 {1} 之后再试。",
+    "ja": "この 1 時間に {0} 件送信しました。{1} 以降にもう一度お試しください。",
+    "es": "Has enviado {0} mensajes en la última hora. Vuelve a intentarlo después de {1}.",
+    "fr": "Vous avez envoyé {0} messages au cours de la dernière heure. Réessayez après {1}."
+  },
+  "You have sent {0} messages in the last 24 hours. Try again after {1}.": {
+    "zh-Hant": "你在過去 24 小時內已傳送 {0} 則訊息，請在 {1} 之後再試。",
+    "zh-Hans": "你在过去 24 小时内已发送 {0} 条消息，请在 {1} 之后再试。",
+    "ja": "この 24 時間に {0} 件送信しました。{1} 以降にもう一度お試しください。",
+    "es": "Has enviado {0} mensajes en las últimas 24 horas. Vuelve a intentarlo después de {1}.",
+    "fr": "Vous avez envoyé {0} messages au cours des dernières 24 heures. Réessayez après {1}."
+  },
+  "Sign in to a Plaza account to send feedback.": {
+    "zh-Hant": "請登入 Plaza 帳戶後再傳送意見回饋。",
+    "zh-Hans": "请登录 Plaza 账户后再发送意见反馈。",
+    "ja": "フィードバックを送信するには Plaza アカウントにサインインしてください。",
+    "es": "Inicia sesión en una cuenta de Plaza para enviar comentarios.",
+    "fr": "Connectez-vous à un compte Plaza pour envoyer un avis."
+  },
+  "Connect this Terminal to a Plaza to send feedback.": {
+    "zh-Hant": "請先將此終端連線到 Plaza，再傳送意見回饋。",
+    "zh-Hans": "请先将此终端连接到 Plaza，再发送意见反馈。",
+    "ja": "フィードバックを送信するには、このターミナルを Plaza に接続してください。",
+    "es": "Conecta este terminal a un Plaza para enviar comentarios.",
+    "fr": "Connectez ce terminal à un Plaza pour envoyer un avis."
+  },
+  "This site does not take feedback yet.": {
+    "zh-Hant": "這個站台尚未開放意見回饋。",
+    "zh-Hans": "这个站点尚未开放意见反馈。",
+    "ja": "このサイトはまだフィードバックを受け付けていません。",
+    "es": "Este sitio aún no acepta comentarios.",
+    "fr": "Ce site n’accepte pas encore d’avis."
+  },
+  "Plaza could not send it. Try again later.": {
+    "zh-Hant": "Plaza 無法傳送，請稍後再試。",
+    "zh-Hans": "Plaza 无法发送，请稍后再试。",
+    "ja": "Plaza から送信できませんでした。しばらくしてからもう一度お試しください。",
+    "es": "Plaza no pudo enviarlo. Inténtalo más tarde.",
+    "fr": "Plaza n’a pas pu l’envoyer. Réessayez plus tard."
+  },
+  "Plaza is starting. Try again in a moment.": {
+    "zh-Hant": "Plaza 正在啟動，請稍後再試。",
+    "zh-Hans": "Plaza 正在启动，请稍后再试。",
+    "ja": "Plaza を起動しています。しばらくしてからもう一度お試しください。",
+    "es": "Plaza se está iniciando. Inténtalo en un momento.",
+    "fr": "Plaza démarre. Réessayez dans un instant."
+  },
+  "Language": {
+    "zh-Hant": "語言",
+    "zh-Hans": "语言",
+    "ja": "言語",
+    "es": "Idioma",
+    "fr": "Langue"
+  },
+  "Web page": {
+    "zh-Hant": "網頁",
+    "zh-Hans": "网页",
+    "ja": "ウェブページ",
+    "es": "Página web",
+    "fr": "Page web"
+  },
+  "Picture": {
+    "zh-Hant": "圖片",
+    "zh-Hans": "图片",
+    "ja": "画像",
+    "es": "Imagen",
+    "fr": "Image"
+  },
+  "Show": {
+    "zh-Hant": "顯示",
+    "zh-Hans": "显示",
+    "ja": "表示",
+    "es": "Mostrar",
+    "fr": "Afficher"
+  },
+  "Web address": {
+    "zh-Hant": "網址",
+    "zh-Hans": "网址",
+    "ja": "ウェブアドレス",
+    "es": "Dirección web",
+    "fr": "Adresse web"
+  },
+  "Go": {
+    "zh-Hant": "前往",
+    "zh-Hans": "前往",
+    "ja": "移動",
+    "es": "Ir",
+    "fr": "Aller"
+  },
+  "Open in a new tab": {
+    "zh-Hant": "在新分頁開啟",
+    "zh-Hans": "在新标签页打开",
+    "ja": "新しいタブで開く",
+    "es": "Abrir en una pestaña nueva",
+    "fr": "Ouvrir dans un nouvel onglet"
+  },
+  "Choose a picture": {
+    "zh-Hant": "選擇圖片",
+    "zh-Hans": "选择图片",
+    "ja": "画像を選ぶ",
+    "es": "Elegir imagen",
+    "fr": "Choisir une image"
+  },
+  "Remove": {
+    "zh-Hant": "移除",
+    "zh-Hans": "移除",
+    "ja": "削除",
+    "es": "Quitar",
+    "fr": "Retirer"
+  },
+  "If the page stays blank, it does not allow being shown here: open it in a new tab.": {
+    "zh-Hant": "若頁面一直空白，表示該網站不允許在此顯示，請在新分頁開啟。",
+    "zh-Hans": "若页面一直空白，表示该网站不允许在此显示，请在新标签页打开。",
+    "ja": "ページが空白のままの場合、このサイトはここでの表示を許可していません。新しいタブで開いてください。",
+    "es": "Si la página queda en blanco, no permite mostrarse aquí: ábrala en una pestaña nueva.",
+    "fr": "Si la page reste vide, elle refuse d’être affichée ici : ouvrez-la dans un nouvel onglet."
+  },
+  "Enter a web address to see the page here.": {
+    "zh-Hant": "輸入網址即可在此瀏覽該頁面。",
+    "zh-Hans": "输入网址即可在此浏览该页面。",
+    "ja": "ウェブアドレスを入力すると、ここにページが表示されます。",
+    "es": "Escriba una dirección web para ver la página aquí.",
+    "fr": "Saisissez une adresse web pour voir la page ici."
+  },
+  "Choose a picture to see it here.": {
+    "zh-Hant": "選擇圖片即可在此顯示。",
+    "zh-Hans": "选择图片即可在此显示。",
+    "ja": "画像を選ぶとここに表示されます。",
+    "es": "Elija una imagen para verla aquí.",
+    "fr": "Choisissez une image pour la voir ici."
+  },
+  "Sort by": {
+    "zh-Hant": "排序方式",
+    "zh-Hans": "排序方式",
+    "ja": "並べ替え",
+    "es": "Ordenar por",
+    "fr": "Trier par"
+  },
+  "Last opened": {
+    "zh-Hant": "最近開啟",
+    "zh-Hans": "最近打开",
+    "ja": "最近開いた順",
+    "es": "Apertura más reciente",
+    "fr": "Dernière ouverture"
+  },
+  "Add row": {
+    "zh-Hant": "新增一列",
+    "zh-Hans": "新增一行",
+    "ja": "行を追加",
+    "es": "Añadir fila",
+    "fr": "Ajouter une ligne"
+  },
+  "No rows.": {
+    "zh-Hant": "沒有資料列。",
+    "zh-Hans": "没有数据行。",
+    "ja": "行がありません。",
+    "es": "No hay filas.",
+    "fr": "Aucune ligne."
+  },
+  "This data can’t be shown as a table.": {
+    "zh-Hant": "此資料無法以表格顯示。",
+    "zh-Hans": "此数据无法以表格显示。",
+    "ja": "このデータは表で表示できません。",
+    "es": "Estos datos no se pueden mostrar como tabla.",
+    "fr": "Ces données ne peuvent pas s’afficher sous forme de tableau."
+  },
+  "Delete this row?": {
+    "zh-Hant": "要刪除這一列嗎？",
+    "zh-Hans": "要删除这一行吗？",
+    "ja": "この行を削除しますか？",
+    "es": "¿Eliminar esta fila?",
+    "fr": "Supprimer cette ligne ?"
+  },
+  "Delete the selected rows?": {
+    "zh-Hant": "要刪除所選的列嗎？",
+    "zh-Hans": "要删除所选的行吗？",
+    "ja": "選択した行を削除しますか？",
+    "es": "¿Eliminar las filas seleccionadas?",
+    "fr": "Supprimer les lignes sélectionnées ?"
+  },
+  "A value is required.": {
+    "zh-Hant": "此欄必須填寫。",
+    "zh-Hans": "此栏必须填写。",
+    "ja": "値を入力してください。",
+    "es": "Se requiere un valor.",
+    "fr": "Une valeur est requise."
+  },
+  "The value is too small.": {
+    "zh-Hant": "數值太小。",
+    "zh-Hans": "数值太小。",
+    "ja": "値が小さすぎます。",
+    "es": "El valor es demasiado pequeño.",
+    "fr": "La valeur est trop petite."
+  },
+  "The value is too large.": {
+    "zh-Hant": "數值太大。",
+    "zh-Hans": "数值太大。",
+    "ja": "値が大きすぎます。",
+    "es": "El valor es demasiado grande.",
+    "fr": "La valeur est trop grande."
+  },
+  "The text is too short.": {
+    "zh-Hant": "文字太短。",
+    "zh-Hans": "文字太短。",
+    "ja": "テキストが短すぎます。",
+    "es": "El texto es demasiado corto.",
+    "fr": "Le texte est trop court."
+  },
+  "The text is too long.": {
+    "zh-Hant": "文字太長。",
+    "zh-Hans": "文字太长。",
+    "ja": "テキストが長すぎます。",
+    "es": "El texto es demasiado largo.",
+    "fr": "Le texte est trop long."
+  },
+  "Choose one of the allowed values.": {
+    "zh-Hant": "請選擇允許的值之一。",
+    "zh-Hans": "请选择允许的值之一。",
+    "ja": "許可された値から選んでください。",
+    "es": "Elija uno de los valores permitidos.",
+    "fr": "Choisissez l’une des valeurs autorisées."
+  },
+  "Enter a number.": {
+    "zh-Hant": "請輸入數字。",
+    "zh-Hans": "请输入数字。",
+    "ja": "数値を入力してください。",
+    "es": "Introduzca un número.",
+    "fr": "Saisissez un nombre."
+  },
+  "Enter a whole number.": {
+    "zh-Hant": "請輸入整數。",
+    "zh-Hans": "请输入整数。",
+    "ja": "整数を入力してください。",
+    "es": "Introduzca un número entero.",
+    "fr": "Saisissez un nombre entier."
+  },
+  "Enter a date as YYYY-MM-DD.": {
+    "zh-Hant": "請以 YYYY-MM-DD 格式輸入日期。",
+    "zh-Hans": "请以 YYYY-MM-DD 格式输入日期。",
+    "ja": "日付を YYYY-MM-DD の形式で入力してください。",
+    "es": "Introduzca una fecha como AAAA-MM-DD.",
+    "fr": "Saisissez une date au format AAAA-MM-JJ."
+  },
+  "Link group: {0}": {
+    "zh-Hant": "連結群組：{0}",
+    "zh-Hans": "链接群组：{0}",
+    "ja": "リンクグループ：{0}",
+    "es": "Grupo de enlace: {0}",
+    "fr": "Groupe de liaison : {0}"
+  },
+  "Not linked": {
+    "zh-Hant": "未連結",
+    "zh-Hans": "未链接",
+    "ja": "リンクなし",
+    "es": "Sin enlazar",
+    "fr": "Non lié"
+  },
+  "Red": {
+    "zh-Hant": "紅",
+    "zh-Hans": "红",
+    "ja": "赤",
+    "es": "Rojo",
+    "fr": "Rouge"
+  },
+  "Amber": {
+    "zh-Hant": "琥珀",
+    "zh-Hans": "琥珀",
+    "ja": "琥珀",
+    "es": "Ámbar",
+    "fr": "Ambre"
+  },
+  "Green": {
+    "zh-Hant": "綠",
+    "zh-Hans": "绿",
+    "ja": "緑",
+    "es": "Verde",
+    "fr": "Vert"
+  },
+  "Teal": {
+    "zh-Hant": "青",
+    "zh-Hans": "青",
+    "ja": "ティール",
+    "es": "Verde azulado",
+    "fr": "Sarcelle"
+  },
+  "Blue": {
+    "zh-Hant": "藍",
+    "zh-Hans": "蓝",
+    "ja": "青",
+    "es": "Azul",
+    "fr": "Bleu"
+  },
+  "Purple": {
+    "zh-Hant": "紫",
+    "zh-Hans": "紫",
+    "ja": "紫",
+    "es": "Morado",
+    "fr": "Violet"
+  },
+  "This page has no port named {0}.": {
+    "zh-Hant": "此頁面沒有名為 {0} 的連接埠。",
+    "zh-Hans": "此页面没有名为 {0} 的端口。",
+    "ja": "このページに {0} という名前のポートはありません。",
+    "es": "Esta página no tiene ningún puerto llamado {0}.",
+    "fr": "Cette page n’a pas de port nommé {0}."
+  },
+  "That panel is no longer open.": {
+    "zh-Hant": "該面板已關閉。",
+    "zh-Hans": "该面板已关闭。",
+    "ja": "そのパネルはもう開いていません。",
+    "es": "Ese panel ya no está abierto.",
+    "fr": "Ce panneau n’est plus ouvert."
+  },
+  "Open {0} from New Data Browser.": {
+    "zh-Hant": "請從「新增資料瀏覽器」開啟 {0}。",
+    "zh-Hans": "请从“新建数据浏览器”打开 {0}。",
+    "ja": "「新規データブラウザー」から {0} を開いてください。",
+    "es": "Abra {0} desde Nuevo explorador de datos.",
+    "fr": "Ouvrez {0} depuis Nouveau navigateur de données."
+  },
+  "See and change your other panels’ settings": {
+    "zh-Hant": "查看並變更您其他面板的設定",
+    "zh-Hans": "查看并更改您其他面板的设置",
+    "ja": "他のパネルの設定を表示・変更する",
+    "es": "Ver y cambiar la configuración de sus otros paneles",
+    "fr": "Voir et modifier les réglages de vos autres panneaux"
+  },
+  "See your other panels’ settings": {
+    "zh-Hant": "查看您其他面板的設定",
+    "zh-Hans": "查看您其他面板的设置",
+    "ja": "他のパネルの設定を表示する",
+    "es": "Ver la configuración de sus otros paneles",
+    "fr": "Voir les réglages de vos autres panneaux"
+  },
+  "Sends its inputs to the agent you choose on the page": {
+    "zh-Hant": "將輸入送給您在頁面上選擇的代理",
+    "zh-Hans": "将输入发送给您在页面上选择的代理",
+    "ja": "ページで選んだエージェントに入力を送ります",
+    "es": "Envía sus entradas al agente que elija en la página",
+    "fr": "Envoie ses entrées à l’agent que vous choisissez sur la page"
+  },
+  "Drag to resize. Double-click to hide or show {0}.": {
+    "zh-Hant": "拖曳調整寬度；按兩下可隱藏或顯示「{0}」。",
+    "zh-Hans": "拖动调整宽度；双击可隐藏或显示“{0}”。",
+    "ja": "ドラッグで幅を変更。ダブルクリックで「{0}」を隠す・表示します。",
+    "es": "Arrastre para cambiar el ancho. Doble clic para ocultar o mostrar {0}.",
+    "fr": "Faites glisser pour redimensionner. Double-cliquez pour masquer ou afficher {0}."
+  },
+  "Hide {0}": {
+    "zh-Hant": "隱藏「{0}」",
+    "zh-Hans": "隐藏“{0}”",
+    "ja": "「{0}」を隠す",
+    "es": "Ocultar {0}",
+    "fr": "Masquer {0}"
+  },
+  "Show {0}": {
+    "zh-Hant": "顯示「{0}」",
+    "zh-Hans": "显示“{0}”",
+    "ja": "「{0}」を表示",
+    "es": "Mostrar {0}",
+    "fr": "Afficher {0}"
+  },
+  "Choose a picture or PDF": {
+    "zh-Hant": "選擇圖片或 PDF",
+    "zh-Hans": "选择图片或 PDF",
+    "ja": "画像または PDF を選ぶ",
+    "es": "Elegir imagen o PDF",
+    "fr": "Choisir une image ou un PDF"
+  },
+  "Choose a picture or a PDF to see it here.": {
+    "zh-Hant": "選擇圖片或 PDF 即可在此顯示。",
+    "zh-Hans": "选择图片或 PDF 即可在此显示。",
+    "ja": "画像または PDF を選ぶとここに表示されます。",
+    "es": "Elija una imagen o un PDF para verlo aquí.",
+    "fr": "Choisissez une image ou un PDF pour l’afficher ici."
+  },
+  "Previous page": {
+    "zh-Hant": "上一頁",
+    "zh-Hans": "上一页",
+    "ja": "前のページ",
+    "es": "Página anterior",
+    "fr": "Page précédente"
+  },
+  "Next page": {
+    "zh-Hant": "下一頁",
+    "zh-Hans": "下一页",
+    "ja": "次のページ",
+    "es": "Página siguiente",
+    "fr": "Page suivante"
+  },
+  "Choose a PDF up to 30 MB.": {
+    "zh-Hant": "請選擇 30 MB 以內的 PDF。",
+    "zh-Hans": "请选择 30 MB 以内的 PDF。",
+    "ja": "30 MB 以下の PDF を選んでください。",
+    "es": "Elija un PDF de hasta 30 MB.",
+    "fr": "Choisissez un PDF de 30 Mo au maximum."
+  },
+  "This PDF cannot be read.": {
+    "zh-Hant": "無法讀取這個 PDF。",
+    "zh-Hans": "无法读取这个 PDF。",
+    "ja": "この PDF を読み込めません。",
+    "es": "No se puede leer este PDF.",
+    "fr": "Ce PDF est illisible."
+  },
+  "Reading the PDF…": {
+    "zh-Hant": "正在讀取 PDF…",
+    "zh-Hans": "正在读取 PDF…",
+    "ja": "PDF を読み込んでいます…",
+    "es": "Leyendo el PDF…",
+    "fr": "Lecture du PDF…"
+  },
+  "Choose the PDF again to turn its pages.": {
+    "zh-Hant": "請重新選擇這個 PDF 才能翻頁。",
+    "zh-Hans": "请重新选择这个 PDF 才能翻页。",
+    "ja": "ページをめくるには PDF をもう一度選んでください。",
+    "es": "Vuelva a elegir el PDF para pasar sus páginas.",
+    "fr": "Choisissez de nouveau le PDF pour en tourner les pages."
+  },
+  "Phema": {
+    "zh-Hant": "Phema",
+    "zh-Hans": "Phema",
+    "ja": "Phema",
+    "es": "Phema",
+    "fr": "Phema"
+  },
+  "Choose a Phema": {
+    "zh-Hant": "選擇 Phema",
+    "zh-Hans": "选择 Phema",
+    "ja": "Phema を選ぶ",
+    "es": "Elegir un Phema",
+    "fr": "Choisir un Phema"
+  },
+  "Choose another Phema": {
+    "zh-Hant": "改選其他 Phema",
+    "zh-Hans": "改选其他 Phema",
+    "ja": "別の Phema を選ぶ",
+    "es": "Elegir otro Phema",
+    "fr": "Choisir un autre Phema"
+  },
+  "Choose a Phema to copy its blocks.": {
+    "zh-Hant": "選擇一個 Phema，複製它的區塊。",
+    "zh-Hans": "选择一个 Phema，复制它的区块。",
+    "ja": "ブロックをコピーする Phema を選んでください。",
+    "es": "Elija un Phema para copiar sus bloques.",
+    "fr": "Choisissez un Phema pour copier ses blocs."
+  },
+  "Blocks": {
+    "zh-Hant": "區塊",
+    "zh-Hans": "区块",
+    "ja": "ブロック",
+    "es": "Bloques",
+    "fr": "Blocs"
+  },
+  "This Terminal cannot choose a Phema here.": {
+    "zh-Hant": "這個終端無法在這裡選擇 Phema。",
+    "zh-Hans": "这个终端无法在这里选择 Phema。",
+    "ja": "この端末ではここで Phema を選べません。",
+    "es": "Este terminal no puede elegir un Phema aquí.",
+    "fr": "Ce terminal ne peut pas choisir de Phema ici."
+  },
+  "That Phema cannot be copied here.": {
+    "zh-Hant": "這個 Phema 無法在這裡複製。",
+    "zh-Hans": "这个 Phema 无法在这里复制。",
+    "ja": "この Phema はここではコピーできません。",
+    "es": "Ese Phema no se puede copiar aquí.",
+    "fr": "Ce Phema ne peut pas être copié ici."
+  },
+  "Choose a Phema to copy": {
+    "zh-Hant": "選擇要複製的 Phema",
+    "zh-Hans": "选择要复制的 Phema",
+    "ja": "コピーする Phema を選ぶ",
+    "es": "Elegir un Phema para copiar",
+    "fr": "Choisir un Phema à copier"
+  },
+  "Use this Phema": {
+    "zh-Hant": "使用這個 Phema",
+    "zh-Hans": "使用这个 Phema",
+    "ja": "この Phema を使う",
+    "es": "Usar este Phema",
+    "fr": "Utiliser ce Phema"
+  },
+  "Copy reference": {
+    "zh-Hant": "複製參考編號",
+    "zh-Hans": "复制参考编号",
+    "ja": "参照番号をコピー",
+    "es": "Copiar referencia",
+    "fr": "Copier la référence"
+  },
+  "Reference copied.": {
+    "zh-Hant": "已複製參考編號。",
+    "zh-Hans": "已复制参考编号。",
+    "ja": "参照番号をコピーしました。",
+    "es": "Referencia copiada.",
+    "fr": "Référence copiée."
+  },
+  "Reserved by: this Terminal": {
+    "zh-Hant": "預留者：此 Terminal",
+    "zh-Hans": "预留者：此 Terminal",
+    "ja": "予約元：この Terminal",
+    "es": "Reservado por: este Terminal",
+    "fr": "Réservé par : ce Terminal"
+  },
+  "Reserved by: another Terminal": {
+    "zh-Hant": "預留者：另一個 Terminal",
+    "zh-Hans": "预留者：另一个 Terminal",
+    "ja": "予約元：別の Terminal",
+    "es": "Reservado por: otro Terminal",
+    "fr": "Réservé par : un autre Terminal"
+  },
+  "Credits and debits include reservations: {0} points held before executions and {1} returned when they settled or were refunded. {2} points are still held for {3} executions with no settlement in this history; reconcile them from Points spending in Terminal settings. The payment entries are the charges, so one execution can add several entries here, while Points spending counts it once.": {
+    "zh-Hant": "入帳與扣款包含預留點數：執行前保留 {0} 點，結算或退款時退回 {1} 點。仍有 {2} 點保留在 {3} 次尚未結算的執行中，可在終端設定的「點數支出」中核對。付款記錄才是實際收費，因此一次執行在這裡可能有多筆記錄，點數支出則只算一次。",
+    "zh-Hans": "入账与扣款包含预留积分：执行前保留 {0} 积分，结算或退款时退回 {1} 积分。仍有 {2} 积分保留在 {3} 次尚未结算的执行中，可在终端设置的“积分支出”中核对。付款记录才是实际收费，因此一次执行在这里可能有多条记录，积分支出则只算一次。",
+    "ja": "入金と出金には予約が含まれます：実行前に {0} ポイントを予約し、精算または返金時に {1} ポイントが戻りました。この履歴に精算のない {3} 件の実行で {2} ポイントがまだ予約されたままです。ターミナル設定の「ポイント利用」で照合してください。支払いの記録が実際の請求のため、1 回の実行がここでは複数の記録になりますが、ポイント利用では 1 件と数えます。",
+    "es": "Los abonos y cargos incluyen reservas: {0} puntos retenidos antes de las ejecuciones y {1} devueltos al liquidarse o reembolsarse. Aún hay {2} puntos retenidos en {3} ejecuciones sin liquidación en este historial; concílielos desde el gasto de puntos en la configuración del terminal. Los asientos de pago son los cargos, así que una ejecución puede sumar varios asientos aquí, mientras que el gasto de puntos la cuenta una vez.",
+    "fr": "Les crédits et débits incluent les réservations : {0} points retenus avant les exécutions et {1} restitués lors de leur règlement ou remboursement. {2} points sont encore retenus pour {3} exécutions sans règlement dans cet historique ; rapprochez-les depuis les dépenses de points dans les paramètres du terminal. Les écritures de paiement sont les débits réels : une exécution peut donc ajouter plusieurs écritures ici, alors que les dépenses de points la comptent une fois."
+  },
+  "{0} executions · {1} other entries · {2} matching ledger entries": {
+    "zh-Hant": "{0} 次執行 · {1} 筆其他記錄 · {2} 筆符合的帳本記錄",
+    "zh-Hans": "{0} 次执行 · {1} 条其他记录 · {2} 条匹配的账本记录",
+    "ja": "{0} 件の実行 · その他の記録 {1} 件 · 一致する台帳記録 {2} 件",
+    "es": "{0} ejecuciones · {1} otros asientos · {2} asientos coincidentes",
+    "fr": "{0} exécutions · {1} autres écritures · {2} écritures correspondantes"
+  },
+  "Move browser {0} ({1})": {
+    "zh-Hant": "移動瀏覽器 {0}（{1}）",
+    "zh-Hans": "移动浏览器 {0}（{1}）",
+    "ja": "ブラウザー {0}（{1}）を移動",
+    "es": "Mover el navegador {0} ({1})",
+    "fr": "Déplacer le navigateur {0} ({1})"
+  },
+  "Change layout of browser {0} ({1})": {
+    "zh-Hant": "變更瀏覽器 {0}（{1}）的版面",
+    "zh-Hans": "更改浏览器 {0}（{1}）的布局",
+    "ja": "ブラウザー {0}（{1}）のレイアウトを変更",
+    "es": "Cambiar el diseño del navegador {0} ({1})",
+    "fr": "Changer la disposition du navigateur {0} ({1})"
+  },
+  "Duplicate browser {0} ({1})": {
+    "zh-Hant": "複製瀏覽器 {0}（{1}）",
+    "zh-Hans": "复制浏览器 {0}（{1}）",
+    "ja": "ブラウザー {0}（{1}）を複製",
+    "es": "Duplicar el navegador {0} ({1})",
+    "fr": "Dupliquer le navigateur {0} ({1})"
+  },
+  "Focus browser {0} ({1})": {
+    "zh-Hant": "聚焦瀏覽器 {0}（{1}）",
+    "zh-Hans": "聚焦浏览器 {0}（{1}）",
+    "ja": "ブラウザー {0}（{1}）にフォーカス",
+    "es": "Enfocar el navegador {0} ({1})",
+    "fr": "Mettre au premier plan le navigateur {0} ({1})"
+  },
+  "Close browser {0} ({1})": {
+    "zh-Hant": "關閉瀏覽器 {0}（{1}）",
+    "zh-Hans": "关闭浏览器 {0}（{1}）",
+    "ja": "ブラウザー {0}（{1}）を閉じる",
+    "es": "Cerrar el navegador {0} ({1})",
+    "fr": "Fermer le navigateur {0} ({1})"
+  },
+  "No layout preview is available.": {
+    "zh-Hant": "目前無法提供版面預覽。",
+    "zh-Hans": "目前无法提供布局预览。",
+    "ja": "レイアウトのプレビューはありません。",
+    "es": "No hay vista previa del diseño.",
+    "fr": "Aucun aperçu de la disposition n’est disponible."
+  },
+  "Layout preview": {
+    "zh-Hant": "版面預覽",
+    "zh-Hans": "布局预览",
+    "ja": "レイアウトのプレビュー",
+    "es": "Vista previa del diseño",
+    "fr": "Aperçu de la disposition"
+  },
+  "Unsupported parameter control": {
+    "zh-Hant": "不支援此參數控制項",
+    "zh-Hans": "不支持此参数控件",
+    "ja": "未対応のパラメーター操作",
+    "es": "Control de parámetro no compatible",
+    "fr": "Contrôle de paramètre non pris en charge"
+  },
+  "Kept in this Terminal; it opens without asking the catalog.": {
+    "zh-Hant": "已保留在此 Terminal，開啟時不需詢問目錄。",
+    "zh-Hans": "已保留在此 Terminal，打开时无需询问目录。",
+    "ja": "この Terminal に保持済みです。カタログに問い合わせずに開きます。",
+    "es": "Guardado en este Terminal; se abre sin consultar el catálogo.",
+    "fr": "Conservé dans ce Terminal ; il s’ouvre sans interroger le catalogue."
+  },
+  "Save in this Terminal": {
+    "zh-Hant": "保留在此 Terminal",
+    "zh-Hans": "保留在此 Terminal",
+    "ja": "この Terminal に保持",
+    "es": "Guardar en este Terminal",
+    "fr": "Conserver dans ce Terminal"
+  },
+  "Saved in this Terminal": {
+    "zh-Hant": "已保留在此 Terminal",
+    "zh-Hans": "已保留在此 Terminal",
+    "ja": "この Terminal に保持しました",
+    "es": "Guardado en este Terminal",
+    "fr": "Conservé dans ce Terminal"
+  },
+  "Remove from this Terminal": {
+    "zh-Hant": "從此 Terminal 移除",
+    "zh-Hans": "从此 Terminal 移除",
+    "ja": "この Terminal から削除",
+    "es": "Quitar de este Terminal",
+    "fr": "Retirer de ce Terminal"
+  },
+  "Update available": {
+    "zh-Hant": "有可用的更新",
+    "zh-Hans": "有可用的更新",
+    "ja": "更新があります",
+    "es": "Actualización disponible",
+    "fr": "Mise à jour disponible"
+  },
+  "Update": {
+    "zh-Hant": "更新",
+    "zh-Hans": "更新",
+    "ja": "更新",
+    "es": "Actualizar",
+    "fr": "Mettre à jour"
+  },
+  "Updated in this Terminal": {
+    "zh-Hant": "已在此 Terminal 更新",
+    "zh-Hans": "已在此 Terminal 更新",
+    "ja": "この Terminal で更新しました",
+    "es": "Actualizado en este Terminal",
+    "fr": "Mis à jour dans ce Terminal"
+  },
+  "Update from catalog": {
+    "zh-Hant": "從目錄更新",
+    "zh-Hans": "从目录更新",
+    "ja": "カタログから更新",
+    "es": "Actualizar desde el catálogo",
+    "fr": "Mettre à jour depuis le catalogue"
+  },
+  "{0} points": {
+    "zh-Hant": "{0} 點",
+    "zh-Hans": "{0} 积分",
+    "ja": "{0} ポイント",
+    "es": "{0} puntos",
+    "fr": "{0} points"
+  },
+  "Available Plaza points: {0}. Open points spending.": {
+    "zh-Hant": "可用 Plaza 點數：{0}。開啟點數支出。",
+    "zh-Hans": "可用 Plaza 积分：{0}。打开积分支出。",
+    "ja": "利用可能な Plaza ポイント：{0}。ポイント利用を開きます。",
+    "es": "Puntos de Plaza disponibles: {0}. Abrir el gasto de puntos.",
+    "fr": "Points Plaza disponibles : {0}. Ouvrir les dépenses de points."
+  },
+  "Last known Plaza points: {0}. Plaza is not answering, so this may not be current.": {
+    "zh-Hant": "上次取得的 Plaza 點數：{0}。Plaza 沒有回應，此數字可能不是最新。",
+    "zh-Hans": "上次获取的 Plaza 积分：{0}。Plaza 没有响应，此数字可能不是最新。",
+    "ja": "最後に取得した Plaza ポイント：{0}。Plaza が応答しないため、最新ではない可能性があります。",
+    "es": "Últimos puntos de Plaza conocidos: {0}. Plaza no responde, así que puede no estar actualizado.",
+    "fr": "Derniers points Plaza connus : {0}. Plaza ne répond pas ; ce nombre peut ne pas être à jour."
+  },
+  "Not enough Plaza points for this request.": {
+    "zh-Hant": "Plaza 點數不足，無法完成這個要求。",
+    "zh-Hans": "Plaza 点数不足，无法完成这个请求。",
+    "ja": "Plaza ポイントが足りないため、この依頼を実行できません。",
+    "es": "No hay suficientes puntos de Plaza para esta solicitud.",
+    "fr": "Pas assez de points Plaza pour cette demande."
+  },
+  "{0} is not answering on this computer. Start it again in Retis MAS Manager.": {
+    "zh-Hant": "這台電腦上的 {0} 沒有回應。請在 Retis MAS 管理員中重新啟動它。",
+    "zh-Hans": "这台电脑上的 {0} 没有响应。请在 Retis MAS 管理器中重新启动它。",
+    "ja": "このコンピューターの {0} が応答しません。Retis MAS Manager で再起動してください。",
+    "es": "{0} no responde en este equipo. Reinícialo en Retis MAS Manager.",
+    "fr": "{0} ne répond pas sur cet ordinateur. Redémarrez-le dans Retis MAS Manager."
+  },
+  "The program on this computer that shows this view is not answering. Start it again in Retis MAS Manager.": {
+    "zh-Hant": "這台電腦上顯示此畫面的程式沒有回應。請在 Retis MAS 管理員中重新啟動它。",
+    "zh-Hans": "这台电脑上显示此画面的程序没有响应。请在 Retis MAS 管理器中重新启动它。",
+    "ja": "このビューを表示する、このコンピューター上のプログラムが応答しません。Retis MAS Manager で再起動してください。",
+    "es": "El programa de este equipo que muestra esta vista no responde. Reinícialo en Retis MAS Manager.",
+    "fr": "Le programme de cet ordinateur qui affiche cette vue ne répond pas. Redémarrez-le dans Retis MAS Manager."
+  },
+  "Retis MAS Manager is not answering on this computer. Try again in a few minutes; if it still does not answer, restart the computer.": {
+    "zh-Hant": "這台電腦上的 Retis MAS 管理員沒有回應。請過幾分鐘再試；如果仍然沒有回應，請重新啟動電腦。",
+    "zh-Hans": "这台电脑上的 Retis MAS 管理器没有响应。请过几分钟再试；如果仍然没有响应，请重新启动电脑。",
+    "ja": "このコンピューターの Retis MAS Manager が応答しません。数分後にもう一度お試しください。それでも応答しない場合は、コンピューターを再起動してください。",
+    "es": "Retis MAS Manager no responde en este equipo. Inténtalo de nuevo en unos minutos; si sigue sin responder, reinicia el equipo.",
+    "fr": "Retis MAS Manager ne répond pas sur cet ordinateur. Réessayez dans quelques minutes ; s’il ne répond toujours pas, redémarrez l’ordinateur."
+  },
+  "Permissions": {
+    "zh-Hant": "權限",
+    "zh-Hans": "权限",
+    "ja": "権限",
+    "es": "Permisos",
+    "fr": "Autorisations"
+  },
+  "Who may see, open and change this Phema": {
+    "zh-Hant": "誰可以看見、開啟及變更此 Phema",
+    "zh-Hans": "谁可以看见、打开及更改此 Phema",
+    "ja": "この Phema を表示・開く・変更できる人",
+    "es": "Quién puede ver, abrir y cambiar este Phema",
+    "fr": "Qui peut voir, ouvrir et modifier ce Phema"
+  },
+  "See": {
+    "zh-Hant": "看見",
+    "zh-Hans": "看见",
+    "ja": "表示",
+    "es": "Ver",
+    "fr": "Voir"
+  },
+  "Change parameters": {
+    "zh-Hant": "變更參數",
+    "zh-Hans": "更改参数",
+    "ja": "パラメーターの変更",
+    "es": "Cambiar parámetros",
+    "fr": "Modifier les paramètres"
+  },
+  "Everyone": {
+    "zh-Hant": "所有人",
+    "zh-Hans": "所有人",
+    "ja": "全員",
+    "es": "Todos",
+    "fr": "Tout le monde"
+  },
+  "Only me": {
+    "zh-Hant": "只有我",
+    "zh-Hans": "只有我",
+    "ja": "自分のみ",
+    "es": "Solo yo",
+    "fr": "Moi seulement"
+  },
+  "Chosen roles": {
+    "zh-Hant": "指定角色",
+    "zh-Hans": "指定角色",
+    "ja": "選択したロール",
+    "es": "Roles elegidos",
+    "fr": "Rôles choisis"
+  },
+  "Choose roles for {0}.": {
+    "zh-Hant": "請為「{0}」選擇角色。",
+    "zh-Hans": "请为“{0}”选择角色。",
+    "ja": "「{0}」のロールを選んでください。",
+    "es": "Elige roles para «{0}».",
+    "fr": "Choisissez des rôles pour « {0} »."
+  },
+  "You have no roles yet. Create one in the Permission Viewer.": {
+    "zh-Hant": "您還沒有角色。請在權限檢視器中建立。",
+    "zh-Hans": "您还没有角色。请在权限查看器中创建。",
+    "ja": "まだロールがありません。権限ビューアーで作成してください。",
+    "es": "Aún no tienes roles. Crea uno en el Visor de permisos.",
+    "fr": "Vous n’avez pas encore de rôle. Créez-en un dans la Visionneuse des autorisations."
+  },
+  "Only its owner can change these parameters.": {
+    "zh-Hant": "只有擁有者可以變更這些參數。",
+    "zh-Hans": "只有所有者可以更改这些参数。",
+    "ja": "これらのパラメーターは所有者のみ変更できます。",
+    "es": "Solo su propietario puede cambiar estos parámetros.",
+    "fr": "Seul son propriétaire peut modifier ces paramètres."
+  },
+  "Allow an AI app": {
+    "zh-Hant": "允許 AI 應用程式",
+    "zh-Hans": "允许 AI 应用",
+    "ja": "AIアプリを許可",
+    "es": "Permitir una aplicación de IA",
+    "fr": "Autoriser une application d’IA"
+  },
+  "Allow in your Terminal": {
+    "zh-Hant": "請在您的終端中選擇「允許」",
+    "zh-Hans": "请在您的终端中选择“允许”",
+    "ja": "ターミナルで「許可」を選んでください",
+    "es": "Permítalo en su Terminal",
+    "fr": "Autorisez dans votre Terminal"
+  },
+  "Switch to your Terminal window or tab and choose Allow there.": {
+    "zh-Hant": "請切換到您的終端視窗或分頁，並在那裡選擇「允許」。",
+    "zh-Hans": "请切换到您的终端窗口或标签页，并在那里选择“允许”。",
+    "ja": "ターミナルのウィンドウまたはタブに切り替えて、そこで「許可」を選んでください。",
+    "es": "Cambie a la ventana o pestaña de su Terminal y elija Permitir allí.",
+    "fr": "Passez à la fenêtre ou à l’onglet de votre Terminal et choisissez Autoriser."
+  },
+  "Waiting for this Terminal…": {
+    "zh-Hant": "正在等待這個終端…",
+    "zh-Hans": "正在等待此终端…",
+    "ja": "このターミナルを待っています…",
+    "es": "Esperando a este Terminal…",
+    "fr": "En attente de ce Terminal…"
+  },
+  "Done. Returning to the AI app…": {
+    "zh-Hant": "完成。正在返回 AI 應用程式…",
+    "zh-Hans": "完成。正在返回 AI 应用…",
+    "ja": "完了しました。AIアプリに戻ります…",
+    "es": "Listo. Volviendo a la aplicación de IA…",
+    "fr": "Terminé. Retour à l’application d’IA…"
+  },
+  "This sign-in request has ended. Start again from the AI app.": {
+    "zh-Hant": "此登入請求已結束。請從 AI 應用程式重新開始。",
+    "zh-Hans": "此登录请求已结束。请从 AI 应用重新开始。",
+    "ja": "このサインイン要求は終了しました。AIアプリからやり直してください。",
+    "es": "Esta solicitud de inicio de sesión terminó. Vuelva a empezar desde la aplicación de IA.",
+    "fr": "Cette demande de connexion est terminée. Recommencez depuis l’application d’IA."
+  },
+  "Switch to your Terminal window or tab: {0} is waiting there for your Allow.": {
+    "zh-Hant": "請切換到您的終端視窗或分頁：{0} 正在那裡等待您選擇「允許」。",
+    "zh-Hans": "请切换到您的终端窗口或标签页：{0} 正在那里等待您选择“允许”。",
+    "ja": "ターミナルのウィンドウまたはタブに切り替えてください。{0} がそこで「許可」を待っています。",
+    "es": "Cambie a la ventana o pestaña de su Terminal: {0} espera allí su permiso.",
+    "fr": "Passez à la fenêtre ou à l’onglet de votre Terminal : {0} y attend votre autorisation."
+  },
+  "{0} is waiting for your Allow": {
+    "zh-Hant": "{0} 正在等待您選擇「允許」",
+    "zh-Hans": "{0} 正在等待您选择“允许”",
+    "ja": "{0} が「許可」を待っています",
+    "es": "{0} espera su permiso",
+    "fr": "{0} attend votre autorisation"
+  },
+  "An AI app": {
+    "zh-Hant": "一個 AI 應用程式",
+    "zh-Hans": "一个 AI 应用",
+    "ja": "AIアプリ",
+    "es": "Una aplicación de IA",
+    "fr": "Une application d’IA"
+  },
+  "Never": {
+    "zh-Hant": "從未",
+    "zh-Hans": "从未",
+    "ja": "なし",
+    "es": "Nunca",
+    "fr": "Jamais"
+  },
+  "AI apps can’t connect to this Terminal.": {
+    "zh-Hant": "AI 應用程式無法連線到這個終端。",
+    "zh-Hans": "AI 应用无法连接到此终端。",
+    "ja": "AIアプリはこのターミナルに接続できません。",
+    "es": "Las aplicaciones de IA no pueden conectarse a este Terminal.",
+    "fr": "Les applications d’IA ne peuvent pas se connecter à ce Terminal."
+  },
+  "No AI app is approved for this window.": {
+    "zh-Hant": "這個視窗尚未核准任何 AI 應用程式。",
+    "zh-Hans": "此窗口尚未批准任何 AI 应用。",
+    "ja": "このウィンドウで承認されたAIアプリはありません。",
+    "es": "Ninguna aplicación de IA está aprobada para esta ventana.",
+    "fr": "Aucune application d’IA n’est autorisée pour cette fenêtre."
+  },
+  "AI apps on this computer, such as Claude Code or Codex, can read this window once you allow them here.": {
+    "zh-Hant": "這台電腦上的 AI 應用程式（例如 Claude Code 或 Codex）在您於此允許後，即可讀取這個視窗。",
+    "zh-Hans": "此电脑上的 AI 应用（例如 Claude Code 或 Codex）在您于此允许后，即可读取此窗口。",
+    "ja": "このコンピューター上のAIアプリ（Claude Code や Codex など）は、ここで許可するとこのウィンドウを読み取れます。",
+    "es": "Las aplicaciones de IA de este equipo, como Claude Code o Codex, pueden leer esta ventana cuando usted las permite aquí.",
+    "fr": "Les applications d’IA de cet ordinateur, comme Claude Code ou Codex, peuvent lire cette fenêtre une fois que vous les autorisez ici."
+  },
+  "Points AI apps may spend per day": {
+    "zh-Hant": "AI 應用程式每天可花費的點數",
+    "zh-Hans": "AI 应用每天可花费的点数",
+    "ja": "AIアプリが1日に使えるポイント",
+    "es": "Puntos que las aplicaciones de IA pueden gastar al día",
+    "fr": "Points que les applications d’IA peuvent dépenser par jour"
+  },
+  "0 means AI apps can use only free actions.": {
+    "zh-Hant": "0 表示 AI 應用程式只能使用免費操作。",
+    "zh-Hans": "0 表示 AI 应用只能使用免费操作。",
+    "ja": "0 の場合、AIアプリは無料の操作だけを使えます。",
+    "es": "0 significa que las aplicaciones de IA solo pueden usar acciones gratuitas.",
+    "fr": "0 signifie que les applications d’IA ne peuvent utiliser que des actions gratuites."
+  },
+  "Connect an AI app at {0}. It asks you to allow it in this window.": {
+    "zh-Hant": "在 {0} 連線 AI 應用程式。它會請您在這個視窗中允許。",
+    "zh-Hans": "在 {0} 连接 AI 应用。它会请您在此窗口中允许。",
+    "ja": "{0} でAIアプリを接続します。このウィンドウで許可を求められます。",
+    "es": "Conecte una aplicación de IA en {0}. Le pedirá que la permita en esta ventana.",
+    "fr": "Connectez une application d’IA à {0}. Elle vous demandera de l’autoriser dans cette fenêtre."
+  },
+  "Approved AI apps": {
+    "zh-Hant": "已核准的 AI 應用程式",
+    "zh-Hans": "已批准的 AI 应用",
+    "ja": "承認済みのAIアプリ",
+    "es": "Aplicaciones de IA aprobadas",
+    "fr": "Applications d’IA autorisées"
+  },
+  "AI app": {
+    "zh-Hant": "AI 應用程式",
+    "zh-Hans": "AI 应用",
+    "ja": "AIアプリ",
+    "es": "Aplicación de IA",
+    "fr": "Application d’IA"
+  },
+  "Approved · last used": {
+    "zh-Hant": "核准時間 · 上次使用",
+    "zh-Hans": "批准时间 · 上次使用",
+    "ja": "承認 · 最終使用",
+    "es": "Aprobada · último uso",
+    "fr": "Autorisée · dernière utilisation"
+  },
+  "{0} wants to control this window.": {
+    "zh-Hant": "{0} 想要控制這個視窗。",
+    "zh-Hans": "{0} 想要控制此窗口。",
+    "ja": "{0} がこのウィンドウを操作しようとしています。",
+    "es": "{0} quiere controlar esta ventana.",
+    "fr": "{0} veut contrôler cette fenêtre."
+  },
+  "AI points budget: {0} per day": {
+    "zh-Hant": "AI 點數預算：每天 {0} 點",
+    "zh-Hans": "AI 点数预算：每天 {0} 点",
+    "ja": "AIポイント予算：1日 {0}",
+    "es": "Presupuesto de puntos de IA: {0} al día",
+    "fr": "Budget de points IA : {0} par jour"
+  },
+  "Deny": {
+    "zh-Hant": "拒絕",
+    "zh-Hans": "拒绝",
+    "ja": "拒否",
+    "es": "Denegar",
+    "fr": "Refuser"
+  },
+  "Allow": {
+    "zh-Hant": "允許",
+    "zh-Hans": "允许",
+    "ja": "許可",
+    "es": "Permitir",
+    "fr": "Autoriser"
+  },
+  "Sign in to Plaza to let AI apps control this window.": {
+    "zh-Hant": "登入 Plaza 後，即可讓 AI 應用程式控制這個視窗。",
+    "zh-Hans": "登录 Plaza 后，即可让 AI 应用控制此窗口。",
+    "ja": "Plaza にサインインすると、AIアプリにこのウィンドウを操作させられます。",
+    "es": "Inicie sesión en Plaza para que las aplicaciones de IA controlen esta ventana.",
+    "fr": "Connectez-vous à Plaza pour laisser les applications d’IA contrôler cette fenêtre."
+  },
+  "AI apps": {
+    "zh-Hant": "AI 應用程式",
+    "zh-Hans": "AI 应用",
+    "ja": "AIアプリ",
+    "es": "Aplicaciones de IA",
+    "fr": "Applications d’IA"
+  },
+  "{0} changed this window.": {
+    "zh-Hant": "{0} 變更了這個視窗。",
+    "zh-Hans": "{0} 更改了此窗口。",
+    "ja": "{0} がこのウィンドウを変更しました。",
+    "es": "{0} cambió esta ventana.",
+    "fr": "{0} a modifié cette fenêtre."
+  },
+  "{0} asks to spend up to {1} more points today.": {
+    "zh-Hant": "{0} 要求今天再多花費最多 {1} 點。",
+    "zh-Hans": "{0} 要求今天再多花费最多 {1} 点。",
+    "ja": "{0} が今日さらに最大 {1} ポイントの使用を求めています。",
+    "es": "{0} pide gastar hasta {1} puntos más hoy.",
+    "fr": "{0} demande à dépenser jusqu’à {1} points de plus aujourd’hui."
+  },
+  "For: {0}": {
+    "zh-Hant": "用途：{0}",
+    "zh-Hans": "用途：{0}",
+    "ja": "用途：{0}",
+    "es": "Para: {0}",
+    "fr": "Pour : {0}"
+  },
+  "Undo": {
+    "zh-Hant": "復原",
+    "zh-Hans": "撤销",
+    "ja": "元に戻す",
+    "es": "Deshacer",
+    "fr": "Annuler"
+  },
+  "{0} changed {1}.": {
+    "zh-Hant": "{0} 變更了 {1}。",
+    "zh-Hans": "{0} 更改了 {1}。",
+    "ja": "{0} が {1} を変更しました。",
+    "es": "{0} cambió {1}.",
+    "fr": "{0} a modifié {1}."
+  },
+  "{0} asks to: {1}": {
+    "zh-Hant": "{0} 要求：{1}",
+    "zh-Hans": "{0} 请求：{1}",
+    "ja": "{0} の依頼：{1}",
+    "es": "{0} pide: {1}",
+    "fr": "{0} demande : {1}"
+  },
+  "Ten-minute versions": {
+    "zh-Hant": "每 10 分鐘版本",
+    "zh-Hans": "每 10 分钟版本",
+    "ja": "10 分ごとの版",
+    "es": "Versiones cada 10 minutos",
+    "fr": "Versions toutes les 10 minutes"
+  },
+  "Daily versions": {
+    "zh-Hant": "每日版本",
+    "zh-Hans": "每日版本",
+    "ja": "日ごとの版",
+    "es": "Versiones diarias",
+    "fr": "Versions quotidiennes"
+  },
+  "Weekly versions": {
+    "zh-Hant": "每週版本",
+    "zh-Hans": "每周版本",
+    "ja": "週ごとの版",
+    "es": "Versiones semanales",
+    "fr": "Versions hebdomadaires"
+  },
+  "Monthly versions": {
+    "zh-Hant": "每月版本",
+    "zh-Hans": "每月版本",
+    "ja": "月ごとの版",
+    "es": "Versiones mensuales",
+    "fr": "Versions mensuelles"
+  },
+  "Every minute for the last 10 minutes and every hour for the last 24 hours are always kept.": {
+    "zh-Hant": "最近 10 分鐘的每分鐘版本與最近 24 小時的每小時版本一律保留。",
+    "zh-Hans": "最近 10 分钟的每分钟版本与最近 24 小时的每小时版本始终保留。",
+    "ja": "直近 10 分間の毎分の版と直近 24 時間の毎時の版は常に保持されます。",
+    "es": "Siempre se conservan una versión por minuto de los últimos 10 minutos y una por hora de las últimas 24 horas.",
+    "fr": "Une version par minute des 10 dernières minutes et une par heure des 24 dernières heures sont toujours conservées."
+  },
+  "Save workspace history": {
+    "zh-Hant": "儲存工作區歷史設定",
+    "zh-Hans": "保存工作区历史设置",
+    "ja": "ワークスペース履歴の設定を保存",
+    "es": "Guardar historial del espacio de trabajo",
+    "fr": "Enregistrer l’historique de l’espace de travail"
+  },
+  "No picture": {
+    "zh-Hant": "沒有畫面",
+    "zh-Hans": "没有画面",
+    "ja": "画像なし",
+    "es": "Sin imagen",
+    "fr": "Pas d’image"
+  },
+  "Kept: every minute for the last 10 minutes, every hour for the last 24 hours, and the last {0} ten-minute, {1} daily, {2} weekly and {3} monthly versions.": {
+    "zh-Hant": "保留：最近 10 分鐘的每分鐘版本、最近 24 小時的每小時版本，以及最近 {0} 個每 10 分鐘、{1} 個每日、{2} 個每週與 {3} 個每月版本。",
+    "zh-Hans": "保留：最近 10 分钟的每分钟版本、最近 24 小时的每小时版本，以及最近 {0} 个每 10 分钟、{1} 个每日、{2} 个每周和 {3} 个每月版本。",
+    "ja": "保持：直近 10 分間の毎分の版、直近 24 時間の毎時の版、さらに直近の 10 分ごと {0} 件、日ごと {1} 件、週ごと {2} 件、月ごと {3} 件の版。",
+    "es": "Se conservan: una versión por minuto de los últimos 10 minutos, una por hora de las últimas 24 horas y las últimas {0} versiones cada 10 minutos, {1} diarias, {2} semanales y {3} mensuales.",
+    "fr": "Conservées : une version par minute des 10 dernières minutes, une par heure des 24 dernières heures, et les {0} dernières versions toutes les 10 minutes, {1} quotidiennes, {2} hebdomadaires et {3} mensuelles."
   }
 };

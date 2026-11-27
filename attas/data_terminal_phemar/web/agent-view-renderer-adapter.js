@@ -1,6 +1,10 @@
 /** Stable container bootstrap; fresh approved host selection for each mount. */
 import {loadApprovedHost} from './agent-view-host-loader.js';
 import {agentViewPresentation} from './agent-view-presentation.js';
+// The views open now, each with the handle its host returns (an AI app's action reaches the view through it).
+const mounted=new Map();
+/** The agent views mounted inside `container`: their root, reference and host handle. */
+export function mountedAgentViews(container){return [...mounted].filter(([root])=>root.isConnected&&container.contains(root)).map(([root,entry])=>({root,...entry}));}
 export function installAgentViewRenderer({register,request,presentation,compositionContext}){
  register({id:'phemacast:agent-view',version:'1.0.0',render:()=>'<section data-agent-view-host style="height:100%;min-height:0"></section>',mount(root,reference,context){
   let closed=false,dispose=null;const caption=agentViewPresentation(root);
@@ -8,7 +12,8 @@ export function installAgentViewRenderer({register,request,presentation,composit
   loadApprovedHost(request).then(({reference:host,module})=>{
    if(closed||!root.isConnected)return;
    dispose=module.mountAgentView(root,reference,context,{request,presentation,compositionContext,hostRelease:host.release,runtimeDigest:host.runtime.digest,onPresentation:caption.update});
+   mounted.set(root,{reference,handle:dispose});
   }).catch(error=>{if(closed||!root.isConnected)return;status.textContent=error.message;status.hidden=false;root.querySelector('[data-agent-view-host]').replaceChildren(status);});
-  return ()=>{closed=true;caption.dispose();dispose?.();};
+  return ()=>{closed=true;mounted.delete(root);caption.dispose();dispose?.();};
  }});
 }

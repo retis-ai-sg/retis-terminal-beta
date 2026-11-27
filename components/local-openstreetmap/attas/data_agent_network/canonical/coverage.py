@@ -18,6 +18,10 @@ ADAPTERS = {
         'TIME_SERIES_INTRADAY': {'market.history.v1':{'ticker','timestamp','open','high','low','close','volume'}},
         'NEWS_SENTIMENT': {'research.news.v1':{'ticker','headline','publishedAt','url','summary','publisher'}},
     },
+    'rss': {
+        'rss.stock_news': {'research.news.v1':{'ticker','headline','publishedAt','url','publisher','summary'}},
+        'rss.news_list': {'research.news_feed.v1':{'headline','publishedAt','url','publisher','summary','feed','feedTags'}},
+    },
     'fugle': {
         '/intraday/ticker/{symbol}': {'company.profile.v1':{'ticker','nameZh','nameEn'}},
         '/historical/candles/{symbol}': {'market.history.v1':{'ticker','timestamp','open','high','low','close','volume'}},
@@ -49,9 +53,12 @@ ADAPTERS['yfinance']['Search.all']['research.news.v1'].update({'ticker','publish
 ADAPTERS['fugle']['/intraday/quote/{symbol}']['market.orderbook.v1']={'ticker','level','bid','ask','bidSize','askSize','volumeUnit','observedAt'}
 ADAPTERS['fugle']['/intraday/trades/{symbol}']={'market.trades.v1':{'ticker','last','priceKind','volume','volumeUnit','volumeScope','observedAt'}}
 
-from .research_sources import OPERATIONS, fields_for
+from .research_sources import OPERATIONS, operations, operation_fields
 from .workspace import coverage as workspace_coverage
 ADAPTERS['lseg_workspace'] = workspace_coverage()
+# A model may read several exchange tables; each operation covers the fields its own table gives.
 for source, schemas in OPERATIONS.items():
-    for schema, operation in schemas.items():
-        ADAPTERS.setdefault(source, {}).setdefault('/data' if source == 'finmind' else operation, {})[schema] = set(fields_for(source, schema))
+    for schema in schemas:
+        for operation in operations(source, schema):
+            covered = ADAPTERS.setdefault(source, {}).setdefault('/data' if source == 'finmind' else operation, {})
+            covered[schema] = covered.get(schema, set()) | set(operation_fields(source, schema, operation))

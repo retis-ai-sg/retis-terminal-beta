@@ -38,10 +38,22 @@
  // A presentation change (such as the container's theme) updates context and tells the view on document.
  let context=JSON.parse(__context());
  globalThis.__deliverContext=value=>{context={...context,...value};document.dispatchEvent(new CustomEvent('phemacast:context',{detail:context}));};
- globalThis.phemacastAgentView=Object.freeze({get context(){return context;},requestKey:()=>__random(),invoke:value=>__operation('invoke',JSON.stringify(value)),pickImage:()=>__operation('pick-image','{}'),pickTextFile:()=>__operation('pick-text-file','{}'),setMode:value=>__operation('set-mode',JSON.stringify(value)),status:value=>__operation('status',JSON.stringify(value)),setPresentation:value=>__operation('presentation',JSON.stringify(value)),
+ // Actions the container asks the view to take (actions.handle). The view's own function runs each one, and its answer
+ // leaves as bounded JSON through __actionReply (frame.mjs).
+ const actions=new Map();
+ const actionReply=(id,reply)=>{let text;try{text=JSON.stringify(reply);}catch(e){text=JSON.stringify({ok:false,error:'The view answered with something that is not data.'});}__actionReply(id,text);};
+ globalThis.__deliverAction=(id,name,input,by)=>{
+  const fn=actions.get(name);
+  if(!fn){actionReply(id,{ok:false,error:"This view doesn't take that action."});return;}
+  Promise.resolve().then(()=>fn(input,{by})).then(value=>actionReply(id,{ok:true,value:value===undefined?null:value}),
+   error=>actionReply(id,{ok:false,error:String(error&&error.message||error||'The view could not take that action.')}));
+ };
+ globalThis.phemacastAgentView=Object.freeze({get context(){return context;},requestKey:()=>__random(),invoke:value=>__operation('invoke',JSON.stringify(value)),pickImage:options=>__operation('pick-image',JSON.stringify(options&&typeof options==='object'?{maxEdge:options.maxEdge}:{})),pickTextFile:()=>__operation('pick-text-file','{}'),setMode:value=>__operation('set-mode',JSON.stringify(value)),status:value=>__operation('status',JSON.stringify(value)),setPresentation:value=>__operation('presentation',JSON.stringify(value)),
   parameters:()=>__operation('parameters','{}'),setParameters:value=>__operation('set-parameters',JSON.stringify(value)),
+  panels:()=>__operation('panels','{}'),openLink:url=>__operation('open-link',JSON.stringify({url:String(url??'')})),panelParameters:panel=>__operation('panel-parameters',JSON.stringify({panel})),setPanelParameters:(panel,values)=>__operation('set-panel-parameters',JSON.stringify({panel,values})),
   saveSnapshot:value=>__operation('save-snapshot',JSON.stringify(value)),snapshots:()=>__operation('snapshots','{}'),readSnapshot:id=>__operation('read-snapshot',JSON.stringify({id})),
   schedule:value=>__operation('schedule',JSON.stringify(value)),runs:()=>__operation('runs','{}'),runNow:value=>__operation('run-now',JSON.stringify(value)),stopRun:value=>__operation('stop-run',JSON.stringify(value)),
   images:Object.freeze({put:value=>__operation('image-put',JSON.stringify(value)),drop:(...ids)=>{crossing('imageDrop',ids);}}),
-  kept:Object.freeze({read:key=>__operation('kept-read',JSON.stringify({key})),write:(key,value)=>__operation('kept-write',JSON.stringify({key,value})),drop:key=>__operation('kept-drop',JSON.stringify({key}))})});
+  kept:Object.freeze({read:key=>__operation('kept-read',JSON.stringify({key})),write:(key,value)=>__operation('kept-write',JSON.stringify({key,value})),drop:key=>__operation('kept-drop',JSON.stringify({key}))}),
+  actions:Object.freeze({handle:(name,fn)=>{if(typeof name!=='string'||!/^[a-z][a-z0-9_]{0,63}$/.test(name)||typeof fn!=='function')throw Error('Name the action and give it a function');actions.set(name,fn);}})});
 })();

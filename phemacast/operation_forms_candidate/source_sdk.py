@@ -22,7 +22,7 @@ def protected_content_request(phema, body):
     operation = body.get('operation')
     if operation in OPERATIONS:
         return True
-    # 'source' sets the data source of the Browser's data panels; it names no reference and refreshes nothing itself.
+    # 'source' sets the data source of the Browser's data panels, or of one (`reference`); it refreshes nothing itself.
     if operation not in (None, 'configure', 'capture', 'view', 'interact', 'source'):
         raise ValueError('Unknown content operation cannot fall through to refresh.')
     declared = reference_paths(phema)

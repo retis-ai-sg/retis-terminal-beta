@@ -180,6 +180,11 @@ class AbstractDataSource(DataAgentPulser, ABC):
     """Pulser-derived boundary for vendor endpoint specs and direct data access."""
 
     NETWORK_PULSES = ("data_spec", "data_availability", "data_fetch", "schema_query")
+    # What the vendor's terms allow for this source's data in AI apps that control a user's Terminal (its MCP). Empty
+    # means allowed. {'aiApps': 'forbidden'} makes the Terminal withhold the data from AI apps, and with
+    # 'aiAppsDerived': 'allowed' it still shares results a processor computed from it. An operator's config
+    # (`ai_apps_terms`) may set it too. It is published as the card's data_source.terms.
+    AI_APPS_TERMS: Mapping[str, str] = {}
     CATALOG_FINGERPRINT_VERSION = "attas-data-source-catalog-v3-parameter-defaults"
 
     def __init__(
@@ -610,7 +615,18 @@ class AbstractDataSource(DataAgentPulser, ABC):
                                           for e in endpoints)
         # Only a source whose operator owns the data it serves may use the operator's own key.
         profile['operatorOwnedData'] = self._operator_owned_data()
+        terms = self._ai_apps_terms()
+        if terms:
+            profile['terms'] = terms
         return profile
+
+    def _ai_apps_terms(self) -> Dict[str, str]:
+        """The vendor's terms for AI apps (AI_APPS_TERMS, then the operator's `ai_apps_terms`), checked."""
+        terms = {**dict(self.AI_APPS_TERMS or {}), **dict(self._config_data.get("ai_apps_terms") or {})}
+        for key, value in terms.items():
+            if key not in ("aiApps", "aiAppsDerived") or value not in ("allowed", "forbidden"):
+                raise ValueError(f"AI app terms name aiApps or aiAppsDerived as allowed or forbidden, not {key}={value!r}.")
+        return terms
 
     def _operator_owned_data(self) -> bool:
         return self._config_data.get("operator_owned_data") is True
@@ -2137,6 +2153,50 @@ class BloombergDataSource(AbstractDataSource):
         return execute_bloomberg_endpoint(asdict(endpoint), parameters, client=client)
 
 
+# Yahoo fills a period in which a listing did not trade (an exchange holiday, a week of holidays) with a placeholder
+# bar: volume 0, and open, high, low and close all the last close. It is not a session, so the source leaves it out of
+# Ticker.history's reply before any mapping, and a backtest counts the exchange's sessions only. Volume 0 alone never
+# marks one: indices, currencies and funds may report no volume at all (a fund's daily bar is its one price), so only a
+# listing whose bars report traded volume loses such bars. Intraday bars stay as Yahoo gives them: Yahoo gives none
+# for a closed day, and an intraday volume of 0 does not mean no trade (a session's opening bar has a price range and
+# volume 0).
+YAHOO_INTRADAY_INTERVALS = frozenset({"1m", "2m", "5m", "15m", "30m", "60m", "90m", "1h"})
+YAHOO_BAR_PRICES = ("Open", "High", "Low", "Close")
+YAHOO_BAR_EVENTS = ("Dividends", "Stock Splits", "Capital Gains")
+
+
+def without_yahoo_placeholder_bars(frame: Any, interval: Any = "1d") -> Any:
+    """A Ticker.history frame without the placeholder bars Yahoo gives periods without trading.
+
+    A placeholder has volume 0, one price (open, high, low and close equal to a billionth: an adjusted frame scales
+    them apart by a rounding) and no dividend or split. Anything else, such as a frame without these columns, is
+    returned as it is.
+    """
+    if str(interval or "1d") in YAHOO_INTRADAY_INTERVALS:
+        return frame
+    columns = getattr(frame, "columns", None)
+    if (
+        columns is None
+        or getattr(columns, "nlevels", 1) != 1
+        or not {*YAHOO_BAR_PRICES, "Volume"} <= set(columns)
+        or frame.empty
+    ):
+        return frame
+    try:
+        volume = frame["Volume"]
+        if not (volume > 0).any():
+            return frame  # no bar reports volume, so volume 0 says nothing about trading
+        prices = frame[list(YAHOO_BAR_PRICES)]
+        spread = prices.max(axis=1, skipna=False) - prices.min(axis=1, skipna=False)
+        placeholder = (volume == 0) & (spread <= prices.abs().max(axis=1, skipna=False) * 1e-9)
+        for name in YAHOO_BAR_EVENTS:
+            if name in columns:
+                placeholder &= frame[name].fillna(0) == 0
+    except (TypeError, ValueError):
+        return frame
+    return frame[~placeholder] if placeholder.any() else frame
+
+
 class YFinanceDataSource(AbstractDataSource):
     """YFinance source with a complete public API catalog and direct execution."""
 
@@ -2246,6 +2306,8 @@ class YFinanceDataSource(AbstractDataSource):
                     if call_parameters:
                         raise ValueError(f"{endpoint.operation} is a property and accepts no call parameters")
                     raw = target
+            if operation == "Ticker.history":
+                raw = without_yahoo_placeholder_bars(raw, call_parameters.get("interval", "1d"))
             if operation in ('Ticker.funds_data','Ticker.get_funds_data'):
                 raw = {'top_holdings':_json_safe(raw.top_holdings), 'description':str(raw.description or '')}
             normalized = _json_safe(raw)

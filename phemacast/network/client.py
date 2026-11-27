@@ -60,6 +60,12 @@ class LocalClients:
     def running(self, id):
         return any(row['id'] == id for row in self.discovery.resources())
 
+    def last_known(self, id):
+        """The name and kind a resource last described itself with while this Terminal ran, or None. Kept in memory only,
+        so a message can name a program after it stops answering."""
+        cached = self.described.get(id)
+        return {'name': cached[1]['name'], 'kind': cached[1]['kind']} if cached else None
+
     async def describe(self, id, *, force=False):
         """The resource's own description, read again when it is a minute old (or `force`)."""
         row = self._row(id)

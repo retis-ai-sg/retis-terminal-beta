@@ -38,6 +38,7 @@ def validate_layout(document):
         raise ValueError('Invalid Phemacast layout: ' + errors[0].message)
     from .ui_localization import validate_ui_catalog
     validate_ui_catalog(document.get('extensions', {}).get('phemacast:ui'))
+    from .split_containers import validate_split_containers
     design = document['design']
     defaults={}
     for key,value in design['params'].items():
@@ -117,6 +118,7 @@ def validate_layout(document):
                 validate_media(node['media'], kind)
             elif renderer in CUSTOM_SCHEMAS:
                 validate_custom(node['media'], node['renderer'])
+    validate_split_containers(document)  # an optional presentation hint: no capability is required for it
     return deepcopy(document)
 
 

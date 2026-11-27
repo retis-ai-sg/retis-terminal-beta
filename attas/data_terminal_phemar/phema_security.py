@@ -101,7 +101,37 @@ def approval(store,user,phema,bindings=None):
     except HTTPException:return None
 
 
+PANEL_ACCESS='phema-panel-access'
+
+
+def panel_key(user,phema):
+    """The choice belongs to this window, the Phema's identity and exactly what it asks (its ports): the copy the
+    Terminal re-derives from a saved workspace keeps it, a Phema that asks for something else must ask again."""
+    from phemacast.core.composition import composition
+    from phemacast.core.ports import EXTENSION
+    from prompits.core.capabilities import digest
+    ports=((composition(phema) or {}).get('extensions') or {}).get(EXTENSION) or {}
+    return user.get('terminalWindow','')+':'+str(phema.get('id'))+':'+digest(ports)
+
+
+def panel_access(store,user,phema):
+    """Whether the viewer lets this Phema's agent views see (and, if it asks, change) the other open Phemas: its own
+    choice in the permission review, apart from the approval itself."""
+    from phemacast.core.ports import panel_access as declared
+    asked=declared(phema)
+    if not asked:return {'declared':None,'allowed':False}
+    try:allowed=store.get(user['id'],PANEL_ACCESS,panel_key(user,phema)).get('allowed') is True
+    except HTTPException:allowed=False
+    return {'declared':asked,'allowed':allowed}
+
+
 def review(store,user,phema,body=None,bindings=None):
+    # The other-panels choice stands alone: a Phema Plaza trusts has no approval to save, but the viewer still decides.
+    if body is not None and set(body)=={'panelAccess'}:
+        if type(body['panelAccess']) is not bool:raise HTTPException(422,'Allow or refuse access to your other panels.')
+        if body['panelAccess']:store.put(user['id'],PANEL_ACCESS,panel_key(user,phema),{'allowed':True})
+        else:store.delete(user['id'],PANEL_ACCESS,panel_key(user,phema))
+        body=None
     if any(not manifest(p) for _,p in walk_compositions(phema)):
         raise HTTPException(409,'Save a new Phema revision with authority declarations before approving.')
     from prompits.core.capabilities import digest
@@ -113,7 +143,8 @@ def review(store,user,phema,body=None,bindings=None):
             if body.get('fingerprint')!=scope or body.get('approve') is not True or any(type(body.get(k,False)) is not bool for k in ('privateData','localNetwork')):
                 raise HTTPException(409,'Review the current Phema authority before approving.')
             store.put(user['id'],'phema-permission',grant_key(user,phema),{'approved':True,'privateData':body.get('privateData',False),'localNetwork':body.get('localNetwork',False),**({'bindingsHash':digest(bindings)} if bindings is not None else {})})
-    return {'fingerprint':scope,'permissions':descriptor(phema),'runtimeBindings':bindings,'approval':approval(store,user,phema,bindings)}
+    return {'fingerprint':scope,'permissions':descriptor(phema),'runtimeBindings':bindings,'approval':approval(store,user,phema,bindings),
+            'panelAccess':panel_access(store,user,phema)}
 
 
 def check(store,user,root,current,ref,context):

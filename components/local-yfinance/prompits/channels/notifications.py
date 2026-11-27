@@ -22,7 +22,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from email.message import EmailMessage
 from typing import Any, Callable, Mapping, Optional, Sequence
-from urllib.parse import unquote_to_bytes, urljoin
+from urllib.parse import urlparse, unquote_to_bytes, urljoin
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import httpx
@@ -40,6 +40,7 @@ NOTIFICATION_PROVIDER_KINDS = (
     "slack",
     "telegram",
     "discord",
+    "outbox",
 )
 
 _SENSITIVE_KEYS = {
@@ -92,11 +93,86 @@ _SAFE_EVENT_KEYS = {
     "plaza_url",
     "site_origin",
     "throttle_key",
+    # The sender's own reply address and verified email, used only by routes whose `reply_to` is "sender".
+    "reply_to",
+    "sender_email",
 }
+
+# Direct message text never carries a credential: the shapes prompits' problem report removes, plus any credential-named
+# value (an address's #local-access=, a pasted token= or api_key=), JSON Web Tokens and long key-like runs.
+_NAMED_SECRET = re.compile(
+    r"(?i)\b([\w.-]*(?:access|token|secret|password|passwd|key|ticket|session|code|auth|cookie)[\w.-]*\s*=\s*)"
+    r"(\"?)[^\s&#\"'<>]+\2"
+)
+# The credential shapes prompits' problem report removes (prompits/components/report.py), kept here so notification
+# delivery needs no other module.
+_SECRET_NAMES = r"(?:api[_-]?key|token|secret|password|passwd|authorization|cookie|session|private[_-]?key|access[_-]?key)"
+_BEARER = re.compile(r"(?i)\b(bearer)\s+[A-Za-z0-9._~+/=-]{8,}")
+_SECRET_VALUE = re.compile(r"(?i)([\"']?" + _SECRET_NAMES + r"[\"']?\s*[:=]\s*[\"']?)([^\s\"',;]{4,})")
+_SECRET_TOKENS = (
+    re.compile(r"\b(?:sk|pk|rk)-[A-Za-z0-9_-]{16,}\b"),
+    re.compile(r"\b(?:lc|pc|cs)-(?:access|refresh|call)-[A-Za-z0-9_-]{8,}"),
+    re.compile(r"-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?-----END [A-Z ]*PRIVATE KEY-----"),
+)
+_URL_SECRET = re.compile(r"(?i)((?:[?&#;]|%3F|%26|%23)[\w.-]*?(?:access|token|secret|key|password|ticket|code|state|session|auth)"
+                         r"(?:=|%3D))([^\s&#\"'<>]+)")
+_JWT = re.compile(r"\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}(?:\.[A-Za-z0-9_-]+)?")
+_KEY_LIKE = re.compile(r"\b(?=[A-Za-z0-9_-]*[0-9])(?=[A-Za-z0-9_-]*[A-Za-z])[A-Za-z0-9_-]{32,}\b")
+_CONTROL = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
+DIRECT_TEXT_CHARACTERS = 20_000
+# One plain address: no display name, list or anything a header could carry further.
+_EMAIL_ADDRESS = re.compile(
+    r"^[^@\s<>()\[\],;:\"\\]{1,64}@[A-Za-z0-9](?:[A-Za-z0-9-]{0,62}[A-Za-z0-9])?"
+    r"(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]{0,62}[A-Za-z0-9])?)+$"
+)
+_DAY_SECONDS = 86_400
+_HOUR_SECONDS = 3_600
+
+
+def scrub_message_text(text: Any, *, limit: int = DIRECT_TEXT_CHARACTERS) -> str:
+    """User-written notification text with credentials removed and its length bounded."""
+    value = _CONTROL.sub("", str(text or ""))
+    value = _URL_SECRET.sub(lambda match: match.group(1) + "[removed]", value)
+    value = _BEARER.sub(r"\1 [removed]", value)
+    value = _SECRET_VALUE.sub(lambda match: match.group(1) + "[removed]", value)
+    for pattern in _SECRET_TOKENS:
+        value = pattern.sub("[removed]", value)
+    value = _NAMED_SECRET.sub(lambda match: match.group(1) + "[removed]", value)
+    value = _JWT.sub("[removed]", value)
+    value = _KEY_LIKE.sub("[removed]", value)
+    return value if len(value) <= limit else value[: limit - 1].rstrip() + "…"
+
+
+def plain_email_address(value: Any) -> str:
+    """The value when it is one plain email address (at most 254 characters), else ''."""
+    text = str(value or "").strip()
+    return text if len(text) <= 254 and _EMAIL_ADDRESS.match(text) else ""
 
 _MAX_NOTIFICATION_ATTACHMENTS = 5
 _MAX_NOTIFICATION_ATTACHMENT_CHARS = 2_000_000
 _MAX_NOTIFICATION_ATTACHMENT_BYTES = 18_000_000
+
+# What a receiver's card chooses for itself when its targets are not trusted: which provider, which events and how
+# often. Where the message goes (to, bcc, from, reply-to, URLs, headers, tokens, phone numbers) then comes only from
+# the provider the Plaza operator configured.
+_CARD_ROUTE_CHOICE_KEYS = frozenset(
+    {
+        "provider",
+        "provider_id",
+        "id",
+        "name",
+        "enabled",
+        "events",
+        "event_types",
+        "summary_every_minutes",
+        "throttle",
+        "throttle_key",
+        "summary_key",
+        "no_bother",
+        "quiet_hours",
+        "do_not_disturb",
+    }
+)
 
 _DAY_ALIASES = {
     "mon": 0,
@@ -224,6 +300,47 @@ def _resolved_optional_text(mapping: Mapping[str, Any], *keys: str) -> Optional[
     for key in keys:
         if key in mapping:
             return str(_resolve_config_value(mapping.get(key)) or "").strip()
+    return None
+
+
+def _literal_value(value: Any) -> Any:
+    """A route or event value read as data: only the Plaza operator's provider config may name environment variables."""
+    if isinstance(value, str):
+        text = value.strip()
+        if text.startswith("env:") or (text.startswith("${") and text.endswith("}")):
+            return None
+        return value
+    if isinstance(value, Mapping):
+        return None
+    if isinstance(value, (list, tuple)):
+        return [item for item in (_literal_value(entry) for entry in value) if item not in (None, "")]
+    return value
+
+
+def _literal_text(mapping: Mapping[str, Any], *keys: str) -> str:
+    for key in keys:
+        if key in mapping:
+            text = str(_literal_value(mapping.get(key)) or "").strip()
+            if text:
+                return text
+    return ""
+
+
+def _literal_list(mapping: Mapping[str, Any], *keys: str) -> list[str]:
+    values: list[str] = []
+    for key in keys:
+        raw = _literal_value(mapping.get(key))
+        if isinstance(raw, str):
+            values.extend(part.strip() for part in raw.split(",") if part.strip())
+        else:
+            values.extend(str(item).strip() for item in _coerce_list(raw) if str(item).strip())
+    return values
+
+
+def _literal_optional_text(mapping: Mapping[str, Any], *keys: str) -> Optional[str]:
+    for key in keys:
+        if key in mapping:
+            return str(_literal_value(mapping.get(key)) or "").strip()
     return None
 
 
@@ -412,6 +529,8 @@ def _provider_kind(value: Any) -> str:
         "twilio": "sms_twilio",
         "twilio_sms": "sms_twilio",
         "aws_sns": "sms_aws_sns",
+        "file": "outbox",
+        "outbox": "outbox",
     }
     if raw in aliases:
         return aliases[raw]
@@ -672,6 +791,8 @@ class NotificationDispatcher:
         self._http_client_factory = http_client_factory or (lambda: httpx.AsyncClient(timeout=10.0))
         self._now_fn = now_fn or time.time
         self._summary_buckets: dict[str, NotificationBucket] = {}
+        # Send times per (route, sender) for routes with a `sender_limit`; in memory only, a restart clears them.
+        self._sender_sends: dict[str, list[float]] = {}
 
     def configure(
         self,
@@ -697,6 +818,28 @@ class NotificationDispatcher:
         providers, settings = extract_notification_config(config)
         self.configure(provider_configs=providers, settings=settings, merge=merge)
 
+    def site_receiver(self, name: Any) -> Optional[dict[str, Any]]:
+        """A receiver the site operator configured (settings `receivers`): its routes, who may send and which events.
+
+        Such a receiver is a destination, not an agent: for example `support` -> the support mailbox. Its routes come
+        only from Plaza's own config, so they are trusted (`submit(routes=...)`); a sender names the receiver and never
+        where the message goes. `senders` is "accounts" (signed-in Plaza accounts, the default) or "any" (accounts
+        and agents).
+        """
+        receivers = _coerce_dict(self.settings.get("receivers"))
+        key = str(name or "").strip()
+        receiver = _coerce_dict(receivers.get(key)) if key else {}
+        routes = [_coerce_dict(route) for route in _coerce_list(receiver.get("routes"))]
+        if not routes:
+            return None
+        senders = str(receiver.get("senders") or "accounts").strip().lower()
+        return {
+            "name": key,
+            "routes": routes,
+            "senders": senders if senders in {"accounts", "any"} else "accounts",
+            "events": [str(item) for item in _coerce_list(receiver.get("events"))],
+        }
+
     async def submit(
         self,
         event: Mapping[str, Any],
@@ -706,8 +849,14 @@ class NotificationDispatcher:
         requested_providers: Any = None,
         force: bool = False,
         allow_during_no_bother: bool = False,
+        card_route_targets: bool = False,
     ) -> dict[str, Any]:
-        """Send or queue notifications for one Plaza event."""
+        """Send or queue notifications for one Plaza event.
+
+        `routes` and `requested_providers` are the caller's own choices; pass them only for a caller trusted to choose
+        where mail goes. Routes on `receiver_card` keep their own targets only with `card_route_targets`; otherwise
+        they choose a provider, events and pacing, and the provider's configured target receives the message.
+        """
         safe_event = scrub_notification_event(event)
         event_type = str(safe_event.get("event_type") or event.get("event_type") or "notification")
         resolved_routes = self._resolve_routes(
@@ -715,6 +864,7 @@ class NotificationDispatcher:
             routes=routes,
             requested_providers=requested_providers,
             event_type=event_type,
+            card_route_targets=card_route_targets,
         )
         if not resolved_routes:
             return {"status": "skipped", "reason": "no_notification_routes", "deliveries": []}
@@ -747,12 +897,21 @@ class NotificationDispatcher:
                 deliveries.append(self._queue_summary(provider, route, safe_event, reason="no_bother"))
                 continue
 
+            route = self._route_for_sender(route, safe_event)
+            limited = self._sender_limit_refusal(provider_id, route, safe_event)
+            if limited:
+                deliveries.append(limited)
+                continue
+
             interval_seconds = self._summary_interval_seconds(route, provider)
-            if interval_seconds > 0 and not force:
+            if interval_seconds > 0 and not force and not _coerce_dict(route.get("sender_limit")):
                 deliveries.append(self._queue_summary(provider, route, safe_event, reason="throttled"))
                 continue
 
-            deliveries.append(await self._send(provider, route, safe_event))
+            delivery = await self._send(provider, route, safe_event)
+            if delivery.get("status") == "sent":
+                self._count_sender_send(provider_id, route, safe_event)
+            deliveries.append(delivery)
 
         return {"status": self._overall_status(deliveries), "deliveries": deliveries}
 
@@ -784,6 +943,52 @@ class NotificationDispatcher:
         """Return the number of active summary buckets."""
         return len(self._summary_buckets)
 
+    @staticmethod
+    def _route_for_sender(route: Mapping[str, Any], event: Mapping[str, Any]) -> dict[str, Any]:
+        """A route whose `reply_to` is "sender" replies to the sender: the one plain address the event gives, else the
+        sender's verified email; with neither, the mail has no Reply-To."""
+        resolved = dict(route)
+        if str(route.get("reply_to") or "").strip().lower() == "sender":
+            address = plain_email_address(event.get("reply_to")) or plain_email_address(event.get("sender_email"))
+            if address:
+                resolved["reply_to"] = [address]
+            else:
+                resolved.pop("reply_to", None)
+        return resolved
+
+    def _sender_key(self, provider_id: str, route: Mapping[str, Any], event: Mapping[str, Any]) -> str:
+        sender = str(event.get("sender_id") or "").strip()
+        target = ",".join(_resolved_list(route, "to", "recipients", "recipient", "email"))
+        return f"{provider_id}|{target}|{sender}"
+
+    def _sender_limit_refusal(self, provider_id: str, route: Mapping[str, Any], event: Mapping[str, Any]) -> Optional[dict[str, Any]]:
+        """A route's `sender_limit` ({per_hour, per_day}) bounds how often one verified sender may use it."""
+        limit = _coerce_dict(route.get("sender_limit"))
+        if not limit:
+            return None
+        if not str(event.get("sender_id") or "").strip():
+            return {"provider": provider_id, "status": "failed", "detail": "This route needs a verified sender."}
+        now = self._now_fn()
+        sent = [stamp for stamp in self._sender_sends.get(self._sender_key(provider_id, route, event), []) if stamp > now - _DAY_SECONDS]
+        hour = [stamp for stamp in sent if stamp > now - _HOUR_SECONDS]
+        per_day, per_hour = int(_coerce_float(limit.get("per_day"))), int(_coerce_float(limit.get("per_hour")))
+        if per_day > 0 and len(sent) >= per_day:
+            return {"provider": provider_id, "status": "limited", "window": "day", "count": len(sent),
+                    "retry_at": sent[len(sent) - per_day] + _DAY_SECONDS,
+                    "detail": f"{len(sent)} sent in the last 24 hours; the limit is {per_day}."}
+        if per_hour > 0 and len(hour) >= per_hour:
+            return {"provider": provider_id, "status": "limited", "window": "hour", "count": len(hour),
+                    "retry_at": hour[len(hour) - per_hour] + _HOUR_SECONDS,
+                    "detail": f"{len(hour)} sent in the last hour; the limit is {per_hour}."}
+        return None
+
+    def _count_sender_send(self, provider_id: str, route: Mapping[str, Any], event: Mapping[str, Any]) -> None:
+        if not _coerce_dict(route.get("sender_limit")) or not str(event.get("sender_id") or "").strip():
+            return
+        now = self._now_fn()
+        key = self._sender_key(provider_id, route, event)
+        self._sender_sends[key] = [stamp for stamp in self._sender_sends.get(key, []) if stamp > now - _DAY_SECONDS] + [now]
+
     def _resolve_routes(
         self,
         *,
@@ -791,10 +996,11 @@ class NotificationDispatcher:
         routes: Any,
         requested_providers: Any,
         event_type: str,
+        card_route_targets: bool = False,
     ) -> list[dict[str, Any]]:
         explicit_routes = [_coerce_dict(route) for route in _coerce_list(routes)]
         provider_routes = self._routes_from_requested_providers(requested_providers)
-        card_routes = self._routes_from_card(receiver_card, event_type=event_type)
+        card_routes = self._routes_from_card(receiver_card, event_type=event_type, targets=card_route_targets)
         resolved = explicit_routes or provider_routes or card_routes
         return [route for route in resolved if _coerce_bool(route.get("enabled"), default=True)]
 
@@ -815,7 +1021,13 @@ class NotificationDispatcher:
                 routes.append({"provider": provider_id})
         return routes
 
-    def _routes_from_card(self, receiver_card: Optional[Mapping[str, Any]], *, event_type: str) -> list[dict[str, Any]]:
+    def _routes_from_card(
+        self,
+        receiver_card: Optional[Mapping[str, Any]],
+        *,
+        event_type: str,
+        targets: bool = False,
+    ) -> list[dict[str, Any]]:
         card = _coerce_dict(receiver_card)
         meta = _coerce_dict(card.get("meta"))
         delivery = _coerce_dict(meta.get("delivery") or card.get("delivery"))
@@ -838,6 +1050,8 @@ class NotificationDispatcher:
             if not self._event_matches(route.get("events") or route.get("event_types"), event_type):
                 continue
             route = {**defaults, **route}
+            if not targets:
+                route = {key: value for key, value in route.items() if key in _CARD_ROUTE_CHOICE_KEYS}
             route["provider"] = provider_id
             routes.append(route)
         return routes
@@ -959,8 +1173,10 @@ class NotificationDispatcher:
     ) -> dict[str, Any]:
         provider_type = _provider_kind(provider.get("type"))
         provider_id = str(provider.get("id") or route.get("provider") or provider_type).strip()
-        text = self._render_text(event, bucket=bucket)
+        text = self._render_text(event, bucket=bucket, route=route)
         try:
+            if provider_type == "outbox":
+                return self._send_outbox(provider_id, provider, route, event, text)
             if provider_type == "slack":
                 return await self._send_slack(provider_id, provider, route, event, text)
             if provider_type == "telegram":
@@ -990,6 +1206,30 @@ class NotificationDispatcher:
                 "detail": str(exc),
             }
 
+    def _send_outbox(
+        self,
+        provider_id: str,
+        provider: Mapping[str, Any],
+        route: Mapping[str, Any],
+        event: Mapping[str, Any],
+        text: str,
+    ) -> dict[str, Any]:
+        """Write the email it would send to a folder instead (local runs and tests): one private .eml per message."""
+        folder = _resolved_text(provider, "folder", "path", "directory")
+        recipients = _resolved_list(route, "to", "recipients", "recipient", "email") or _resolved_list(
+            provider, "to", "recipients", "recipient", "email"
+        )
+        from_address = _resolved_text(route, "from", "from_email") or _resolved_text(provider, "from", "from_email", "sender")
+        if not folder or not recipients or not from_address:
+            return self._missing_target(provider_id, provider, "folder/from/to")
+        message = self._build_email_message(provider, route, recipients, from_address, event, text)
+        directory = os.path.expanduser(folder)
+        os.makedirs(directory, mode=0o700, exist_ok=True)
+        name = time.strftime("%Y%m%d-%H%M%S", time.gmtime(self._now_fn())) + "-" + binascii.hexlify(os.urandom(6)).decode() + ".eml"
+        with os.fdopen(os.open(os.path.join(directory, name), os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600), "wb") as stream:
+            stream.write(message.as_bytes())
+        return {"provider": provider_id, "type": "outbox", "status": "sent", "detail": f"Wrote {name}."}
+
     async def _send_slack(
         self,
         provider_id: str,
@@ -998,7 +1238,7 @@ class NotificationDispatcher:
         event: Mapping[str, Any],
         text: str,
     ) -> dict[str, Any]:
-        url = _resolved_text(route, "webhook_url", "url") or _resolved_text(provider, "webhook_url", "url")
+        url = _literal_text(route, "webhook_url", "url") or _resolved_text(provider, "webhook_url", "url")
         if not url:
             return self._missing_target(provider_id, provider, "webhook_url")
         return await self._post_json(provider_id, provider, url, {"text": text[:4000]})
@@ -1011,7 +1251,7 @@ class NotificationDispatcher:
         event: Mapping[str, Any],
         text: str,
     ) -> dict[str, Any]:
-        url = _resolved_text(route, "webhook_url", "url") or _resolved_text(provider, "webhook_url", "url")
+        url = _literal_text(route, "webhook_url", "url") or _resolved_text(provider, "webhook_url", "url")
         if not url:
             return self._missing_target(provider_id, provider, "webhook_url")
         return await self._post_json(provider_id, provider, url, {"content": text[:1900]})
@@ -1024,7 +1264,7 @@ class NotificationDispatcher:
         event: Mapping[str, Any],
         text: str,
     ) -> dict[str, Any]:
-        url = _resolved_text(route, "webhook_url", "url") or _resolved_text(provider, "webhook_url", "url")
+        url = _literal_text(route, "webhook_url", "url") or _resolved_text(provider, "webhook_url", "url")
         if not url:
             return self._missing_target(provider_id, provider, "url")
         notification = copy.deepcopy(dict(event))
@@ -1035,10 +1275,13 @@ class NotificationDispatcher:
             "exchange_id": event.get("exchange_id"),
             "notification": notification,
         }
-        headers = _coerce_dict(provider.get("headers"))
-        route_headers = _coerce_dict(route.get("headers"))
-        headers.update(route_headers)
-        headers = {str(key): str(_resolve_config_value(value) or "") for key, value in headers.items()}
+        headers = {
+            str(key): str(_resolve_config_value(value) or "")
+            for key, value in _coerce_dict(provider.get("headers")).items()
+        }
+        headers.update(
+            {str(key): str(_literal_value(value) or "") for key, value in _coerce_dict(route.get("headers")).items()}
+        )
         return await self._post_json(provider_id, provider, url, payload, headers=headers or None)
 
     async def _send_telegram(
@@ -1049,8 +1292,8 @@ class NotificationDispatcher:
         event: Mapping[str, Any],
         text: str,
     ) -> dict[str, Any]:
-        token = _resolved_text(route, "bot_token", "token") or _resolved_text(provider, "bot_token", "token")
-        chat_id = _resolved_text(route, "chat_id", "to", "recipient") or _resolved_text(provider, "chat_id", "to", "recipient")
+        token = _literal_text(route, "bot_token", "token") or _resolved_text(provider, "bot_token", "token")
+        chat_id = _literal_text(route, "chat_id", "to", "recipient") or _resolved_text(provider, "chat_id", "to", "recipient")
         if not token or not chat_id:
             return self._missing_target(provider_id, provider, "bot_token/chat_id")
         url = f"https://api.telegram.org/bot{token}/sendMessage"
@@ -1059,7 +1302,7 @@ class NotificationDispatcher:
             "text": text[:4096],
             "disable_web_page_preview": True,
         }
-        thread_id = _resolved_text(route, "message_thread_id", "thread_id") or _resolved_text(provider, "message_thread_id", "thread_id")
+        thread_id = _literal_text(route, "message_thread_id", "thread_id") or _resolved_text(provider, "message_thread_id", "thread_id")
         if thread_id:
             payload["message_thread_id"] = thread_id
         return await self._post_json(provider_id, provider, url, payload)
@@ -1072,14 +1315,14 @@ class NotificationDispatcher:
         event: Mapping[str, Any],
         text: str,
     ) -> dict[str, Any]:
-        recipients = _resolved_list(route, "to", "recipients", "recipient", "email") or _resolved_list(
+        recipients = _literal_list(route, "to", "recipients", "recipient", "email") or _resolved_list(
             provider, "to", "recipients", "recipient", "email"
         )
-        bcc_recipients = _resolved_list(route, "bcc", "bcc_recipients", "bcc_addresses") or _resolved_list(
+        bcc_recipients = _literal_list(route, "bcc", "bcc_recipients", "bcc_addresses") or _resolved_list(
             provider, "bcc", "bcc_recipients", "bcc_addresses"
         )
         smtp_host = _resolved_text(provider, "smtp_host", "host")
-        from_address = _resolved_text(route, "from", "from_email") or _resolved_text(provider, "from", "from_email", "sender")
+        from_address = _literal_text(route, "from", "from_email") or _resolved_text(provider, "from", "from_email", "sender")
         if not recipients or not smtp_host or not from_address:
             return self._missing_target(provider_id, provider, "smtp_host/from/to")
 
@@ -1125,13 +1368,13 @@ class NotificationDispatcher:
         event: Mapping[str, Any],
         text: str,
     ) -> dict[str, Any]:
-        recipients = _resolved_list(route, "to", "recipients", "recipient", "email") or _resolved_list(
+        recipients = _literal_list(route, "to", "recipients", "recipient", "email") or _resolved_list(
             provider, "to", "recipients", "recipient", "email"
         )
-        bcc_recipients = _resolved_list(route, "bcc", "bcc_recipients", "bcc_addresses") or _resolved_list(
+        bcc_recipients = _literal_list(route, "bcc", "bcc_recipients", "bcc_addresses") or _resolved_list(
             provider, "bcc", "bcc_recipients", "bcc_addresses"
         )
-        from_address = _resolved_text(route, "from", "from_email") or _resolved_text(
+        from_address = _literal_text(route, "from", "from_email") or _resolved_text(
             provider, "from", "from_email", "sender", "source"
         )
         if not recipients or not from_address:
@@ -1163,7 +1406,7 @@ class NotificationDispatcher:
                         "Body": {"Text": {"Data": text}},
                     }
                 }
-            reply_to = _resolved_list(route, "reply_to", "reply_to_addresses") or _resolved_list(
+            reply_to = _literal_list(route, "reply_to", "reply_to_addresses") or _resolved_list(
                 provider, "reply_to", "reply_to_addresses"
             )
             if reply_to:
@@ -1199,7 +1442,7 @@ class NotificationDispatcher:
         message["Subject"] = self._email_subject(provider, route, event)
         message["From"] = from_address
         message["To"] = ", ".join(recipients)
-        reply_to = _resolved_list(route, "reply_to", "reply_to_addresses") or _resolved_list(
+        reply_to = _literal_list(route, "reply_to", "reply_to_addresses") or _resolved_list(
             provider, "reply_to", "reply_to_addresses"
         )
         if reply_to:
@@ -1224,9 +1467,9 @@ class NotificationDispatcher:
         route: Mapping[str, Any],
         event: Mapping[str, Any],
     ) -> str:
-        prefix = _resolved_optional_text(route, "subject_prefix", "email_subject_prefix")
+        prefix = _literal_optional_text(route, "subject_prefix", "email_subject_prefix")
         if prefix is None:
-            prefix = _resolved_optional_text(event, "subject_prefix", "email_subject_prefix")
+            prefix = _literal_optional_text(event, "subject_prefix", "email_subject_prefix")
         if prefix is None:
             prefix = _resolved_optional_text(provider, "subject_prefix", "email_subject_prefix")
         return "[Plaza]" if prefix is None else prefix
@@ -1246,8 +1489,8 @@ class NotificationDispatcher:
         if provider_type == "sms_aws_sns":
             return await self._send_aws_sns_sms(provider_id, provider, route, sms_text)
 
-        url = _resolved_text(route, "webhook_url", "url") or _resolved_text(provider, "webhook_url", "url")
-        to_number = _resolved_text(route, "to", "phone", "phone_number") or _resolved_text(provider, "to", "phone", "phone_number")
+        url = _literal_text(route, "webhook_url", "url") or _resolved_text(provider, "webhook_url", "url")
+        to_number = _literal_text(route, "to", "phone", "phone_number") or _resolved_text(provider, "to", "phone", "phone_number")
         if not url:
             return self._missing_target(provider_id, provider, "url")
         payload = {"to": to_number, "text": sms_text, "notification": copy.deepcopy(dict(event))}
@@ -1262,8 +1505,8 @@ class NotificationDispatcher:
     ) -> dict[str, Any]:
         account_sid = _resolved_text(provider, "account_sid", "sid")
         auth_token = _resolved_text(provider, "auth_token", "token")
-        from_number = _resolved_text(route, "from", "from_number") or _resolved_text(provider, "from", "from_number")
-        to_number = _resolved_text(route, "to", "phone", "phone_number") or _resolved_text(provider, "to", "phone", "phone_number")
+        from_number = _literal_text(route, "from", "from_number") or _resolved_text(provider, "from", "from_number")
+        to_number = _literal_text(route, "to", "phone", "phone_number") or _resolved_text(provider, "to", "phone", "phone_number")
         if not account_sid or not auth_token or not from_number or not to_number:
             return self._missing_target(provider_id, provider, "account_sid/auth_token/from/to")
         url = f"https://api.twilio.com/2010-04-01/Accounts/{account_sid}/Messages.json"
@@ -1282,7 +1525,7 @@ class NotificationDispatcher:
         route: Mapping[str, Any],
         text: str,
     ) -> dict[str, Any]:
-        phone_number = _resolved_text(route, "to", "phone", "phone_number") or _resolved_text(provider, "to", "phone", "phone_number")
+        phone_number = _literal_text(route, "to", "phone", "phone_number") or _resolved_text(provider, "to", "phone", "phone_number")
         if not phone_number:
             return self._missing_target(provider_id, provider, "phone_number")
 
@@ -1337,14 +1580,23 @@ class NotificationDispatcher:
             if callable(close):
                 await close()
 
-    def _render_text(self, event: Mapping[str, Any], *, bucket: Optional[NotificationBucket] = None) -> str:
+    def _render_text(
+        self,
+        event: Mapping[str, Any],
+        *,
+        bucket: Optional[NotificationBucket] = None,
+        route: Optional[Mapping[str, Any]] = None,
+    ) -> str:
         if bucket is not None:
             return self._render_summary_text(bucket)
         render_mode = _first_text(event.get("render_mode"), event.get("message_style")).lower().replace("-", "_")
         if render_mode in {"direct", "message", "message_only"}:
             direct_text = _first_text(event.get("message"), event.get("summary"))
             if direct_text:
-                return _absolute_direct_message_links(direct_text, event)
+                text = _absolute_direct_message_links(scrub_message_text(direct_text), event)
+                if _coerce_bool(_coerce_dict(route).get("include_sender"), default=False):
+                    text = self._sender_header(event, _coerce_dict(route)) + text
+                return text
         title = _first_text(event.get("title"), event.get("subject"), event.get("event_type"), "Plaza notification")
         lines = [f"[Plaza] {title}"]
         for label, key in (
@@ -1369,6 +1621,26 @@ class NotificationDispatcher:
             lines.append(f"Plaza: {plaza_url}")
         lines.append("Fetch the payload or result from Plaza over the authenticated agent channel.")
         return "\n".join(lines)
+
+    @staticmethod
+    def _sender_header(event: Mapping[str, Any], route: Mapping[str, Any]) -> str:
+        """Who sent it, as Plaza verified, for routes with `include_sender`: name, verified email, and the site the route
+        names (`site`) or else the Plaza's address when it is not a loopback one, which would mean nothing to a reader."""
+        name = _CONTROL.sub("", _first_text(event.get("sender")))[:120]
+        email = plain_email_address(event.get("sender_email"))
+        who = f"{name} <{email}>" if name and email and name != email else email or name or "unknown"
+        lines = [f"From: {who} ({_first_text(event.get('sender_type'), 'sender')} verified by Plaza)"]
+        reply_to = plain_email_address(event.get("reply_to"))
+        if reply_to:
+            lines.append(f"Reply to: {reply_to}")
+        site = _CONTROL.sub("", str(_literal_value(route.get("site")) or "")).strip()[:80]
+        plaza_url = _first_text(event.get("plaza_url"))
+        host = (urlparse(plaza_url).hostname or "") if plaza_url else ""
+        if site:
+            lines.append(f"Site: {site}")
+        elif plaza_url and host not in {"127.0.0.1", "localhost", "::1"}:
+            lines.append(f"Plaza: {plaza_url}")
+        return "\n".join(lines) + "\n\n"
 
     def _render_summary_text(self, bucket: NotificationBucket) -> str:
         receiver = _first_text(bucket.events[-1].get("receiver"), bucket.receiver_id, "agent")
@@ -1423,6 +1695,8 @@ class NotificationDispatcher:
             return "queued_summary"
         if statuses <= {"skipped"}:
             return "skipped"
+        if statuses <= {"limited"}:
+            return "limited"
         if "sent" in statuses or "queued_summary" in statuses:
             return "partial"
         return "failed"
@@ -1431,6 +1705,8 @@ class NotificationDispatcher:
 __all__ = [
     "NOTIFICATION_PROVIDER_KINDS",
     "NotificationDispatcher",
+    "plain_email_address",
+    "scrub_message_text",
     "extract_notification_config",
     "normalize_notification_providers",
     "scrub_notification_event",

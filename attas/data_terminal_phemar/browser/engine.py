@@ -41,6 +41,33 @@ from .interactions import interaction_parameters
 
 
 
+def component_update(viewer):
+    """The newer copy of a refused page that a component on this computer ships (native_trust.component_pages), as
+    the window shows it: the component's name, its Phema library key and revision."""
+    value=viewer.get('_nativeTrustNewer') if isinstance(viewer,dict) else None
+    if not isinstance(value,dict) or not isinstance(value.get('key'),str) or not value['key'].startswith('local:'):return None
+    return {'name':str(value.get('name') or '')[:80],'key':value['key'][:200],'revision':value.get('revision') if type(value.get('revision')) is int else 1}
+
+
+# A panel whose program on this computer is not answering (native_trust.stopped_local). The window reads `message`
+# (local_resources.not_answering) in its language and reloads the layout once `program` runs again.
+NOT_ANSWERING='local-not-answering'
+
+
+def not_answering(viewer,phema):
+    """({reference path: its panel's result}, the result for the layout's other panels) for the programs on this computer
+    the Phema calls that are not answering; ({}, None) when every one answers."""
+    stopped=viewer.get('_nativeTrustNotAnswering') if isinstance(viewer,dict) else None
+    if not isinstance(stopped,dict):return {},None
+    stopped={agent:text for agent,text in stopped.items() if isinstance(agent,str) and agent.startswith('local-') and isinstance(text,str)}
+    if not stopped:return {},None
+    from phemacast.core.composition import reference_paths
+    result=lambda agent:{'status':'unavailable','reason':NOT_ANSWERING,'message':stopped[agent][:300],'program':agent.removeprefix('local-')}
+    panels={path:result(agent) for path,ref in reference_paths(phema).items()
+            if isinstance(agent:=ref.get('target',{}).get('agentId'),str) and agent in stopped}
+    return panels,result(min(stopped))
+
+
 class BrowserEngine:
     def __init__(self, store, network):
         self.store, self.network = store, network
@@ -64,9 +91,15 @@ class BrowserEngine:
             from phemacast.core.composition_permissions import manifest
             viewer=instance.get('_nativeTrustUser') or {'id':instance['owner'],'terminalWindow':self.terminal_window}
             grant=approval(self.store,viewer,instance['phema'],binding_scope(instance))
+            # A program on this computer the Phema calls is not answering: its panels say so, approved or not. Until it
+            # answers, the layout's other panels wait for it too (native_trust asks Plaza nothing meanwhile).
+            stopped,waits=not_answering(viewer,instance['phema'])
             # Plaza did not answer the trust check: still not trusted, but not a 'no' either.
-            unconfirmed=not grant and viewer.get('_nativeTrustUnconfirmed') is True
-            result['security']={'approved':bool(grant), 'mediaOrigins':[], 'localOrigins':[], 'authorityBindings':binding_scope(instance),**({'trustUnconfirmed':True} if unconfirmed else {})}
+            unconfirmed=not grant and not waits and viewer.get('_nativeTrustUnconfirmed') is True
+            # A component on this computer ships a newer copy of this refused page: the window offers to take it.
+            newer=component_update(viewer)
+            result['security']={'approved':bool(grant), 'mediaOrigins':[], 'localOrigins':[], 'authorityBindings':binding_scope(instance),
+                                **({'trustUnconfirmed':True} if unconfirmed else {}),**({'componentUpdate':newer} if newer else {})}
             result['results']=copy.deepcopy(result.get('results',{}))
             for requirement in instance.get('entry',{}).get('design',{}).get('dataRequirements',[]):
                 from phemacast.core.composition_permissions import requirement_permissions
@@ -77,11 +110,17 @@ class BrowserEngine:
                 result['content']=copy.deepcopy(instance['content'])
                 from phemacast.core.composition import walk_compositions
                 private_ids={ref['id'] for _,node in walk_compositions(instance['phema']) for ref in (manifest(node) or {}).get('references',[]) if ref['classification']!='public'}
-                def redact(value):
+                def redact(value,path=''):
                     for id in value.get('results',{}):
-                        if not grant or id in private_ids and not grant.get('privateData'):
+                        said=stopped.get('/'.join(filter(None,(path,id))))
+                        if not grant and waits:
+                            value['results'][id]=copy.deepcopy(said or waits)
+                        elif not grant or id in private_ids and not grant.get('privateData'):
                             value['results'][id]={'status':'blocked','reason':'trust-unconfirmed' if unconfirmed else 'permission-required'}
-                    for child in value.get('components',{}).values():redact(child)
+                        elif said and value['results'][id].get('status') in ('failed','unavailable'):
+                            # Approved: what was read before stays; a read that failed says why.
+                            value['results'][id]=copy.deepcopy(said)
+                    for name,child in value.get('components',{}).items():redact(child,'/'.join(filter(None,(path,name))))
                 redact(result['content'])
             if grant:
                 from phemacast.core.composition import walk_compositions
@@ -95,10 +134,28 @@ class BrowserEngine:
                 result['status'] = 'partial'
         return result
 
+    @staticmethod
+    def called(phema):
+        """The agents the Phema's links call by id. A target the viewer chooses ({"$param": …}) has no id here."""
+        from phemacast.core.composition import reference_paths,walk_compositions
+        return {a for _,current in walk_compositions(phema) for r in reference_paths(current).values() if isinstance(a:=r.get('target',{}).get('agentId'),str)}
+
+    async def local_names(self,user,phema):
+        """The programs running on this computer that the Phema's links call, by the name each announces (empty when
+        it announces none). None of them is on Plaza: the permissions dialog says the inputs stay on this computer.
+        The Terminal's directory lists them (a browser process reads it from the Terminal); a Plaza agent's address is
+        always http(s), never this computer's own `phemacast-local://`."""
+        wanted=self.called(phema)
+        if not wanted:return {}
+        try:entries=await self.network.directory(user.get('token',''))
+        except Exception:return {}
+        name=lambda entry:entry['name'].strip() if isinstance(entry.get('name'),str) else ''
+        return {entry['id']:name(entry) for entry in entries if isinstance(entry,dict) and entry.get('id') in wanted
+                and entry.get('local') is True and str(entry.get('address','')).startswith('phemacast-local://')}
+
     async def agent_names(self,user,phema):
         """Plaza's listed name for each agent the Phema's links call; an agent Plaza does not list stays unnamed."""
-        from phemacast.core.composition import reference_paths,walk_compositions
-        wanted={r.get('target',{}).get('agentId') for _,current in walk_compositions(phema) for r in reference_paths(current).values()}-{None}
+        wanted=self.called(phema)
         authority=getattr(self.network,'plaza_trust',None)
         if not wanted or not authority or not user.get('token'):return {}
         try:rows=await authority.answer(user['token'])
@@ -176,6 +233,9 @@ class BrowserEngine:
             if language is not None and language not in ('en','zh-Hant','zh-Hans','ja','es','fr'):raise HTTPException(422,'Unsupported UI language.')
             instance['uiLanguage']=language
             instance['phema'] = phema
+            # What the client sent, before any revision is authored from it: sending the same page again is no edit.
+            from prompits.core.capabilities import digest
+            instance['_acceptedDigest'] = digest(phema)
             instance['parameterValues'] = copy.deepcopy(body.get('parameterValues') or {})
             instance['instrumentOverrides'] = copy.deepcopy(body.get('instrumentOverrides') or {})
             from ..content_policy import validate_overrides
@@ -222,9 +282,14 @@ class BrowserEngine:
             result=review(self.store,user,instance['phema'],body,binding_scope(instance))
             # The dialog names each link by the panel it fills, the agent it goes to and the symbols it reads.
             from .content import panel_titles
-            result={**result,'panelTitles':panel_titles(instance),'agentNames':await self.agent_names(user,instance['phema']),
+            local=await self.local_names(user,instance['phema'])
+            newer=component_update(instance.get('_nativeTrustUser') or {})
+            result={**result,'panelTitles':panel_titles(instance),
+                    'agentNames':{**await self.agent_names(user,instance['phema']),**{k:v for k,v in local.items() if v}},
+                    'localAgents':sorted(local),**({'componentUpdate':newer} if newer else {}),
                     'parameters':{k:v['default'] for k,v in instance['entry']['design']['params'].items() if 'default' in v}}
-            if request.method=='POST':
+            # The other-panels choice alone changes nothing the Browser shows: no reload.
+            if request.method=='POST' and set(body)!={'panelAccess'}:
                 if body.get('revoke'):
                     tasks=list(instance.get('_manualContentTasks',{}).values())
                     for task in tasks:task.cancel()
@@ -236,6 +301,10 @@ class BrowserEngine:
                     from .content import refresh_content
                     await refresh_content(self,instance,user,references=None,trigger='open')
             return result
+        if len(parts)==2 and parts[1]=='sources' and request.method=='GET':
+            # The source menus in the Browser's data panel headings (its per-panel source choice).
+            from .content import panel_sources
+            return {'byPanel':await panel_sources(self,instance,user)}
         if len(parts)==2 and parts[1]=='content' and request.method in ('GET','POST'):
             from .content import content_route
             return await content_route(self,instance,request,user)
@@ -278,15 +347,24 @@ class BrowserEngine:
                     if not callback:raise HTTPException(409,'Browser is still initializing. Try again shortly.')
                     await callback(overrides,rid)
                     return self.public(instance)
+                accepted=None
                 if 'entry' in body or 'phema' in body:
                     from ..phema_transfer import accept
+                    from prompits.core.capabilities import digest
                     updated_phema, updated_entry = await accept(body)
-                    # An in-place edit is a new authored revision. Refresh its
-                    # declarations and invalidate consent without changing the
-                    # immutable publication from which the Browser was opened.
-                    from ..phema_security import upgrade
+                    accepted=digest(updated_phema)
                     from ..phema_transfer import to_entry
-                    updated_phema = upgrade(updated_phema)
+                    if instance.get('phema') and accepted==instance.get('_acceptedDigest'):
+                        # The same page sent again with new page values (a viewer's picture, a control's value): no
+                        # edit, so no new revision. The Phema keeps its fingerprint, so views mounted on it and the
+                        # viewer's approval of it stay as they were.
+                        updated_phema = instance['phema']
+                    else:
+                        # An in-place edit is a new authored revision. Refresh its
+                        # declarations and invalidate consent without changing the
+                        # immutable publication from which the Browser was opened.
+                        from ..phema_security import upgrade
+                        updated_phema = upgrade(updated_phema)
                     updated_entry = to_entry(updated_phema)
                     from .nested import project
                     same_layout=updated_entry['id']==instance['entry']['id']
@@ -328,6 +406,7 @@ class BrowserEngine:
                     old_bindings=instance.get('fieldBindings',{})
                     binding_changes={rid for rid in set(old_bindings)|set(settings['fieldBindings']) if old_bindings.get(rid)!=settings['fieldBindings'].get(rid)}
                     instance['entry']=copy.deepcopy(updated_entry);instance['phema']=updated_phema
+                    if accepted:instance['_acceptedDigest']=accepted
                     instance['command']=str(body.get('command',instance['command']))[:499]
                     instance['nestedLayouts']=nested_layouts;instance['_nestedInteractions']=nested_interactions
                     old_refresh=instance.get('refreshOverrides',{})
@@ -354,6 +433,7 @@ class BrowserEngine:
                 await self.cancel(id)
                 instance['entry'] = copy.deepcopy(updated_entry)
                 instance['phema'] = updated_phema
+                if accepted:instance['_acceptedDigest']=accepted
                 if 'entry' in body or 'phema' in body:
                     instance['nestedLayouts']=nested_layouts;instance['_nestedInteractions']=nested_interactions
                 valid={r['id']:r for r in updated_entry['design']['dataRequirements'] if r.get('mode')!='interactive'}

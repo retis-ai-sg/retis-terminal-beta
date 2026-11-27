@@ -7,16 +7,28 @@ as OpenStreetMap's Tile Usage Policy asks: only the tiles a map shows, kept in `
 caching headers allow (seven days when a server sends none), revalidated when they expire, and never fetched in bulk.
 
     python3 scripts/run_local_openstreetmap.py --state <folder> --port 28510 [--health-port 28511]
+
+Its log (Retis MAS Manager → Logs) has a time on every line: when it started, became ready and stopped, and one line
+per map-tile request with its outcome and time, never the tile's address or anything about the viewer.
 """
 import argparse
 import asyncio
 import json
+import logging
 from pathlib import Path
 import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
+from prompits.components import logs as component_logs  # noqa: E402  every start's log format
 NAME = 'Local OpenStreetMap'
+LOG = logging.getLogger('local_openstreetmap')
+
+
+def configure_logging():
+    """The component log: when it started and what each request did, with a time on every line. Libraries keep to
+    warnings and errors."""
+    component_logs.configure_logging('local_openstreetmap', 'attas.local_source')
 
 
 def prepare(state, port):
@@ -58,15 +70,19 @@ def health(source, resource):
 
 async def serve(path, health_port=None):
     from prompits.components.health import serve_health
+    port = json.loads(Path(path).read_text())['local_network']['port']
+    LOG.info('%s is starting on 127.0.0.1:%s', NAME, port)
     source, resource = build(path)
     await resource.start()
     checker = await serve_health(health_port, lambda: health(source, resource)) if health_port else None
+    LOG.info('%s is ready', NAME)
     try:
         await resource.task
     finally:
         if checker:
             checker.close()
         await resource.close()
+        LOG.info('%s stopped', NAME)
 
 
 if __name__ == '__main__':
@@ -75,4 +91,5 @@ if __name__ == '__main__':
     parser.add_argument('--port', type=int, default=28510)
     parser.add_argument('--health-port', type=int, help='Answer the component health check on 127.0.0.1 at this port.')
     args = parser.parse_args()
+    configure_logging()
     asyncio.run(serve(prepare(args.state, args.port), args.health_port))

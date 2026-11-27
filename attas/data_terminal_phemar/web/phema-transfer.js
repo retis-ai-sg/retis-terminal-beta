@@ -3,7 +3,7 @@ import {LAYOUT_GRAMMAR,LAYOUT_CAPABILITY,layoutToPhema,layoutRequirements} from 
 import {entryToDocument,documentToEntry} from './layout-document.js';
 /** Portable authored Phema. Runtime credentials, sources and results stay outside. */
 export const PHEMA_PROFILE='phemacast:composition/1';
-const mediaTypes=['text','image','audio','video','scene','interactive'];
+const mediaTypes=['text','image','audio','video','scene','interactive','viewer'];
 const referenceTypes=['pulse','api','channel','phemar-snapshot','phemar-generate','asset'];
 let installedAdvertisement=null;
 export function setBrowserAdvertisement(value){if(value?.schema==='capability-advertisement/1'&&Array.isArray(value.capabilities))installedAdvertisement=structuredClone(value);}

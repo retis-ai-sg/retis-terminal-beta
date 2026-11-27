@@ -142,13 +142,13 @@ def saved_tabs(store, user):
 
 
 def forget_tabs(store, owner, windows):
-    """Remove what these saved windows kept: settings and keys, workspace, revisions, previews and scheduled runs."""
+    """Remove what these saved windows kept: settings and keys, workspace, its history and pictures, previews and scheduled runs."""
     keys = {'window.' + window for window in windows}
     prefixes = tuple(key + ':' for key in keys)
     def gone(kind, record):
         if kind in ('settings', 'workspace-state'):
             return record['id'] in keys
-        if kind in ('workspace-revision', 'workspace-preview'):
+        if kind in ('workspace-revision', 'workspace-preview', 'workspace-shot'):
             return record['id'].startswith(prefixes)
         if kind == 'workspace-conflict':
             return record.get('windowKey') in keys
@@ -157,7 +157,7 @@ def forget_tabs(store, owner, windows):
         if kind == 'phema-permission':
             return record['id'].split(':', 1)[0] in windows
         return kind == 'scheduled-run' and record.get('window') in windows
-    for kind in ('settings', 'workspace-state', 'workspace-revision', 'workspace-preview', 'workspace-conflict',
+    for kind in ('settings', 'workspace-state', 'workspace-revision', 'workspace-preview', 'workspace-shot', 'workspace-conflict',
                  'connection', 'phema-permission', 'scheduled-run'):
         for record in store.list(owner, kind):
             if gone(kind, record):

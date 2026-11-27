@@ -5,10 +5,10 @@ import {openPhemaPermissions} from './phema-permissions.js';
 import './local-resources.js';
 import {chatForm,selectTarget,parseArguments,targetKey} from './pulse-chat.js';
 import {normalizeContentOverrides} from './content-policies.js';
-import {requestFailure,NOT_APPROVED} from './failure-messages.js';
+import {requestFailure,NOT_APPROVED,NOT_ANSWERING} from './failure-messages.js';
 import {noteSignedOut,clearSignedOut} from './window-signed-out.js';
 import {installRendererModules} from './composition-renderers.js';
-import {ui as uiHTML,label,message,t,configureLocale,languageSettingsHTML,setUIText,clearUIText,attribute,validLocale,applyUI} from './i18n.js';
+import {ui as uiHTML,label,message,t,configureLocale,languageSettingsHTML,setUIText,clearUIText,attribute,setUIAttribute,validLocale,applyUI,currentLocale} from './i18n.js';
 import {entryToPhema,phemaToEntry,browserCapabilities,hydratePhemaPayload,setBrowserAdvertisement} from './phema-transfer.js';
 import {contentPanel,mountContent,openContentSnapshots,openContentPolicy} from './phema-browser.js';
 import {screenshot} from './workspace-previews.js';
@@ -27,14 +27,19 @@ import {normalizeMessages,normalizeDiscussionDrafts,normalizeInteractionDrafts} 
 import {setPulseCatalog,setCatalogError} from './plaza-pulses.js';
 import {sourceSettingsHTML,installSourceSettings} from './source-settings.js';
 import {pointsRowsHTML,openPointsHistory,spendingRows} from './points-history.js';
+import {operationNamer} from './operation-names.js';
 import {scheduledRunsHTML,installScheduledRuns} from './scheduled-runs.js';
+import {aiAppsHTML,installAIApps} from './ai-apps.js';
+import {workspaceHistorySettingsHTML,workspaceHistoryValues} from './workspace-history.js';
 import {agentTrustHTML,installAgentTrust} from './agent-trust.js';
 import {watchRefresh,failedRefreshes} from './refresh-outcome.js';
+import {observeLinks,publishPort,setPanelParameters} from './link-groups.js';
+import {configureAgentChoices} from './agent-choices.js';
 import {waitForPlaza} from './plaza-unreachable.js';
 export const esc = value => String(value ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 import './terminal-connection.js';
 import './window-signin.js';
-import {terminalStopped,unreachable,terminalPresence,onTerminalPresence,decideRestart,presenceLauncher,terminalReplaced,windowMoved,movedText,movedMessage} from './terminal-presence.js';
+import {terminalStopped,unreachable,terminalPresence,onTerminalPresence,decideRestart,presenceLauncher,terminalReplaced,windowMoved,movedText,movedMessage,restartedMessage} from './terminal-presence.js';
 export const runtime={user:null,plaza:{},consultants:[],kind:'data-terminal',catalog:{publishers:[],pulses:[]},settings:{preferences:{},connections:[]}};
 export async function api(path, options={}) {
   const requestedBy=runtime.user?.id;
@@ -48,7 +53,11 @@ export async function api(path, options={}) {
   // No answer at all means the Terminal stopped: say that in the tab's language, never the browser's "Failed to fetch".
   try{response=await fetch(path,{credentials:'same-origin',...options,headers:terminalHeaders({'Content-Type':'application/json','X-Phemacast-Model-Contract':'model-requirement/1',...options.headers}),body:options.body===undefined?undefined:JSON.stringify(options.body)});}
   catch(error){if(unreachable(error))throw terminalStopped(error);throw error;}
+  // Every answer to a signed-in window carries its account's points as Plaza last reported them (top bar).
+  const reported=response.headers?.get?.('X-Plaza-Points');
+  if(reported!=null&&requestedBy&&runtime.user?.id===requestedBy)notePoints(Number(reported),Number(response.headers.get('X-Plaza-Points-At'))||0);
   const body=await response.json();
+  if(response.ok&&requestedBy&&/\/api\/instances(?:\/|\?|$)/.test(path))notePaidResults(body);
   // A guest request can finish after sign-in. It must not discard the newly
   // adopted account or restart its document.
   // The reloaded page is a signed-out window; it says it was signed out (window-signed-out.js).
@@ -192,16 +201,102 @@ export function scopedStorage(storage=sessionStorage) {
   const scope='retis-terminal:'+new URL(runtime.plaza.url||location.origin).origin+':'+(runtime.user?.id||'guest')+':'+terminalWindow()+':';
   return {getItem:key=>storage.getItem(scope+key),setItem:(key,value)=>storage.setItem(scope+key,value),removeItem:key=>storage.removeItem(scope+key)};
 }
+// The top bar shows the signed-in account's available Plaza points beside the Plaza name. Plaza keeps the points; the
+// Terminal shows only the number Plaza reports. Every answer to this window carries the number from its last session
+// check with Plaza (X-Plaza-Points, at most about half a minute old), so most updates cost Plaza nothing. The window
+// asks on purpose (/api/account/balance, Plaza's account profile) only at sign-in, just after a result it paid for, when
+// it comes back to the front a minute or more after the last number, and once a minute while Plaza is not answering.
+// The number is kept per Plaza and account; while Plaza is not answering the last one stays, marked as not current.
+const POINTS_AGAIN=60000;
+const idlePoints=key=>({key,value:null,at:0,read:0,stale:false,loading:null,again:false,timer:0,retry:0});
+let points=idlePoints('');
+const pointsKey=()=>runtime.user&&!runtime.plaza.localOnly&&!runtime.user.authentication?(runtime.plaza.url||'')+'|'+runtime.user.id:'';
+function pointsFor(key){if(points.key!==key){clearTimeout(points.timer);clearTimeout(points.retry);points=idlePoints(key);}return points;}
+function notePoints(value,at){
+ const key=pointsKey();if(!key||!Number.isInteger(value))return;
+ const state=pointsFor(key);
+ // An answer older than the number shown says nothing new; nor does the same one while Plaza is not answering.
+ if(at&&(at<state.at||at===state.at&&state.stale))return;
+ const changed=state.value!==value||state.stale;
+ Object.assign(state,{value,at:at||Date.now()/1000,stale:false});clearTimeout(state.retry);
+ if(changed)drawPoints();
+}
+export function readPoints(){
+ const key=pointsKey();if(!key)return Promise.resolve();
+ const state=pointsFor(key);
+ if(state.loading){state.again=true;return state.loading;}
+ state.read=Date.now();
+ state.loading=api('/api/account/balance').then(answer=>notePoints(answer.balance,Number(answer.at)||0),error=>{
+  if(points!==state)return;
+  // A window without a Plaza account shows none; otherwise the last number stays, marked as not current.
+  if(error.status===409)state.value=null;
+  else{state.stale=state.value!==null;clearTimeout(state.retry);state.retry=setTimeout(()=>{if(!document.hidden)readPoints();},POINTS_AGAIN);}
+  drawPoints();
+ }).finally(()=>{state.loading=null;if(state.again&&points===state){state.again=false;readPoints();}});
+ return state.loading;
+}
+// Just after a result this window paid for, once the payments of the same moment have settled.
+function soonPoints(){if(!pointsKey())return;clearTimeout(points.timer);points.timer=setTimeout(readPoints,1500);}
+function pointsAgain(){if(pointsKey()&&!document.hidden&&Date.now()-Math.max(points.read,points.at*1000)>=POINTS_AGAIN)readPoints();}
+if(typeof window!=='undefined'){window.addEventListener('focus',pointsAgain);document.addEventListener('visibilitychange',pointsAgain);}
+// A new result whose provenance says it was paid (content_references) means the account's points changed. The first
+// answer for a Data Browser only notes the results it already had: results kept from before were paid before.
+const paidSeen=new Set(),browsersSeen=new Set();
+function notePaidResults(state){
+ const results=state?.content?.results,first=!!state?.id&&!browsersSeen.has(state.id);
+ if(first)browsersSeen.add(state.id);
+ if(!results||typeof results!=='object')return;
+ let paid=false;
+ for(const result of Object.values(results)){
+  const billing=result?.provenance?.billing;if(!(billing?.points>0))continue;
+  const id=billing.executionId||String(result.resolvedAt);if(paidSeen.has(id))continue;
+  if(paidSeen.size>=500)paidSeen.clear();
+  paidSeen.add(id);paid=!first;
+ }
+ if(paid)soonPoints();
+}
+// Up to 99,999 the whole number; above it a short form in the window's language (1.2M, 120萬), the whole number in the title.
+function shortPoints(value){
+ try{return new Intl.NumberFormat(currentLocale(),Math.abs(value)<100000?{}:{notation:'compact',maximumFractionDigits:1}).format(value);}catch{return String(value);}
+}
+const shownPoints=()=>pointsKey()&&points.key===pointsKey()&&Number.isInteger(points.value);
+// The first top bar for an account asks once; a page without the top bar (account, settings) never asks.
+function wantPoints(){const key=pointsKey();if(key&&(points.key!==key||!points.read))readPoints();}
+const titleArgs=()=>[points.stale?'Last known Plaza points: {0}. Plaza is not answering, so this may not be current.':'Available Plaza points: {0}. Open points spending.',points.value.toLocaleString()];
+const pointsTitle=()=>shownPoints()?attribute('title',...titleArgs()):'';
+const pointsCell=()=>shownPoints()?points.value.toLocaleString():'—';
+function pointsHTML(){
+ if(!shownPoints())return '';
+ return `<span class="plaza-status-points${points.stale?' is-stale':''}" data-plaza-balance="${points.value}" ${points.stale?'data-stale':''} data-action="plaza" ${pointsTitle()}> <span class="plaza-status-points-separator" aria-hidden="true">·</span> ${label('{0} points',(points.stale?'~':'')+shortPoints(points.value))}</span>`;
+}
+// Only the points change in place: the menu, if open, stays as it is.
+function drawPoints(){
+ if(typeof document==='undefined')return;
+ const status=document.querySelector('.topbar details.plaza-status'),line=status?.querySelector('[data-plaza-state]');
+ if(line){line.querySelector('[data-plaza-balance]')?.remove();line.insertAdjacentHTML('beforeend',pointsHTML());}
+ const cell=status?.querySelector('[data-plaza-points]');
+ if(cell){cell.textContent=pointsCell();if(shownPoints())setUIAttribute(cell,'title',...titleArgs());else{cell.removeAttribute('title');cell.removeAttribute('data-ui-attr-title');}}
+}
+// The points open the Plaza account settings (app.js, data-action="plaza") at Points spending, not the menu.
+if(typeof document!=='undefined')document.addEventListener('click',event=>{
+ if(!event.target.closest?.('.topbar [data-plaza-balance]'))return;
+ event.preventDefault();
+ requestAnimationFrame(()=>document.querySelector('dialog[open] [data-points-spending]')?.scrollIntoView({block:'start'}));
+},true);
 const REGISTRY_STATES={registered:'Registered',success:'Registered',idle:'Not registered',retry:'Retrying',unauthorized:'Not authorized',configuration_error:'Configuration error'};
 // The top bar names the Plaza this window is connecting to, or is connected to, by its host.
 const plazaHost=()=>{try{return new URL(runtime.plaza.url).host;}catch{return '';}};
 export function statusHTML() {
   if(runtime.plaza.localOnly)return uiHTML`<details class="plaza-status is-demo-connected"><summary aria-label="Local connection status"><span class="plaza-status-dot"></span>Local / <strong>Ready</strong></summary><section class="plaza-status-popover"><p>Using paired local Phemacast resources. Plaza login is not required.</p><button data-action="settings">Terminal settings</button></section></details>`;
   const host=plazaHost(),presence=terminalPresence();
-  if(presence!=='up')return uiHTML`<details class="plaza-status is-terminal-stopped"><summary aria-label="Plaza connection status" title="${esc(runtime.plaza.url||'')}"><span class="plaza-status-dot"></span><span class="plaza-status-label">${host?`<span class="plaza-status-name" data-plaza-name>${esc(host)}</span>`:'Plaza'} <span class="plaza-status-separator" aria-hidden="true">/</span> <strong>${label(presence==='stopped'?'Terminal stopped':presence==='moved'?'Open in another tab':'Terminal restarted')}</strong></span></summary><section class="plaza-status-popover"><p>${presence==='moved'?label(...movedMessage(runtime.launcherApp)):label(presence==='stopped'?'This Terminal is not responding. It may have stopped.':'This Terminal restarted. Reload this tab to continue.')}</p></section></details>`;
-  return uiHTML`<details class="plaza-status ${runtime.plaza.registered?'is-demo-connected':''}"><summary aria-label="Plaza connection status" title="${esc(runtime.plaza.url||'')}"><span class="plaza-status-dot"></span><span class="plaza-status-label">${host?`<span class="plaza-status-name" data-plaza-name>${esc(host)}</span>`:'Plaza'} <span class="plaza-status-separator" aria-hidden="true">/</span> <strong>${label(runtime.plaza.registered?'Connected':host?'Connecting':'Not connected')}</strong></span></summary><section class="plaza-status-popover"><h3>${label(runtime.user?'Signed in':'Guest')}</h3><p>${runtime.user?.name?esc(runtime.user.name):label('Sign in to retrieve data and save consultant layouts.')}</p><dl class="plaza-status-facts">${host?uiHTML`<div><dt>Plaza address</dt><dd title="${esc(runtime.plaza.url)}">${esc(host)}</dd></div>`:''}<div><dt title="This Terminal's registration in the Plaza directory">Plaza directory</dt><dd>${label(REGISTRY_STATES[runtime.plaza.state]||runtime.plaza.state||'Not registered')}</dd></div><div><dt title="App Consultants this Terminal found on Plaza. They provide the layouts you can open.">Connected App Consultants</dt><dd>${runtime.consultants.length}</dd></div>${runtime.user?uiHTML`<div><dt>Available Plaza points</dt><dd data-plaza-points>—</dd></div>`:''}</dl><button data-action="plaza">Account settings ↗</button>${runtime.user?uiHTML`<p><a href="./account.html#transactions" target="_blank" rel="noopener">Transaction history ↗</a></p>`:''}</section></details>`;
+  wantPoints();
+  if(presence!=='up')return uiHTML`<details class="plaza-status is-terminal-stopped"><summary aria-label="Plaza connection status" title="${esc(runtime.plaza.url||'')}"><span class="plaza-status-dot"></span><span class="plaza-status-label">${host?`<span class="plaza-status-name" data-plaza-name>${esc(host)}</span>`:'Plaza'} <span class="plaza-status-separator" aria-hidden="true">/</span> <strong>${label(presence==='stopped'?'Terminal stopped':presence==='moved'?'Open in another tab':'Terminal restarted')}</strong></span></summary><section class="plaza-status-popover"><p>${presence==='moved'?label(...movedMessage(runtime.launcherApp)):presence==='stopped'?label('This Terminal is not responding. It may have stopped.'):label(...restartedMessage(runtime.launcherApp))}</p></section></details>`;
+  return uiHTML`<details class="plaza-status ${runtime.plaza.registered?'is-demo-connected':''}"><summary aria-label="Plaza connection status" title="${esc(runtime.plaza.url||'')}"><span class="plaza-status-dot"></span><span class="plaza-status-label">${host?`<span class="plaza-status-name" data-plaza-name>${esc(host)}</span>`:'Plaza'} <span class="plaza-status-separator" aria-hidden="true">/</span> <span class="plaza-status-state" data-plaza-state><strong>${label(runtime.plaza.registered?'Connected':host?'Connecting':'Not connected')}</strong>${pointsHTML()}</span></span></summary><section class="plaza-status-popover"><h3>${label(runtime.user?'Signed in':'Guest')}</h3><p>${runtime.user?.name?esc(runtime.user.name):label('Sign in to retrieve data and save consultant layouts.')}</p><dl class="plaza-status-facts">${host?uiHTML`<div><dt>Plaza address</dt><dd title="${esc(runtime.plaza.url)}">${esc(host)}</dd></div>`:''}<div><dt title="This Terminal's registration in the Plaza directory">Plaza directory</dt><dd>${label(REGISTRY_STATES[runtime.plaza.state]||runtime.plaza.state||'Not registered')}</dd></div><div><dt title="App Consultants this Terminal found on Plaza. They provide the layouts you can open.">Connected App Consultants</dt><dd>${runtime.consultants.length}</dd></div>${runtime.user?uiHTML`<div><dt>Available Plaza points</dt><dd data-plaza-points ${pointsTitle()}>${esc(pointsCell())}</dd></div>`:''}</dl><button data-action="plaza">Account settings ↗</button>${runtime.user?uiHTML`<p><a href="./account.html#transactions" target="_blank" rel="noopener">Transaction history ↗</a></p>`:''}</section></details>`;
 }
 const publisherName=id=>runtime.catalog.publishers.find(p=>p.id===id)?.name||'';
+// An operation shows by the name its agent publishes in the catalog, in this window's language (operation-names.js).
+let namer={catalog:null,name:null};
+const operationName=row=>{if(namer.catalog!==runtime.catalog)namer={catalog:runtime.catalog,name:operationNamer(runtime.catalog)};return namer.name(row);};
 // Points spending reads Plaza's ledger, which keeps every charge (agents such as the Strategy Producer
 // charge there), with this Terminal's own executions; a short cache keeps re-renders from reading it again.
 let spending={at:0,rows:null,error:'',loading:null,balance:null};
@@ -217,6 +312,7 @@ function loadSpending({force=false}={}){
   try{ledger=await api('/api/account/transactions');}catch(failure){error=failure.message||'Plaza did not answer.';}
   // The same read gives the account's available points, shown at the top of the section.
   const balance=ledger?.account?.balance;
+  if(Number.isInteger(balance))notePoints(balance,Number(ledger.retrievedAt)||0);
   done({rows:spendingRows(own,ledger),error,balance:Number.isInteger(balance)?balance:null});
   return spending.rows;
  })().catch(failure=>{if(spending.loading)done({rows:null,error:failure.message||'Points spending could not be read.'});throw failure;});
@@ -229,7 +325,7 @@ function pointsSpendingHTML(){
  const older=(runtime.settings.billingToReconcile||0)-rows.filter(row=>row.canReconcile).length;
  const note=!spending.rows?(spending.error&&fresh()?uiHTML`<p class="points-warning" title="${esc(spending.error)}">Points spending could not be read. Open settings again in a moment.</p>`:uiHTML`<p class="points-note" role="status">Reading Plaza charges…</p>`):spending.error?uiHTML`<p class="points-warning" title="${esc(spending.error)}">Plaza charges could not be read; only this Terminal’s own payments are listed.</p>`:'';
  if(!total)return spending.rows?uiHTML`${balance}${note}<p>No points spent yet.</p>`:uiHTML`${balance}${note}`;
- return uiHTML`${balance}${note}<div class="points-recent-head"><small>${label('Latest {0} of {1}',rows.length,total)}</small><button type="button" class="button" data-connected-action="points-history">Open history</button></div>${pointsRowsHTML(rows,publisherName)}${older>0?`<p class="points-warning">${label('{0} older executions need checking. Open the history to reconcile them.',older)}</p>`:''}`;
+ return uiHTML`${balance}${note}<div class="points-recent-head"><small>${label('Latest {0} of {1} executions',rows.length,total)}</small><button type="button" class="button" data-connected-action="points-history">Open history</button></div><p class="points-count-note">${label('Each execution counts once here. Transaction history lists every ledger entry, and one execution can have several: its reservation, the settlement and the payment.')}</p>${pointsRowsHTML(rows,publisherName,operationName)}${older>0?`<p class="points-warning">${label('{0} older executions need checking. Open the history to reconcile them.',older)}</p>`:''}`;
 }
 // Whether the signed-in account receives the newsletter, and in which language. Plaza keeps both with the account
 // (2026-11-18); this only remembers the last answer so a redraw does not ask Plaza again. A Plaza that does not keep the
@@ -264,12 +360,14 @@ export function settingsHTML(tab='all') {
  const account=runtime.plaza.localOnly?uiHTML`<p>Local device · Plaza is not required</p>`:hosted&&!terminalWindow()?uiHTML`<p>${esc(runtime.user?.name||'Sign in through Attas')}</p><p>Plaza login is managed by Attas.</p><a class="button" href="/" target="_top">Open Attas account</a>${runtime.kind==='data-terminal'?uiHTML`<p><a href="${esc(hostedPath("/settings.html",location))}" target="_blank" rel="noopener">Open Terminal account settings</a> to disconnect this Terminal before switching accounts.</p>`:''}`:runtime.user?uiHTML`<p>${esc(runtime.user.name)}</p><button class="button" data-connected-action="signout">Sign out</button>${newsletterHTML()}${runtime.plaza.delegatedLogin?uiHTML`<p><label><input type="checkbox" data-network-local checked> Prefer verified sources on this local network</label></p><p data-network-status role="status">Direct HTTPS · no tunnel</p>`:''}`:runtime.plaza.delegatedLogin?uiHTML`<section class="plaza-access" data-plaza-access><p><small data-access-step></small><br><strong data-access-title>Checking Plaza access…</strong></p><p data-connect-status role="status"></p><div data-access-actions><button class="button primary" data-connect-plaza>Request access</button><p data-window-signin-status role="status"></p></div></section>`:uiHTML`<button class="button primary" data-window-signin>Sign in to Plaza</button><button class="button" data-window-signin data-alternate>Use another account</button><p data-window-signin-status role="status"></p><details class="manual-connection"><summary>Advanced: manual sign-in</summary><form data-connected-form="signin"><label>Plaza identifier<input name="identifier" autocomplete="username" required></label><label>Password<input name="password" type="password" autocomplete="current-password" required></label><button class="button primary">Sign in to Plaza</button></form></details>`;
  const restricted=runtime.user?uiHTML`<h3>Agent settings</h3><p>Only this agent’s owner can change its configuration, layouts, and data-source connections.</p>`:uiHTML`<p>Sign in to Plaza to manage connections and save settings.</p>`;
  const sections={
-  workspace:languageSettingsHTML()+(canConfigure?uiHTML`${timezoneSettingsHTML(p.displayTimezone,p.specifiedTimezone)}${displayFormatSettingsHTML(p.displayFormat)}${marketSettingsHTML(p.marketAppearance)}`:''),
+  workspace:languageSettingsHTML()+(canConfigure?uiHTML`${timezoneSettingsHTML(p.displayTimezone,p.specifiedTimezone)}${displayFormatSettingsHTML(p.displayFormat)}${marketSettingsHTML(p.marketAppearance)}${workspaceHistorySettingsHTML(p.workspaceHistory)}`:''),
   connections:(runtime.user&&!runtime.plaza.localOnly?agentTrustHTML():uiHTML`<p>Sign in to Plaza to see the agents you trust and your connection history.</p>`)+uiHTML`<p>Open an agent workspace to manage its connections and data policy.</p>`,
   sources:runtime.user||runtime.plaza.localOnly?sourceSettingsHTML():uiHTML`<p>Sign in to Plaza to manage connections and save settings.</p>`,
   runs:runtime.user||runtime.plaza.localOnly?scheduledRunsHTML():uiHTML`<p>Sign in to Plaza to see this window's scheduled runs.</p>`,
-  plaza:uiHTML`<h3>Plaza account</h3>${!runtime.plaza.localOnly&&(runtime.plaza.url||runtime.plaza.canChangeAddress)?(runtime.plaza.canChangeAddress&&!hosted?uiHTML`<form class="plaza-address-form" data-plaza-address-form><label>Plaza address<input name="url" type="url" value="${esc(runtime.plaza.url)}" data-plaza-address required autocomplete="url" spellcheck="false" ${runtime.user?'disabled':''}></label><button type="submit" class="button" ${runtime.user?'disabled':''}>Connect</button><p data-plaza-address-status role="status">${runtime.user?label('Sign out of this window before changing its Plaza address.'):!runtime.plaza.url?label('Enter a Plaza address to connect this Terminal.'):''}</p></form>`:uiHTML`<dl class="plaza-login-address"><dt>Plaza address</dt><dd data-plaza-address>${esc(runtime.plaza.url)}</dd></dl>`):''}${runtime.plaza.delegatedLogin?uiHTML`<section data-trusted-plazas><h3>Trusted Plazas</h3><div data-trusted-plazas-list></div><p data-trusted-plazas-status role="status"></p><details><summary>How to connect</summary><p>Request access, wait for the Plaza owner to approve this Terminal, then sign in. Each window uses one Plaza at a time; choose Connect beside a trusted Plaza to switch this window. Each Plaza keeps its own approval and credentials.</p></details></section>`:''}${runtime.kind==='data-terminal'?uiHTML`<p>Each Terminal window has its own Plaza login, settings and open Phemas.</p>`:''}${account}${runtime.user&&runtime.plaza.delegatedLogin&&!runtime.plaza.trusted?uiHTML`<button class="button" data-connect-plaza>Request access</button><p data-connect-status role="status"></p>`:''}${runtime.user?uiHTML`<p><a class="button" href="./account.html#profile" target="_blank" rel="noopener">Account profile ↗</a> <a class="button" href="./account.html#transactions" target="_blank" rel="noopener">Transaction history ↗</a></p>`:''}${canConfigure?uiHTML`<h3>Points spending</h3><p>Execution payments use Plaza points. Each owning agent controls its operations, permissions and data policy.</p>${pointsSpendingHTML()}`:''}`
+  plaza:uiHTML`<h3>Plaza account</h3>${!runtime.plaza.localOnly&&(runtime.plaza.url||runtime.plaza.canChangeAddress)?(runtime.plaza.canChangeAddress&&!hosted?uiHTML`<form class="plaza-address-form" data-plaza-address-form><label>Plaza address<input name="url" type="url" value="${esc(runtime.plaza.url)}" data-plaza-address required autocomplete="url" spellcheck="false" ${runtime.user?'disabled':''}></label><button type="submit" class="button" ${runtime.user?'disabled':''}>Connect</button><p data-plaza-address-status role="status">${runtime.user?label('Sign out of this window before changing its Plaza address.'):!runtime.plaza.url?label('Enter a Plaza address to connect this Terminal.'):''}</p></form>`:uiHTML`<dl class="plaza-login-address"><dt>Plaza address</dt><dd data-plaza-address>${esc(runtime.plaza.url)}</dd></dl>`):''}${runtime.plaza.delegatedLogin?uiHTML`<section data-trusted-plazas><h3>Trusted Plazas</h3><div data-trusted-plazas-list></div><p data-trusted-plazas-status role="status"></p><details><summary>How to connect</summary><p>Request access, wait for the Plaza owner to approve this Terminal, then sign in. Each window uses one Plaza at a time; choose Connect beside a trusted Plaza to switch this window. Each Plaza keeps its own approval and credentials.</p></details></section>`:''}${runtime.kind==='data-terminal'?uiHTML`<p>Each Terminal window has its own Plaza login, settings and open Phemas.</p>`:''}${account}${runtime.user&&runtime.plaza.delegatedLogin&&!runtime.plaza.trusted?uiHTML`<button class="button" data-connect-plaza>Request access</button><p data-connect-status role="status"></p>`:''}${runtime.user?uiHTML`<p><a class="button" href="./account.html#profile" target="_blank" rel="noopener">Account profile ↗</a> <a class="button" href="./account.html#transactions" target="_blank" rel="noopener">Transaction history ↗</a></p>`:''}${canConfigure?uiHTML`<h3 data-points-spending>Points spending</h3><p>Execution payments use Plaza points. Each owning agent controls its operations, permissions and data policy.</p>${pointsSpendingHTML()}`:''}`
  };
+ // Built only when shown: it asks this Terminal for the window's approved AI apps.
+ if(tab==='ai')sections.ai=runtime.user||runtime.plaza.localOnly?aiAppsHTML():uiHTML`<p>Sign in to Plaza to let AI apps control this window.</p>`;
  const local=runtime.plaza.localDiscovery?uiHTML`<section data-local-resources><h3>On this computer</h3><button type="button" data-local-scan>Discover</button><details><summary>How it works</summary><p>Retis components running on this computer are found automatically and work at once: no sign-in or pairing. Nothing on another computer can use them.</p></details><div data-local-list></div><p data-local-status role="status"></p></section>`:'';
  const content=tab==='all'?sections.workspace+local+sections.connections+sections.sources+sections.plaza:(tab==='connections'?local:'')+(sections[tab]||'');
  return uiHTML`<section class="connected-settings">${content}<p data-connected-feedback role="status"></p></section>`;
@@ -282,6 +380,7 @@ document.addEventListener('submit',async event=>{
   if(form.dataset.connectedForm==='signin'){await api('/api/auth/signin',{method:'POST',body:values});location.reload();return;}
   if(form.dataset.connectedForm==='time-display')await api('/api/settings',{method:'PUT',body:{displayTimezone:values.timeZoneMode==='specified'?values.specifiedTimezone:values.timeZoneMode,specifiedTimezone:form.elements.specifiedTimezone.value}});
   if(form.dataset.connectedForm==='display-format')await api('/api/settings',{method:'PUT',body:{displayFormat:displayFormatValues(values)}});
+  if(form.dataset.connectedForm==='workspace-history')await api('/api/settings',{method:'PUT',body:{workspaceHistory:workspaceHistoryValues(values)}});
   if(form.dataset.connectedForm==='market-appearance'){await api('/api/settings',{method:'PUT',body:{marketAppearance:{upColor:values.upColor,downColor:values.downColor,colorChanges:values.colorChanges==='on',flashEnabled:values.flashEnabled==='on',flashColor:values.flashColor,flashDurationMs:Math.round(Number(values.flashDuration)*1000)}}});}
   runtime.settings=await api('/api/settings');applyMarketAppearance(runtime.settings.preferences.marketAppearance);applyDisplayTimezone(runtime.settings.preferences.displayTimezone);applyDisplayFormat(runtime.settings.preferences.displayFormat);if(form.dataset.connectedForm==='display-format')rendering();if(form.dataset.connectedForm==='time-display'){try{scopedStorage().setItem('display-timezone',runtime.settings.preferences.displayTimezone);}catch{}rendering();}if(form.dataset.connectedForm==='market-appearance'){try{scopedStorage().setItem('market-appearance',JSON.stringify(runtime.settings.preferences.marketAppearance));}catch{}setUIText(form.querySelector('[data-market-feedback]'),'Saved.');}if(feedback)setUIText(feedback,'Saved.');
   document.dispatchEvent(new CustomEvent('connected:settings'));
@@ -291,7 +390,7 @@ document.addEventListener('click',async event=>{
  const button=event.target.closest('[data-connected-action]');if(!button)return;
  try {
   if(button.dataset.connectedAction==='signout'){await api('/api/auth/signout',{method:'POST',body:{}});clearSignedOut();location.reload();}
-  if(button.dataset.connectedAction==='points-history'){openPointsHistory({load:async()=>({rows:await loadSpending()}),agentName:publisherName});return;}
+  if(button.dataset.connectedAction==='points-history'){openPointsHistory({load:async()=>({rows:await loadSpending()}),agentName:publisherName,operationName});return;}
   if(button.dataset.connectedAction==='reconcile'){await api('/api/billing/'+button.dataset.id+'/reconcile',{method:'POST',body:{}});runtime.settings=await api('/api/settings');spending.at=0;document.dispatchEvent(new CustomEvent('connected:settings'));return;}
  }catch(error){const f=document.querySelector('[data-connected-feedback]');if(f)f.textContent=error.message;}
 });
@@ -299,14 +398,13 @@ document.addEventListener('click',async event=>{
 
 const nodes=new Map();let latest=[];let currentWorkspace;let rendering=()=>{};
 document.addEventListener('catalog:updated',()=>rendering());
-// Opening the account menu reads the balance from Plaza, which keeps the points.
-document.addEventListener('toggle',async event=>{
- const cell=event.target.matches?.('details.plaza-status[open]')&&event.target.querySelector('[data-plaza-points]');if(!cell)return;
- try{const {account}=await api('/api/account/transactions');cell.textContent=Number(account.balance).toLocaleString();}catch{cell.textContent='—';}
-},true);
+// Opening the account menu shows the points the top bar shows, read again when they are a minute old.
+document.addEventListener('toggle',event=>{if(event.target.matches?.('details.plaza-status[open]'))pointsAgain();},true);
 window.addEventListener('pagehide',()=>{for(const node of nodes.values()){node.events?.close();if(node.remoteId&&!node.viewOnly)fetch('/api/instances/'+node.remoteId,{method:'DELETE',credentials:'same-origin',keepalive:true,headers:terminalHeaders()}).catch(()=>{});}});
 export function syncBrowsers(browsers,workspaceId,onUpdate) {
  latest=browsers;currentWorkspace=workspaceId;rendering=onUpdate;
+ // A page value a Browser publishes to its link group goes out as it changes (link-groups.js).
+ observeLinks(browsers);
  if(!runtime.user)return;
  const ids=new Set(browsers.map(b=>b.id));
  for(const [id,entry] of nodes)if(!ids.has(id)){entry.cancelled=true;entry.events?.close();if(entry.remoteId)api('/api/instances/'+entry.remoteId,{method:'DELETE'}).catch(()=>{});nodes.delete(id);}
@@ -326,20 +424,26 @@ export function syncBrowsers(browsers,workspaceId,onUpdate) {
   }
   if(entry?.remoteId&&entry.designSignature===JSON.stringify(design)){
     entry.signature=signature;
-    api('/api/instances/'+entry.remoteId,{method:'PUT',body:{entry:{...b.customLayout,design},layoutTabs:b.layoutTabs,parameterValues:b.parameterValues,instrumentOverrides:b.instrumentOverrides}}).then(remote=>{entry.state=remote;rendering();}).catch(error=>{entry.state.error=error.message;rendering();});continue;
+    // Kept so a control's runReference runs only once the instance has its new page values. The values sent and the
+    // sequence that answered them let a slower read of the instance be told apart from a newer one (keptValues).
+    entry.sentValues=JSON.stringify(b.parameterValues||{});entry.inflight=(entry.inflight||0)+1;
+    entry.update=api('/api/instances/'+entry.remoteId,{method:'PUT',body:{entry:{...b.customLayout,design},layoutTabs:b.layoutTabs,parameterValues:b.parameterValues,instrumentOverrides:b.instrumentOverrides}}).then(remote=>{entry.putSequence=Math.max(entry.putSequence??-1,remote?.sequence??-1);entry.state=remote;rendering();}).catch(error=>{entry.state.error=error.message;rendering();}).finally(()=>{entry.inflight-=1;});continue;
   }
   if(entry){entry.cancelled=true;entry.events?.close();if(entry.remoteId)released=api('/api/instances/'+entry.remoteId,{method:'DELETE'}).catch(()=>{});}
-  entry={signature,designSignature:JSON.stringify(design),range:b.range,state:{status:'loading',results:{}}};nodes.set(b.id,entry);
+  entry={signature,designSignature:JSON.stringify(design),range:b.range,state:{status:'loading',results:{}},sentValues:JSON.stringify(b.parameterValues||{}),inflight:0};nodes.set(b.id,entry);
   if(!b.customLayout){nodes.delete(b.id);continue;}
   const layout=b.customLayout;
   entry.ready=released.then(()=>api('/api/instances',{method:'POST',body:{workspaceId,layoutTabs:b.layoutTabs,parameterValues:b.parameterValues,instrumentOverrides:b.instrumentOverrides,sourceMode:b.sourceMode||'parameters',snapshotId:b.contentSnapshotId,uiLanguage:b.uiLanguage||null,fieldBindings:normalizeFieldBindings(b.fieldBindings),contentOverrides:normalizeContentOverrides(b.contentOverrides),refreshOverrides:normalizeRefreshOverrides(b.refreshOverrides),range:b.range,command:b.command,messages:normalizeMessages(b.messages),entry:{...layout,design}}})).then(async remote=>{
     if(entry.cancelled){await api('/api/instances/'+remote.id,{method:'DELETE'});return;}
-    entry.remoteId=remote.id;entry.state=remote;if((b.uiLanguage||null)!==(remote.uiLanguage||null))await api('/api/instances/'+remote.id,{method:'PUT',body:{uiLanguage:b.uiLanguage||null}});if(entry.range!==b.range)syncBrowsers(latest,currentWorkspace,rendering);
+    entry.remoteId=remote.id;entry.state=remote;loadPanelSources(b,entry);if((b.uiLanguage||null)!==(remote.uiLanguage||null))await api('/api/instances/'+remote.id,{method:'PUT',body:{uiLanguage:b.uiLanguage||null}});if(entry.range!==b.range)syncBrowsers(latest,currentWorkspace,rendering);
     entry.events=watchBrowserInstance(api,'/api/instances/'+remote.id,state=>{entry.state=state;retryUnconfirmedTrust(b,state);noticeFailedRefresh(b.id,entry,state);
       if(state.phema){const current=phemaToEntry(state.phema);if(JSON.stringify(current)!==JSON.stringify(b.customLayout)){
         b.customLayout=current;b.design=browserDesign(current.design,state.instrumentOverrides);b.layoutId=layoutKind(current.baseLayoutId);
-        b.parameterValues=state.parameterValues||{};b.instrumentOverrides=state.instrumentOverrides||{};b.layoutTabs=state.layoutTabs||{};
-        const design=browserDesign(b.design,b.instrumentOverrides);entry.designSignature=JSON.stringify(design);entry.signature=JSON.stringify([design,current.composition,b.instrumentOverrides,b.parameterValues,b.layoutTabs]);
+        const mine=keptValues(entry,b,state);
+        b.parameterValues=mine?b.parameterValues:state.parameterValues||{};b.instrumentOverrides=state.instrumentOverrides||{};b.layoutTabs=state.layoutTabs||{};
+        // Kept values are signed as the server has them, so the next sync sends them again and the instance catches up.
+        const design=browserDesign(b.design,b.instrumentOverrides);entry.designSignature=JSON.stringify(design);entry.signature=JSON.stringify([design,current.composition,b.instrumentOverrides,mine?state.parameterValues||{}:b.parameterValues,b.layoutTabs]);
+        if(mine)queueMicrotask(()=>syncBrowsers(latest,currentWorkspace,rendering));
         document.dispatchEvent(new CustomEvent('browser:phema-edited',{detail:{id:b.id}}));document.dispatchEvent(new CustomEvent('browser:interaction'));
       }}
 const contentChanged=b.sourceMode!==(entry.state.sourceMode||'parameters')||(entry.state.sourceMode==='snapshot'&&b.contentSnapshotId!==entry.state.content?.snapshotId);b.sourceMode=entry.state.sourceMode||'parameters';b.contentSnapshotId=b.sourceMode==='snapshot'?entry.state.content?.snapshotId:undefined;if(contentChanged)document.dispatchEvent(new CustomEvent('browser:interaction'));b.uiLanguage=entry.state.uiLanguage||null;const messages=normalizeMessages(entry.state.messages);if(JSON.stringify(messages)!==JSON.stringify(b.messages||[])){b.messages=messages;document.dispatchEvent(new CustomEvent('browser:interaction'));}loadOpenedPanels(entry,b);rendering();},error=>{
@@ -350,6 +454,15 @@ const contentChanged=b.sourceMode!==(entry.state.sourceMode||'parameters')||(ent
   }).catch(error=>{entry.state={status:'unavailable',error:error.message,results:{}};
     entry.notApproved=error.status===403&&error.detail===NOT_APPROVED;if(entry.notApproved)watchApproval();rendering();});
  }
+}
+/** Whether this window's page values are newer than an instance read that also brings a changed Phema: an update
+ * of its own is still on the way, values it set are not sent yet, or the read is older than its last answered update.
+ * A value a linked page delivered (or a row clicked) just after the Phema was saved again is then not replaced by the
+ * value the instance held a moment earlier. */
+export function keptValues(entry,b,state){
+ const local=JSON.stringify(b.parameterValues||{});
+ if(local===JSON.stringify(state?.parameterValues||{}))return false;
+ return (entry.inflight||0)>0||local!==entry.sentValues||(entry.putSequence!=null&&(state?.sequence??-1)<entry.putSequence);
 }
 /** The picture saved with a Browser snapshot, shown when New Data Browser offers that snapshot. */
 async function saveSnapshotScreenshot(browserId,snapshotId){
@@ -396,6 +509,8 @@ export async function applyBrowserPhemaEdit(b,next,settings){
  document.dispatchEvent(new CustomEvent('browser:interaction'));rendering();return remote;
 }
 // A Browser with no layout has nothing to load: it says so instead of Loading forever.
+/** The Browser process an open Browser window runs in (its id on this Terminal), or null before it starts. */
+export function remoteIdOf(id){return nodes.get(id)?.remoteId||null;}
 export function browserState(b){const state=nodes.get(b.id)?.state||{status:runtime.user?(b.customLayout?'loading':'empty'):'Sign in to retrieve data',results:{}};return b.layoutConflict?{...state,layoutConflict:b.layoutConflict}:state;}
 export function browserRequirements(b){return browserState(b).entry?.design.dataRequirements||b.design.dataRequirements;}
 export function browserPanels(b){return [...b.design.layout.children,...Object.values(browserState(b).nestedLayouts||{}).flatMap(entry=>entry.design.layout.children)];}
@@ -423,7 +538,8 @@ async function requestBrowserInstance(b,suffix='',options={}){
 }
 export function panelHTML(panel,b,style){
  const state=browserState(b);
- if(b.customLayout?.composition){const content=contentPanel(panel,b,state,style);requestAnimationFrame(()=>mountProtectedContent());if(content!==null)return content;}
+ // A generic content page draws its own panels, references or not (a page of controls with fixed data has none).
+ if(b.customLayout?.composition||b.customLayout?.baseLayoutId==='content'){const content=contentPanel(panel,b,state,style);requestAnimationFrame(()=>mountProtectedContent());if(content!==null)return content;}
  return uiHTML`<section class="template-panel" data-panel-id="${esc(panel.id)}"><p>Open publisher-provided content from an agent workspace.</p></section>`;
 }
 function replyText(value) {
@@ -466,6 +582,47 @@ export async function retryLocalSources(now=Date.now()){
  }
 }
 setInterval(()=>{if(!document.hidden)retryLocalSources().catch(()=>{});},15000);
+/** The programs on this computer a layout's panels wait for because they are not answering (NOT_ANSWERING), by the id
+ * each announces. Plaza is not asked about them: such a layout reloads by itself, as its ↻ would, once Bonjour lists one
+ * of them again, and the Terminal checks it afresh then. Checked every 15 seconds while the window shows. */
+export function stoppedPrograms(state){
+ return [...new Set(Object.values(state?.content?.results||{}).filter(r=>r?.status==='unavailable'&&r.reason===NOT_ANSWERING&&typeof r.program==='string').map(r=>r.program))];
+}
+export async function retryStoppedPrograms(){
+ const waiting=[...nodes].filter(([,entry])=>entry.remoteId&&!entry.cancelled&&stoppedPrograms(entry.state).length);
+ if(!waiting.length)return [];
+ let value;try{value=await api('/api/local-resources');}catch{return [];}
+ const online=new Set((value?.resources||[]).filter(r=>r?.online===true).map(r=>r.id));
+ const back=waiting.filter(([,entry])=>stoppedPrograms(entry.state).some(program=>online.has(program))).map(([id])=>id);
+ if(!back.length)return [];
+ // The Terminal reads this computer's programs afresh first, so the layout's check finds the one that came back.
+ try{await api('/api/local-resources/scan',{method:'POST',body:{}});}catch{}
+ for(const id of back)document.querySelector('[data-action="reload-phema"][data-id="'+CSS.escape(id)+'"]')?.click();
+ return back;
+}
+setInterval(()=>{if(!document.hidden)retryStoppedPrograms().catch(()=>{});},15000);
+// Each data panel's source menu: the sources this viewer can use for its data and the one chosen, read once the
+// Browser's content is connected (the Terminal's per-panel source choice; the layout itself is unchanged).
+async function loadPanelSources(b,entry){
+ if(!b||!entry?.remoteId||entry.viewOnly||b._panelSourcesFor===entry.remoteId)return;
+ b._panelSourcesFor=entry.remoteId;
+ try{const answer=await api('/api/instances/'+entry.remoteId+'/sources');b.panelSources=answer?.byPanel||{};rendering();}
+ catch{b._panelSourcesFor=null;}
+}
+document.addEventListener('change',async event=>{
+ const select=event.target?.closest?.('select[data-panel-source]');if(!select)return;
+ const [browserId,...parts]=select.dataset.panelSource.split('/'),reference=parts.join('/');
+ const entry=nodes.get(browserId),b=latest.find(item=>item.id===browserId);
+ if(!entry?.remoteId||!b){notice(t('This layout is still opening. Press ↻ again in a moment.'));return;}
+ select.disabled=true;
+ try{
+  const answer=await api('/api/instances/'+entry.remoteId+'/content',{method:'POST',body:{operation:'source',source:select.value||null,reference}});
+  // The Browser keeps the choice with its saved settings, as the content dialog's choice is kept.
+  b.contentOverrides=normalizeContentOverrides(answer.contentOverrides);b.panelSources=answer.dataSources?.byPanel||b.panelSources;
+  document.dispatchEvent(new CustomEvent('browser:interaction'));rendering();
+ }catch(error){notice(error.message);rendering();}
+ finally{select.disabled=false;}
+});
 function retryUnconfirmedTrust(b,state){
  if(!state?.security?.trustUnconfirmed||trustRetries.has(b.id))return;
  trustRetries.set(b.id,setTimeout(()=>{trustRetries.delete(b.id);document.querySelector('[data-action="reload-phema"][data-id="'+CSS.escape(b.id)+'"]')?.click();},5000));
@@ -630,6 +787,56 @@ export function setCompositionViewParameters(root,values){
  document.dispatchEvent(new CustomEvent('browser:interaction'));
  return structuredClone(next);
 }
+// A viewer panel (a web page or picture the person chooses) keeps the choice as its page setting, as a view does.
+document.addEventListener('phemacast:viewer-change',event=>{
+ const {parameter,value}=event.detail||{};if(!parameter||!value)return;
+ // A viewer panel sits in a Data Browser window, not in a view's frame: the window names the Browser it belongs to.
+ const browserId=event.target?.closest?.('[data-browser]')?.dataset?.browser||'';
+ const b=latest.find(item=>item.id===browserId);if(!b){console.warn('Viewer setting not kept: the panel is not in a Browser.');return;}
+ b.parameterValues={...(b.parameterValues||{}),[parameter]:structuredClone(value)};syncBrowsers(latest,currentWorkspace,rendering);
+ document.dispatchEvent(new CustomEvent('browser:interaction'));
+});
+// A control (phemacast:control.*) keeps page values as a viewer panel does, and asks for a reference's data as ↻
+// does. Its actions are data from the Phema, checked here again: named values only, bounded, never credentials.
+const CONTROL_VALUE=/^[A-Za-z][A-Za-z0-9_]{0,63}$/,CONTROL_SECRET=/password|secret|token|api.?key|credential|cookie|authorization/i;
+const controlSecret=(value,depth=0)=>depth>12||(Array.isArray(value)?value.some(item=>controlSecret(item,depth+1)):value&&typeof value==='object'&&Object.entries(value).some(([key,item])=>CONTROL_SECRET.test(key)||controlSecret(item,depth+1)));
+function controlBrowser(event){const id=event.target?.closest?.('[data-browser]')?.dataset?.browser||'';return latest.find(item=>item.id===id);}
+function setControlValues(b,values){
+ if(!values||typeof values!=='object'||Array.isArray(values))return false;
+ const next={...(b.parameterValues||{})};let changed=false;
+ for(const [key,value] of Object.entries(values).slice(0,64)){
+  if(!CONTROL_VALUE.test(key))continue;
+  if(value===null||value===undefined){if(Object.hasOwn(next,key)){delete next[key];changed=true;}continue;}
+  if(JSON.stringify(value).length>280000||controlSecret(value))continue;
+  if(JSON.stringify(next[key])!==JSON.stringify(value)){next[key]=structuredClone(value);changed=true;}
+ }
+ if(!changed)return false;
+ b.parameterValues=next;syncBrowsers(latest,currentWorkspace,rendering);
+ document.dispatchEvent(new CustomEvent('browser:interaction'));
+ return true;
+}
+document.addEventListener('phemacast:control-parameters',event=>{
+ const b=controlBrowser(event);if(!b){console.warn('Control values not kept: the panel is not in a Browser.');return;}
+ setControlValues(b,event.detail?.values);
+});
+document.addEventListener('phemacast:control-action',async event=>{
+ const detail=event.detail||{},b=controlBrowser(event);
+ if(detail.kind==='message'){notice(String(detail.text||'').slice(0,2000));return;}
+ // Between panels: a port's value to the link group, page values to another open Phema (openPhema is app.js's).
+ if(detail.kind==='publish'){if(b&&typeof detail.port==='string')publishPort(b,detail.port,detail.value);return;}
+ if(detail.kind==='setPanelParameters'){if(!setPanelParameters(detail.panel,detail.values))notice(t('That panel is no longer open.'));return;}
+ if(detail.kind==='openPhema')return;
+ if(!['refresh','runReference'].includes(detail.kind)||!b||typeof detail.reference!=='string'||!/^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$/.test(detail.reference))return;
+ let entry=nodes.get(b.id);
+ try{await entry?.ready;await entry?.update;}catch{}
+ entry=nodes.get(b.id);
+ if(!entry?.remoteId){notice(t('This layout is still opening. Press ↻ again in a moment.'));return;}
+ try{const answer=await api('/api/instances/'+entry.remoteId+'/content',{method:'POST',body:{references:[detail.reference]}});watchRefresh(refreshWatches,b.id,entry.remoteId,detail.reference,answer);rendering();}
+ catch{notice(t('Couldn’t get new data. The panel still shows earlier data; press ↻ again once the connection is back.'));}
+});
+// The agents a viewer may choose for a pulse ($agents); a newly read list redraws the panels that show it.
+configureAgentChoices({request:api,changed:()=>rendering?.()});
 installSourceSettings({api});
 installAgentTrust({api});
 installScheduledRuns({api,signedIn:()=>!!(runtime.user||runtime.plaza.localOnly),onChange:()=>document.dispatchEvent(new CustomEvent('scheduled-runs:changed'))});
+installAIApps({api,signedIn:()=>!!((runtime.user||runtime.plaza.localOnly)&&terminalWindow()),preferences:()=>runtime.settings?.preferences||{}});

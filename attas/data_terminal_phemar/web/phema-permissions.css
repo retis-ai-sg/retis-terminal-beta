@@ -17,3 +17,5 @@ dialog.phema-permissions[open]{display:flex;flex-direction:column}
 .phema-permissions [role=status]{margin:6px 0 0;color:var(--red)}
 .phema-permissions [role=status]:empty,.phema-permissions [hidden]{display:none}
 .phema-permissions .hint{margin:-4px 0 6px 22px;color:#6b7877;font-size:12px}
+.phema-permissions .phema-permissions-update{display:flex;align-items:center;gap:8px;margin:0 0 8px;padding:6px 8px;border-left:2px solid var(--accent);background:var(--raised)}
+.phema-permissions .phema-permissions-update p{flex:1;margin:0}

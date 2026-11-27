@@ -1,0 +1,9108 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "controls": {
+  "phemacast:control.button": {
+   "additionalProperties": false,
+   "properties": {
+    "backColor": {
+     "anyOf": [
+      {
+       "enum": [
+        "background",
+        "surface",
+        "raised",
+        "hover",
+        "line",
+        "lineSoft",
+        "text",
+        "muted",
+        "dim",
+        "accent",
+        "accentBackground",
+        "positive",
+        "negative"
+       ]
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "dataBindings": {
+     "propertyNames": {
+      "enum": [
+       "-"
+      ]
+     },
+     "type": "object"
+    },
+    "enabled": {
+     "anyOf": [
+      {
+       "type": "boolean"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "events": {
+     "additionalProperties": {
+      "items": {
+       "properties": {
+        "action": {
+         "enum": [
+          "setParameter",
+          "runReference",
+          "refresh",
+          "setProperty",
+          "clearSelection",
+          "openLink",
+          "showMessage",
+          "publish",
+          "openPhema",
+          "setPanelParameters"
+         ]
+        }
+       },
+       "required": [
+        "action"
+       ],
+       "type": "object"
+      },
+      "maxItems": 8,
+      "minItems": 1,
+      "type": "array"
+     },
+     "maxProperties": 32,
+     "propertyNames": {
+      "enum": [
+       "click",
+       "doubleClick",
+       "enter",
+       "leave",
+       "keyDown",
+       "textChanged",
+       "validating",
+       "validated"
+      ]
+     },
+     "type": "object"
+    },
+    "font": {
+     "anyOf": [
+      {
+       "additionalProperties": false,
+       "properties": {
+        "bold": {
+         "type": "boolean"
+        },
+        "family": {
+         "enum": [
+          "sans",
+          "mono"
+         ]
+        },
+        "italic": {
+         "type": "boolean"
+        },
+        "size": {
+         "enum": [
+          "small",
+          "normal",
+          "large"
+         ]
+        }
+       },
+       "type": "object"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "foreColor": {
+     "anyOf": [
+      {
+       "enum": [
+        "background",
+        "surface",
+        "raised",
+        "hover",
+        "line",
+        "lineSoft",
+        "text",
+        "muted",
+        "dim",
+        "accent",
+        "accentBackground",
+        "positive",
+        "negative"
+       ]
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "margin": {
+     "anyOf": [
+      {
+       "enum": [
+        "none",
+        "tight",
+        "normal"
+       ]
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "name": {
+     "anyOf": [
+      {
+       "maxLength": 64,
+       "type": "string"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "padding": {
+     "anyOf": [
+      {
+       "enum": [
+        "none",
+        "tight",
+        "normal"
+       ]
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "tabIndex": {
+     "anyOf": [
+      {
+       "maximum": 999,
+       "minimum": 0,
+       "type": "integer"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "text": {
+     "anyOf": [
+      {
+       "maxLength": 2000,
+       "type": "string"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "theme": {
+     "anyOf": [
+      {
+       "enum": [
+        "terminal",
+        "dark",
+        "light",
+        "attas",
+        "fugle"
+       ]
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "toolTipText": {
+     "anyOf": [
+      {
+       "maxLength": 500,
+       "type": "string"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "type": {
+     "const": "button"
+    },
+    "validation": {
+     "anyOf": [
+      {
+       "additionalProperties": false,
+       "properties": {
+        "maxLength": {
+         "maximum": 2000,
+         "minimum": 0,
+         "type": "integer"
+        },
+        "maximum": {
+         "maximum": 1000000000000000.0,
+         "minimum": -1000000000000000.0,
+         "type": "number"
+        },
+        "message": {
+         "maxLength": 200,
+         "type": "string"
+        },
+        "minLength": {
+         "maximum": 2000,
+         "minimum": 0,
+         "type": "integer"
+        },
+        "minimum": {
+         "maximum": 1000000000000000.0,
+         "minimum": -1000000000000000.0,
+         "type": "number"
+        },
+        "oneOf": {
+         "maxItems": 500,
+         "type": "array"
+        },
+        "required": {
+         "type": "boolean"
+        }
+       },
+       "type": "object"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "visible": {
+     "anyOf": [
+      {
+       "type": "boolean"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    }
+   },
+   "type": "object"
+  },
+  "phemacast:control.check-box": {
+   "additionalProperties": false,
+   "properties": {
+    "backColor": {
+     "anyOf": [
+      {
+       "enum": [
+        "background",
+        "surface",
+        "raised",
+        "hover",
+        "line",
+        "lineSoft",
+        "text",
+        "muted",
+        "dim",
+        "accent",
+        "accentBackground",
+        "positive",
+        "negative"
+       ]
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "checkState": {},
+    "checked": {},
+    "dataBindings": {
+     "propertyNames": {
+      "enum": [
+       "checked",
+       "checkState"
+      ]
+     },
+     "type": "object"
+    },
+    "enabled": {
+     "anyOf": [
+      {
+       "type": "boolean"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "events": {
+     "additionalProperties": {
+      "items": {
+       "properties": {
+        "action": {
+         "enum": [
+          "setParameter",
+          "runReference",
+          "refresh",
+          "setProperty",
+          "clearSelection",
+          "openLink",
+          "showMessage",
+          "publish",
+          "openPhema",
+          "setPanelParameters"
+         ]
+        }
+       },
+       "required": [
+        "action"
+       ],
+       "type": "object"
+      },
+      "maxItems": 8,
+      "minItems": 1,
+      "type": "array"
+     },
+     "maxProperties": 32,
+     "propertyNames": {
+      "enum": [
+       "click",
+       "doubleClick",
+       "enter",
+       "leave",
+       "keyDown",
+       "textChanged",
+       "validating",
+       "validated",
+       "checkedChanged",
+       "checkStateChanged"
+      ]
+     },
+     "type": "object"
+    },
+    "font": {
+     "anyOf": [
+      {
+       "additionalProperties": false,
+       "properties": {
+        "bold": {
+         "type": "boolean"
+        },
+        "family": {
+         "enum": [
+          "sans",
+          "mono"
+         ]
+        },
+        "italic": {
+         "type": "boolean"
+        },
+        "size": {
+         "enum": [
+          "small",
+          "normal",
+          "large"
+         ]
+        }
+       },
+       "type": "object"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "foreColor": {
+     "anyOf": [
+      {
+       "enum": [
+        "background",
+        "surface",
+        "raised",
+        "hover",
+        "line",
+        "lineSoft",
+        "text",
+        "muted",
+        "dim",
+        "accent",
+        "accentBackground",
+        "positive",
+        "negative"
+       ]
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "margin": {
+     "anyOf": [
+      {
+       "enum": [
+        "none",
+        "tight",
+        "normal"
+       ]
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "name": {
+     "anyOf": [
+      {
+       "maxLength": 64,
+       "type": "string"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "padding": {
+     "anyOf": [
+      {
+       "enum": [
+        "none",
+        "tight",
+        "normal"
+       ]
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "tabIndex": {
+     "anyOf": [
+      {
+       "maximum": 999,
+       "minimum": 0,
+       "type": "integer"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "text": {
+     "anyOf": [
+      {
+       "maxLength": 2000,
+       "type": "string"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "theme": {
+     "anyOf": [
+      {
+       "enum": [
+        "terminal",
+        "dark",
+        "light",
+        "attas",
+        "fugle"
+       ]
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "threeState": {
+     "anyOf": [
+      {
+       "type": "boolean"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "toolTipText": {
+     "anyOf": [
+      {
+       "maxLength": 500,
+       "type": "string"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "type": {
+     "const": "checkBox"
+    },
+    "validation": {
+     "anyOf": [
+      {
+       "additionalProperties": false,
+       "properties": {
+        "maxLength": {
+         "maximum": 2000,
+         "minimum": 0,
+         "type": "integer"
+        },
+        "maximum": {
+         "maximum": 1000000000000000.0,
+         "minimum": -1000000000000000.0,
+         "type": "number"
+        },
+        "message": {
+         "maxLength": 200,
+         "type": "string"
+        },
+        "minLength": {
+         "maximum": 2000,
+         "minimum": 0,
+         "type": "integer"
+        },
+        "minimum": {
+         "maximum": 1000000000000000.0,
+         "minimum": -1000000000000000.0,
+         "type": "number"
+        },
+        "oneOf": {
+         "maxItems": 500,
+         "type": "array"
+        },
+        "required": {
+         "type": "boolean"
+        }
+       },
+       "type": "object"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "visible": {
+     "anyOf": [
+      {
+       "type": "boolean"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    }
+   },
+   "type": "object"
+  },
+  "phemacast:control.checked-list-box": {
+   "additionalProperties": false,
+   "properties": {
+    "backColor": {
+     "anyOf": [
+      {
+       "enum": [
+        "background",
+        "surface",
+        "raised",
+        "hover",
+        "line",
+        "lineSoft",
+        "text",
+        "muted",
+        "dim",
+        "accent",
+        "accentBackground",
+        "positive",
+        "negative"
+       ]
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "checkOnClick": {
+     "anyOf": [
+      {
+       "type": "boolean"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "checkedValues": {},
+    "dataBindings": {
+     "propertyNames": {
+      "enum": [
+       "selectedValues",
+       "checkedValues"
+      ]
+     },
+     "type": "object"
+    },
+    "dataSource": {},
+    "displayMember": {
+     "anyOf": [
+      {
+       "maxLength": 100,
+       "type": "string"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "enabled": {
+     "anyOf": [
+      {
+       "type": "boolean"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "events": {
+     "additionalProperties": {
+      "items": {
+       "properties": {
+        "action": {
+         "enum": [
+          "setParameter",
+          "runReference",
+          "refresh",
+          "setProperty",
+          "clearSelection",
+          "openLink",
+          "showMessage",
+          "publish",
+          "openPhema",
+          "setPanelParameters"
+         ]
+        }
+       },
+       "required": [
+        "action"
+       ],
+       "type": "object"
+      },
+      "maxItems": 8,
+      "minItems": 1,
+      "type": "array"
+     },
+     "maxProperties": 32,
+     "propertyNames": {
+      "enum": [
+       "click",
+       "doubleClick",
+       "enter",
+       "leave",
+       "keyDown",
+       "textChanged",
+       "validating",
+       "validated",
+       "selectedIndexChanged",
+       "itemCheck"
+      ]
+     },
+     "type": "object"
+    },
+    "font": {
+     "anyOf": [
+      {
+       "additionalProperties": false,
+       "properties": {
+        "bold": {
+         "type": "boolean"
+        },
+        "family": {
+         "enum": [
+          "sans",
+          "mono"
+         ]
+        },
+        "italic": {
+         "type": "boolean"
+        },
+        "size": {
+         "enum": [
+          "small",
+          "normal",
+          "large"
+         ]
+        }
+       },
+       "type": "object"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "foreColor": {
+     "anyOf": [
+      {
+       "enum": [
+        "background",
+        "surface",
+        "raised",
+        "hover",
+        "line",
+        "lineSoft",
+        "text",
+        "muted",
+        "dim",
+        "accent",
+        "accentBackground",
+        "positive",
+        "negative"
+       ]
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "items": {
+     "anyOf": [
+      {
+       "maxItems": 500,
+       "type": "array"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "margin": {
+     "anyOf": [
+      {
+       "enum": [
+        "none",
+        "tight",
+        "normal"
+       ]
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "name": {
+     "anyOf": [
+      {
+       "maxLength": 64,
+       "type": "string"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "padding": {
+     "anyOf": [
+      {
+       "enum": [
+        "none",
+        "tight",
+        "normal"
+       ]
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "selectedValues": {},
+    "selectionMode": {
+     "anyOf": [
+      {
+       "enum": [
+        "one",
+        "multiSimple",
+        "multiExtended"
+       ]
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "tabIndex": {
+     "anyOf": [
+      {
+       "maximum": 999,
+       "minimum": 0,
+       "type": "integer"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "text": {
+     "anyOf": [
+      {
+       "maxLength": 2000,
+       "type": "string"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "theme": {
+     "anyOf": [
+      {
+       "enum": [
+        "terminal",
+        "dark",
+        "light",
+        "attas",
+        "fugle"
+       ]
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "toolTipText": {
+     "anyOf": [
+      {
+       "maxLength": 500,
+       "type": "string"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "type": {
+     "const": "checkedListBox"
+    },
+    "validation": {
+     "anyOf": [
+      {
+       "additionalProperties": false,
+       "properties": {
+        "maxLength": {
+         "maximum": 2000,
+         "minimum": 0,
+         "type": "integer"
+        },
+        "maximum": {
+         "maximum": 1000000000000000.0,
+         "minimum": -1000000000000000.0,
+         "type": "number"
+        },
+        "message": {
+         "maxLength": 200,
+         "type": "string"
+        },
+        "minLength": {
+         "maximum": 2000,
+         "minimum": 0,
+         "type": "integer"
+        },
+        "minimum": {
+         "maximum": 1000000000000000.0,
+         "minimum": -1000000000000000.0,
+         "type": "number"
+        },
+        "oneOf": {
+         "maxItems": 500,
+         "type": "array"
+        },
+        "required": {
+         "type": "boolean"
+        }
+       },
+       "type": "object"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "valueMember": {
+     "anyOf": [
+      {
+       "maxLength": 100,
+       "type": "string"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "visible": {
+     "anyOf": [
+      {
+       "type": "boolean"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    }
+   },
+   "type": "object"
+  },
+  "phemacast:control.combo-box": {
+   "additionalProperties": false,
+   "properties": {
+    "autoCompleteMode": {
+     "anyOf": [
+      {
+       "enum": [
+        "none",
+        "suggest",
+        "append",
+        "suggestAppend"
+       ]
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "backColor": {
+     "anyOf": [
+      {
+       "enum": [
+        "background",
+        "surface",
+        "raised",
+        "hover",
+        "line",
+        "lineSoft",
+        "text",
+        "muted",
+        "dim",
+        "accent",
+        "accentBackground",
+        "positive",
+        "negative"
+       ]
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "dataBindings": {
+     "propertyNames": {
+      "enum": [
+       "selectedValue",
+       "selectedIndex",
+       "text"
+      ]
+     },
+     "type": "object"
+    },
+    "dataSource": {},
+    "displayMember": {
+     "anyOf": [
+      {
+       "maxLength": 100,
+       "type": "string"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "dropDownStyle": {
+     "anyOf": [
+      {
+       "enum": [
+        "dropDown",
+        "dropDownList"
+       ]
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "enabled": {
+     "anyOf": [
+      {
+       "type": "boolean"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "events": {
+     "additionalProperties": {
+      "items": {
+       "properties": {
+        "action": {
+         "enum": [
+          "setParameter",
+          "runReference",
+          "refresh",
+          "setProperty",
+          "clearSelection",
+          "openLink",
+          "showMessage",
+          "publish",
+          "openPhema",
+          "setPanelParameters"
+         ]
+        }
+       },
+       "required": [
+        "action"
+       ],
+       "type": "object"
+      },
+      "maxItems": 8,
+      "minItems": 1,
+      "type": "array"
+     },
+     "maxProperties": 32,
+     "propertyNames": {
+      "enum": [
+       "click",
+       "doubleClick",
+       "enter",
+       "leave",
+       "keyDown",
+       "textChanged",
+       "validating",
+       "validated",
+       "selectedIndexChanged",
+       "selectedValueChanged",
+       "selectionChangeCommitted",
+       "dropDown",
+       "dropDownClosed",
+       "textUpdate"
+      ]
+     },
+     "type": "object"
+    },
+    "font": {
+     "anyOf": [
+      {
+       "additionalProperties": false,
+       "properties": {
+        "bold": {
+         "type": "boolean"
+        },
+        "family": {
+         "enum": [
+          "sans",
+          "mono"
+         ]
+        },
+        "italic": {
+         "type": "boolean"
+        },
+        "size": {
+         "enum": [
+          "small",
+          "normal",
+          "large"
+         ]
+        }
+       },
+       "type": "object"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "foreColor": {
+     "anyOf": [
+      {
+       "enum": [
+        "background",
+        "surface",
+        "raised",
+        "hover",
+        "line",
+        "lineSoft",
+        "text",
+        "muted",
+        "dim",
+        "accent",
+        "accentBackground",
+        "positive",
+        "negative"
+       ]
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "items": {
+     "anyOf": [
+      {
+       "maxItems": 500,
+       "type": "array"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "margin": {
+     "anyOf": [
+      {
+       "enum": [
+        "none",
+        "tight",
+        "normal"
+       ]
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "maxDropDownItems": {
+     "anyOf": [
+      {
+       "maximum": 100,
+       "minimum": 1,
+       "type": "integer"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "name": {
+     "anyOf": [
+      {
+       "maxLength": 64,
+       "type": "string"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "padding": {
+     "anyOf": [
+      {
+       "enum": [
+        "none",
+        "tight",
+        "normal"
+       ]
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "selectedIndex": {},
+    "selectedValue": {},
+    "sorted": {
+     "anyOf": [
+      {
+       "type": "boolean"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "tabIndex": {
+     "anyOf": [
+      {
+       "maximum": 999,
+       "minimum": 0,
+       "type": "integer"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "text": {
+     "anyOf": [
+      {
+       "maxLength": 2000,
+       "type": "string"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "theme": {
+     "anyOf": [
+      {
+       "enum": [
+        "terminal",
+        "dark",
+        "light",
+        "attas",
+        "fugle"
+       ]
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "toolTipText": {
+     "anyOf": [
+      {
+       "maxLength": 500,
+       "type": "string"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "type": {
+     "const": "comboBox"
+    },
+    "validation": {
+     "anyOf": [
+      {
+       "additionalProperties": false,
+       "properties": {
+        "maxLength": {
+         "maximum": 2000,
+         "minimum": 0,
+         "type": "integer"
+        },
+        "maximum": {
+         "maximum": 1000000000000000.0,
+         "minimum": -1000000000000000.0,
+         "type": "number"
+        },
+        "message": {
+         "maxLength": 200,
+         "type": "string"
+        },
+        "minLength": {
+         "maximum": 2000,
+         "minimum": 0,
+         "type": "integer"
+        },
+        "minimum": {
+         "maximum": 1000000000000000.0,
+         "minimum": -1000000000000000.0,
+         "type": "number"
+        },
+        "oneOf": {
+         "maxItems": 500,
+         "type": "array"
+        },
+        "required": {
+         "type": "boolean"
+        }
+       },
+       "type": "object"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "valueMember": {
+     "anyOf": [
+      {
+       "maxLength": 100,
+       "type": "string"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "visible": {
+     "anyOf": [
+      {
+       "type": "boolean"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    }
+   },
+   "type": "object"
+  },
+  "phemacast:control.date-time-picker": {
+   "additionalProperties": false,
+   "properties": {
+    "backColor": {
+     "anyOf": [
+      {
+       "enum": [
+        "background",
+        "surface",
+        "raised",
+        "hover",
+        "line",
+        "lineSoft",
+        "text",
+        "muted",
+        "dim",
+        "accent",
+        "accentBackground",
+        "positive",
+        "negative"
+       ]
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "customFormat": {
+     "anyOf": [
+      {
+       "type": "object"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "dataBindings": {
+     "propertyNames": {
+      "enum": [
+       "value"
+      ]
+     },
+     "type": "object"
+    },
+    "enabled": {
+     "anyOf": [
+      {
+       "type": "boolean"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "events": {
+     "additionalProperties": {
+      "items": {
+       "properties": {
+        "action": {
+         "enum": [
+          "setParameter",
+          "runReference",
+          "refresh",
+          "setProperty",
+          "clearSelection",
+          "openLink",
+          "showMessage",
+          "publish",
+          "openPhema",
+          "setPanelParameters"
+         ]
+        }
+       },
+       "required": [
+        "action"
+       ],
+       "type": "object"
+      },
+      "maxItems": 8,
+      "minItems": 1,
+      "type": "array"
+     },
+     "maxProperties": 32,
+     "propertyNames": {
+      "enum": [
+       "click",
+       "doubleClick",
+       "enter",
+       "leave",
+       "keyDown",
+       "textChanged",
+       "validating",
+       "validated",
+       "valueChanged"
+      ]
+     },
+     "type": "object"
+    },
+    "font": {
+     "anyOf": [
+      {
+       "additionalProperties": false,
+       "properties": {
+        "bold": {
+         "type": "boolean"
+        },
+        "family": {
+         "enum": [
+          "sans",
+          "mono"
+         ]
+        },
+        "italic": {
+         "type": "boolean"
+        },
+        "size": {
+         "enum": [
+          "small",
+          "normal",
+          "large"
+         ]
+        }
+       },
+       "type": "object"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "foreColor": {
+     "anyOf": [
+      {
+       "enum": [
+        "background",
+        "surface",
+        "raised",
+        "hover",
+        "line",
+        "lineSoft",
+        "text",
+        "muted",
+        "dim",
+        "accent",
+        "accentBackground",
+        "positive",
+        "negative"
+       ]
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "format": {
+     "anyOf": [
+      {
+       "enum": [
+        "long",
+        "short",
+        "time",
+        "custom"
+       ]
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "margin": {
+     "anyOf": [
+      {
+       "enum": [
+        "none",
+        "tight",
+        "normal"
+       ]
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "maxDate": {},
+    "minDate": {},
+    "name": {
+     "anyOf": [
+      {
+       "maxLength": 64,
+       "type": "string"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "padding": {
+     "anyOf": [
+      {
+       "enum": [
+        "none",
+        "tight",
+        "normal"
+       ]
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "showCheckBox": {
+     "anyOf": [
+      {
+       "type": "boolean"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "tabIndex": {
+     "anyOf": [
+      {
+       "maximum": 999,
+       "minimum": 0,
+       "type": "integer"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "text": {
+     "anyOf": [
+      {
+       "maxLength": 2000,
+       "type": "string"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "theme": {
+     "anyOf": [
+      {
+       "enum": [
+        "terminal",
+        "dark",
+        "light",
+        "attas",
+        "fugle"
+       ]
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "toolTipText": {
+     "anyOf": [
+      {
+       "maxLength": 500,
+       "type": "string"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "type": {
+     "const": "dateTimePicker"
+    },
+    "validation": {
+     "anyOf": [
+      {
+       "additionalProperties": false,
+       "properties": {
+        "maxLength": {
+         "maximum": 2000,
+         "minimum": 0,
+         "type": "integer"
+        },
+        "maximum": {
+         "maximum": 1000000000000000.0,
+         "minimum": -1000000000000000.0,
+         "type": "number"
+        },
+        "message": {
+         "maxLength": 200,
+         "type": "string"
+        },
+        "minLength": {
+         "maximum": 2000,
+         "minimum": 0,
+         "type": "integer"
+        },
+        "minimum": {
+         "maximum": 1000000000000000.0,
+         "minimum": -1000000000000000.0,
+         "type": "number"
+        },
+        "oneOf": {
+         "maxItems": 500,
+         "type": "array"
+        },
+        "required": {
+         "type": "boolean"
+        }
+       },
+       "type": "object"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "value": {},
+    "visible": {
+     "anyOf": [
+      {
+       "type": "boolean"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    }
+   },
+   "type": "object"
+  },
+  "phemacast:control.group-box": {
+   "additionalProperties": false,
+   "properties": {
+    "backColor": {
+     "anyOf": [
+      {
+       "enum": [
+        "background",
+        "surface",
+        "raised",
+        "hover",
+        "line",
+        "lineSoft",
+        "text",
+        "muted",
+        "dim",
+        "accent",
+        "accentBackground",
+        "positive",
+        "negative"
+       ]
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "borderStyle": {
+     "anyOf": [
+      {
+       "enum": [
+        "none",
+        "fixedSingle"
+       ]
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "controls": {},
+    "dataBindings": {
+     "propertyNames": {
+      "enum": [
+       "-"
+      ]
+     },
+     "type": "object"
+    },
+    "enabled": {
+     "anyOf": [
+      {
+       "type": "boolean"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "events": {
+     "additionalProperties": {
+      "items": {
+       "properties": {
+        "action": {
+         "enum": [
+          "setParameter",
+          "runReference",
+          "refresh",
+          "setProperty",
+          "clearSelection",
+          "openLink",
+          "showMessage",
+          "publish",
+          "openPhema",
+          "setPanelParameters"
+         ]
+        }
+       },
+       "required": [
+        "action"
+       ],
+       "type": "object"
+      },
+      "maxItems": 8,
+      "minItems": 1,
+      "type": "array"
+     },
+     "maxProperties": 32,
+     "propertyNames": {
+      "enum": [
+       "click",
+       "doubleClick",
+       "enter",
+       "leave",
+       "keyDown",
+       "textChanged",
+       "validating",
+       "validated"
+      ]
+     },
+     "type": "object"
+    },
+    "font": {
+     "anyOf": [
+      {
+       "additionalProperties": false,
+       "properties": {
+        "bold": {
+         "type": "boolean"
+        },
+        "family": {
+         "enum": [
+          "sans",
+          "mono"
+         ]
+        },
+        "italic": {
+         "type": "boolean"
+        },
+        "size": {
+         "enum": [
+          "small",
+          "normal",
+          "large"
+         ]
+        }
+       },
+       "type": "object"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "foreColor": {
+     "anyOf": [
+      {
+       "enum": [
+        "background",
+        "surface",
+        "raised",
+        "hover",
+        "line",
+        "lineSoft",
+        "text",
+        "muted",
+        "dim",
+        "accent",
+        "accentBackground",
+        "positive",
+        "negative"
+       ]
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "margin": {
+     "anyOf": [
+      {
+       "enum": [
+        "none",
+        "tight",
+        "normal"
+       ]
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "name": {
+     "anyOf": [
+      {
+       "maxLength": 64,
+       "type": "string"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "padding": {
+     "anyOf": [
+      {
+       "enum": [
+        "none",
+        "tight",
+        "normal"
+       ]
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "tabIndex": {
+     "anyOf": [
+      {
+       "maximum": 999,
+       "minimum": 0,
+       "type": "integer"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "text": {
+     "anyOf": [
+      {
+       "maxLength": 2000,
+       "type": "string"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "theme": {
+     "anyOf": [
+      {
+       "enum": [
+        "terminal",
+        "dark",
+        "light",
+        "attas",
+        "fugle"
+       ]
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "toolTipText": {
+     "anyOf": [
+      {
+       "maxLength": 500,
+       "type": "string"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "type": {
+     "const": "groupBox"
+    },
+    "validation": {
+     "anyOf": [
+      {
+       "additionalProperties": false,
+       "properties": {
+        "maxLength": {
+         "maximum": 2000,
+         "minimum": 0,
+         "type": "integer"
+        },
+        "maximum": {
+         "maximum": 1000000000000000.0,
+         "minimum": -1000000000000000.0,
+         "type": "number"
+        },
+        "message": {
+         "maxLength": 200,
+         "type": "string"
+        },
+        "minLength": {
+         "maximum": 2000,
+         "minimum": 0,
+         "type": "integer"
+        },
+        "minimum": {
+         "maximum": 1000000000000000.0,
+         "minimum": -1000000000000000.0,
+         "type": "number"
+        },
+        "oneOf": {
+         "maxItems": 500,
+         "type": "array"
+        },
+        "required": {
+         "type": "boolean"
+        }
+       },
+       "type": "object"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "visible": {
+     "anyOf": [
+      {
+       "type": "boolean"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    }
+   },
+   "type": "object"
+  },
+  "phemacast:control.label": {
+   "additionalProperties": false,
+   "properties": {
+    "autoEllipsis": {
+     "anyOf": [
+      {
+       "type": "boolean"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "backColor": {
+     "anyOf": [
+      {
+       "enum": [
+        "background",
+        "surface",
+        "raised",
+        "hover",
+        "line",
+        "lineSoft",
+        "text",
+        "muted",
+        "dim",
+        "accent",
+        "accentBackground",
+        "positive",
+        "negative"
+       ]
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "dataBindings": {
+     "propertyNames": {
+      "enum": [
+       "-"
+      ]
+     },
+     "type": "object"
+    },
+    "enabled": {
+     "anyOf": [
+      {
+       "type": "boolean"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "events": {
+     "additionalProperties": {
+      "items": {
+       "properties": {
+        "action": {
+         "enum": [
+          "setParameter",
+          "runReference",
+          "refresh",
+          "setProperty",
+          "clearSelection",
+          "openLink",
+          "showMessage",
+          "publish",
+          "openPhema",
+          "setPanelParameters"
+         ]
+        }
+       },
+       "required": [
+        "action"
+       ],
+       "type": "object"
+      },
+      "maxItems": 8,
+      "minItems": 1,
+      "type": "array"
+     },
+     "maxProperties": 32,
+     "propertyNames": {
+      "enum": [
+       "click",
+       "doubleClick",
+       "enter",
+       "leave",
+       "keyDown",
+       "textChanged",
+       "validating",
+       "validated"
+      ]
+     },
+     "type": "object"
+    },
+    "font": {
+     "anyOf": [
+      {
+       "additionalProperties": false,
+       "properties": {
+        "bold": {
+         "type": "boolean"
+        },
+        "family": {
+         "enum": [
+          "sans",
+          "mono"
+         ]
+        },
+        "italic": {
+         "type": "boolean"
+        },
+        "size": {
+         "enum": [
+          "small",
+          "normal",
+          "large"
+         ]
+        }
+       },
+       "type": "object"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "foreColor": {
+     "anyOf": [
+      {
+       "enum": [
+        "background",
+        "surface",
+        "raised",
+        "hover",
+        "line",
+        "lineSoft",
+        "text",
+        "muted",
+        "dim",
+        "accent",
+        "accentBackground",
+        "positive",
+        "negative"
+       ]
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "margin": {
+     "anyOf": [
+      {
+       "enum": [
+        "none",
+        "tight",
+        "normal"
+       ]
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "name": {
+     "anyOf": [
+      {
+       "maxLength": 64,
+       "type": "string"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "padding": {
+     "anyOf": [
+      {
+       "enum": [
+        "none",
+        "tight",
+        "normal"
+       ]
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "tabIndex": {
+     "anyOf": [
+      {
+       "maximum": 999,
+       "minimum": 0,
+       "type": "integer"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "text": {
+     "anyOf": [
+      {
+       "maxLength": 2000,
+       "type": "string"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "textAlign": {
+     "anyOf": [
+      {
+       "enum": [
+        "topLeft",
+        "topCenter",
+        "topRight",
+        "middleLeft",
+        "middleCenter",
+        "middleRight",
+        "bottomLeft",
+        "bottomCenter",
+        "bottomRight"
+       ]
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "theme": {
+     "anyOf": [
+      {
+       "enum": [
+        "terminal",
+        "dark",
+        "light",
+        "attas",
+        "fugle"
+       ]
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "toolTipText": {
+     "anyOf": [
+      {
+       "maxLength": 500,
+       "type": "string"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "type": {
+     "const": "label"
+    },
+    "validation": {
+     "anyOf": [
+      {
+       "additionalProperties": false,
+       "properties": {
+        "maxLength": {
+         "maximum": 2000,
+         "minimum": 0,
+         "type": "integer"
+        },
+        "maximum": {
+         "maximum": 1000000000000000.0,
+         "minimum": -1000000000000000.0,
+         "type": "number"
+        },
+        "message": {
+         "maxLength": 200,
+         "type": "string"
+        },
+        "minLength": {
+         "maximum": 2000,
+         "minimum": 0,
+         "type": "integer"
+        },
+        "minimum": {
+         "maximum": 1000000000000000.0,
+         "minimum": -1000000000000000.0,
+         "type": "number"
+        },
+        "oneOf": {
+         "maxItems": 500,
+         "type": "array"
+        },
+        "required": {
+         "type": "boolean"
+        }
+       },
+       "type": "object"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "visible": {
+     "anyOf": [
+      {
+       "type": "boolean"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    }
+   },
+   "type": "object"
+  },
+  "phemacast:control.link-label": {
+   "additionalProperties": false,
+   "properties": {
+    "backColor": {
+     "anyOf": [
+      {
+       "enum": [
+        "background",
+        "surface",
+        "raised",
+        "hover",
+        "line",
+        "lineSoft",
+        "text",
+        "muted",
+        "dim",
+        "accent",
+        "accentBackground",
+        "positive",
+        "negative"
+       ]
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "dataBindings": {
+     "propertyNames": {
+      "enum": [
+       "-"
+      ]
+     },
+     "type": "object"
+    },
+    "enabled": {
+     "anyOf": [
+      {
+       "type": "boolean"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "events": {
+     "additionalProperties": {
+      "items": {
+       "properties": {
+        "action": {
+         "enum": [
+          "setParameter",
+          "runReference",
+          "refresh",
+          "setProperty",
+          "clearSelection",
+          "openLink",
+          "showMessage",
+          "publish",
+          "openPhema",
+          "setPanelParameters"
+         ]
+        }
+       },
+       "required": [
+        "action"
+       ],
+       "type": "object"
+      },
+      "maxItems": 8,
+      "minItems": 1,
+      "type": "array"
+     },
+     "maxProperties": 32,
+     "propertyNames": {
+      "enum": [
+       "click",
+       "doubleClick",
+       "enter",
+       "leave",
+       "keyDown",
+       "textChanged",
+       "validating",
+       "validated",
+       "linkClicked"
+      ]
+     },
+     "type": "object"
+    },
+    "font": {
+     "anyOf": [
+      {
+       "additionalProperties": false,
+       "properties": {
+        "bold": {
+         "type": "boolean"
+        },
+        "family": {
+         "enum": [
+          "sans",
+          "mono"
+         ]
+        },
+        "italic": {
+         "type": "boolean"
+        },
+        "size": {
+         "enum": [
+          "small",
+          "normal",
+          "large"
+         ]
+        }
+       },
+       "type": "object"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "foreColor": {
+     "anyOf": [
+      {
+       "enum": [
+        "background",
+        "surface",
+        "raised",
+        "hover",
+        "line",
+        "lineSoft",
+        "text",
+        "muted",
+        "dim",
+        "accent",
+        "accentBackground",
+        "positive",
+        "negative"
+       ]
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "link": {
+     "anyOf": [
+      {
+       "maxLength": 4096,
+       "type": "string"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "linkVisited": {
+     "anyOf": [
+      {
+       "type": "boolean"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "margin": {
+     "anyOf": [
+      {
+       "enum": [
+        "none",
+        "tight",
+        "normal"
+       ]
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "name": {
+     "anyOf": [
+      {
+       "maxLength": 64,
+       "type": "string"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "padding": {
+     "anyOf": [
+      {
+       "enum": [
+        "none",
+        "tight",
+        "normal"
+       ]
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "tabIndex": {
+     "anyOf": [
+      {
+       "maximum": 999,
+       "minimum": 0,
+       "type": "integer"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "text": {
+     "anyOf": [
+      {
+       "maxLength": 2000,
+       "type": "string"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "theme": {
+     "anyOf": [
+      {
+       "enum": [
+        "terminal",
+        "dark",
+        "light",
+        "attas",
+        "fugle"
+       ]
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "toolTipText": {
+     "anyOf": [
+      {
+       "maxLength": 500,
+       "type": "string"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "type": {
+     "const": "linkLabel"
+    },
+    "validation": {
+     "anyOf": [
+      {
+       "additionalProperties": false,
+       "properties": {
+        "maxLength": {
+         "maximum": 2000,
+         "minimum": 0,
+         "type": "integer"
+        },
+        "maximum": {
+         "maximum": 1000000000000000.0,
+         "minimum": -1000000000000000.0,
+         "type": "number"
+        },
+        "message": {
+         "maxLength": 200,
+         "type": "string"
+        },
+        "minLength": {
+         "maximum": 2000,
+         "minimum": 0,
+         "type": "integer"
+        },
+        "minimum": {
+         "maximum": 1000000000000000.0,
+         "minimum": -1000000000000000.0,
+         "type": "number"
+        },
+        "oneOf": {
+         "maxItems": 500,
+         "type": "array"
+        },
+        "required": {
+         "type": "boolean"
+        }
+       },
+       "type": "object"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "visible": {
+     "anyOf": [
+      {
+       "type": "boolean"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    }
+   },
+   "type": "object"
+  },
+  "phemacast:control.list-box": {
+   "additionalProperties": false,
+   "properties": {
+    "backColor": {
+     "anyOf": [
+      {
+       "enum": [
+        "background",
+        "surface",
+        "raised",
+        "hover",
+        "line",
+        "lineSoft",
+        "text",
+        "muted",
+        "dim",
+        "accent",
+        "accentBackground",
+        "positive",
+        "negative"
+       ]
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "dataBindings": {
+     "propertyNames": {
+      "enum": [
+       "selectedValues"
+      ]
+     },
+     "type": "object"
+    },
+    "dataSource": {},
+    "displayMember": {
+     "anyOf": [
+      {
+       "maxLength": 100,
+       "type": "string"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "enabled": {
+     "anyOf": [
+      {
+       "type": "boolean"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "events": {
+     "additionalProperties": {
+      "items": {
+       "properties": {
+        "action": {
+         "enum": [
+          "setParameter",
+          "runReference",
+          "refresh",
+          "setProperty",
+          "clearSelection",
+          "openLink",
+          "showMessage",
+          "publish",
+          "openPhema",
+          "setPanelParameters"
+         ]
+        }
+       },
+       "required": [
+        "action"
+       ],
+       "type": "object"
+      },
+      "maxItems": 8,
+      "minItems": 1,
+      "type": "array"
+     },
+     "maxProperties": 32,
+     "propertyNames": {
+      "enum": [
+       "click",
+       "doubleClick",
+       "enter",
+       "leave",
+       "keyDown",
+       "textChanged",
+       "validating",
+       "validated",
+       "selectedIndexChanged"
+      ]
+     },
+     "type": "object"
+    },
+    "font": {
+     "anyOf": [
+      {
+       "additionalProperties": false,
+       "properties": {
+        "bold": {
+         "type": "boolean"
+        },
+        "family": {
+         "enum": [
+          "sans",
+          "mono"
+         ]
+        },
+        "italic": {
+         "type": "boolean"
+        },
+        "size": {
+         "enum": [
+          "small",
+          "normal",
+          "large"
+         ]
+        }
+       },
+       "type": "object"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "foreColor": {
+     "anyOf": [
+      {
+       "enum": [
+        "background",
+        "surface",
+        "raised",
+        "hover",
+        "line",
+        "lineSoft",
+        "text",
+        "muted",
+        "dim",
+        "accent",
+        "accentBackground",
+        "positive",
+        "negative"
+       ]
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "items": {
+     "anyOf": [
+      {
+       "maxItems": 500,
+       "type": "array"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "margin": {
+     "anyOf": [
+      {
+       "enum": [
+        "none",
+        "tight",
+        "normal"
+       ]
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "name": {
+     "anyOf": [
+      {
+       "maxLength": 64,
+       "type": "string"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "padding": {
+     "anyOf": [
+      {
+       "enum": [
+        "none",
+        "tight",
+        "normal"
+       ]
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "selectedValues": {},
+    "selectionMode": {
+     "anyOf": [
+      {
+       "enum": [
+        "one",
+        "multiSimple",
+        "multiExtended"
+       ]
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "tabIndex": {
+     "anyOf": [
+      {
+       "maximum": 999,
+       "minimum": 0,
+       "type": "integer"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "text": {
+     "anyOf": [
+      {
+       "maxLength": 2000,
+       "type": "string"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "theme": {
+     "anyOf": [
+      {
+       "enum": [
+        "terminal",
+        "dark",
+        "light",
+        "attas",
+        "fugle"
+       ]
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "toolTipText": {
+     "anyOf": [
+      {
+       "maxLength": 500,
+       "type": "string"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "type": {
+     "const": "listBox"
+    },
+    "validation": {
+     "anyOf": [
+      {
+       "additionalProperties": false,
+       "properties": {
+        "maxLength": {
+         "maximum": 2000,
+         "minimum": 0,
+         "type": "integer"
+        },
+        "maximum": {
+         "maximum": 1000000000000000.0,
+         "minimum": -1000000000000000.0,
+         "type": "number"
+        },
+        "message": {
+         "maxLength": 200,
+         "type": "string"
+        },
+        "minLength": {
+         "maximum": 2000,
+         "minimum": 0,
+         "type": "integer"
+        },
+        "minimum": {
+         "maximum": 1000000000000000.0,
+         "minimum": -1000000000000000.0,
+         "type": "number"
+        },
+        "oneOf": {
+         "maxItems": 500,
+         "type": "array"
+        },
+        "required": {
+         "type": "boolean"
+        }
+       },
+       "type": "object"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "valueMember": {
+     "anyOf": [
+      {
+       "maxLength": 100,
+       "type": "string"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "visible": {
+     "anyOf": [
+      {
+       "type": "boolean"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    }
+   },
+   "type": "object"
+  },
+  "phemacast:control.numeric-up-down": {
+   "additionalProperties": false,
+   "properties": {
+    "backColor": {
+     "anyOf": [
+      {
+       "enum": [
+        "background",
+        "surface",
+        "raised",
+        "hover",
+        "line",
+        "lineSoft",
+        "text",
+        "muted",
+        "dim",
+        "accent",
+        "accentBackground",
+        "positive",
+        "negative"
+       ]
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "dataBindings": {
+     "propertyNames": {
+      "enum": [
+       "value"
+      ]
+     },
+     "type": "object"
+    },
+    "decimalPlaces": {
+     "anyOf": [
+      {
+       "maximum": 8,
+       "minimum": 0,
+       "type": "integer"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "enabled": {
+     "anyOf": [
+      {
+       "type": "boolean"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "events": {
+     "additionalProperties": {
+      "items": {
+       "properties": {
+        "action": {
+         "enum": [
+          "setParameter",
+          "runReference",
+          "refresh",
+          "setProperty",
+          "clearSelection",
+          "openLink",
+          "showMessage",
+          "publish",
+          "openPhema",
+          "setPanelParameters"
+         ]
+        }
+       },
+       "required": [
+        "action"
+       ],
+       "type": "object"
+      },
+      "maxItems": 8,
+      "minItems": 1,
+      "type": "array"
+     },
+     "maxProperties": 32,
+     "propertyNames": {
+      "enum": [
+       "click",
+       "doubleClick",
+       "enter",
+       "leave",
+       "keyDown",
+       "textChanged",
+       "validating",
+       "validated",
+       "valueChanged"
+      ]
+     },
+     "type": "object"
+    },
+    "font": {
+     "anyOf": [
+      {
+       "additionalProperties": false,
+       "properties": {
+        "bold": {
+         "type": "boolean"
+        },
+        "family": {
+         "enum": [
+          "sans",
+          "mono"
+         ]
+        },
+        "italic": {
+         "type": "boolean"
+        },
+        "size": {
+         "enum": [
+          "small",
+          "normal",
+          "large"
+         ]
+        }
+       },
+       "type": "object"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "foreColor": {
+     "anyOf": [
+      {
+       "enum": [
+        "background",
+        "surface",
+        "raised",
+        "hover",
+        "line",
+        "lineSoft",
+        "text",
+        "muted",
+        "dim",
+        "accent",
+        "accentBackground",
+        "positive",
+        "negative"
+       ]
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "increment": {
+     "anyOf": [
+      {
+       "maximum": 1000000000000000.0,
+       "minimum": -1000000000000000.0,
+       "type": "number"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "margin": {
+     "anyOf": [
+      {
+       "enum": [
+        "none",
+        "tight",
+        "normal"
+       ]
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "maximum": {
+     "anyOf": [
+      {
+       "maximum": 1000000000000000.0,
+       "minimum": -1000000000000000.0,
+       "type": "number"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "minimum": {
+     "anyOf": [
+      {
+       "maximum": 1000000000000000.0,
+       "minimum": -1000000000000000.0,
+       "type": "number"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "name": {
+     "anyOf": [
+      {
+       "maxLength": 64,
+       "type": "string"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "padding": {
+     "anyOf": [
+      {
+       "enum": [
+        "none",
+        "tight",
+        "normal"
+       ]
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "tabIndex": {
+     "anyOf": [
+      {
+       "maximum": 999,
+       "minimum": 0,
+       "type": "integer"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "text": {
+     "anyOf": [
+      {
+       "maxLength": 2000,
+       "type": "string"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "theme": {
+     "anyOf": [
+      {
+       "enum": [
+        "terminal",
+        "dark",
+        "light",
+        "attas",
+        "fugle"
+       ]
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "thousandsSeparator": {
+     "anyOf": [
+      {
+       "type": "boolean"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "toolTipText": {
+     "anyOf": [
+      {
+       "maxLength": 500,
+       "type": "string"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "type": {
+     "const": "numericUpDown"
+    },
+    "validation": {
+     "anyOf": [
+      {
+       "additionalProperties": false,
+       "properties": {
+        "maxLength": {
+         "maximum": 2000,
+         "minimum": 0,
+         "type": "integer"
+        },
+        "maximum": {
+         "maximum": 1000000000000000.0,
+         "minimum": -1000000000000000.0,
+         "type": "number"
+        },
+        "message": {
+         "maxLength": 200,
+         "type": "string"
+        },
+        "minLength": {
+         "maximum": 2000,
+         "minimum": 0,
+         "type": "integer"
+        },
+        "minimum": {
+         "maximum": 1000000000000000.0,
+         "minimum": -1000000000000000.0,
+         "type": "number"
+        },
+        "oneOf": {
+         "maxItems": 500,
+         "type": "array"
+        },
+        "required": {
+         "type": "boolean"
+        }
+       },
+       "type": "object"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "value": {},
+    "visible": {
+     "anyOf": [
+      {
+       "type": "boolean"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    }
+   },
+   "type": "object"
+  },
+  "phemacast:control.panel": {
+   "additionalProperties": false,
+   "properties": {
+    "backColor": {
+     "anyOf": [
+      {
+       "enum": [
+        "background",
+        "surface",
+        "raised",
+        "hover",
+        "line",
+        "lineSoft",
+        "text",
+        "muted",
+        "dim",
+        "accent",
+        "accentBackground",
+        "positive",
+        "negative"
+       ]
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "borderStyle": {
+     "anyOf": [
+      {
+       "enum": [
+        "none",
+        "fixedSingle"
+       ]
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "controls": {},
+    "dataBindings": {
+     "propertyNames": {
+      "enum": [
+       "-"
+      ]
+     },
+     "type": "object"
+    },
+    "enabled": {
+     "anyOf": [
+      {
+       "type": "boolean"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "events": {
+     "additionalProperties": {
+      "items": {
+       "properties": {
+        "action": {
+         "enum": [
+          "setParameter",
+          "runReference",
+          "refresh",
+          "setProperty",
+          "clearSelection",
+          "openLink",
+          "showMessage",
+          "publish",
+          "openPhema",
+          "setPanelParameters"
+         ]
+        }
+       },
+       "required": [
+        "action"
+       ],
+       "type": "object"
+      },
+      "maxItems": 8,
+      "minItems": 1,
+      "type": "array"
+     },
+     "maxProperties": 32,
+     "propertyNames": {
+      "enum": [
+       "click",
+       "doubleClick",
+       "enter",
+       "leave",
+       "keyDown",
+       "textChanged",
+       "validating",
+       "validated"
+      ]
+     },
+     "type": "object"
+    },
+    "font": {
+     "anyOf": [
+      {
+       "additionalProperties": false,
+       "properties": {
+        "bold": {
+         "type": "boolean"
+        },
+        "family": {
+         "enum": [
+          "sans",
+          "mono"
+         ]
+        },
+        "italic": {
+         "type": "boolean"
+        },
+        "size": {
+         "enum": [
+          "small",
+          "normal",
+          "large"
+         ]
+        }
+       },
+       "type": "object"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "foreColor": {
+     "anyOf": [
+      {
+       "enum": [
+        "background",
+        "surface",
+        "raised",
+        "hover",
+        "line",
+        "lineSoft",
+        "text",
+        "muted",
+        "dim",
+        "accent",
+        "accentBackground",
+        "positive",
+        "negative"
+       ]
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "margin": {
+     "anyOf": [
+      {
+       "enum": [
+        "none",
+        "tight",
+        "normal"
+       ]
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "name": {
+     "anyOf": [
+      {
+       "maxLength": 64,
+       "type": "string"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "padding": {
+     "anyOf": [
+      {
+       "enum": [
+        "none",
+        "tight",
+        "normal"
+       ]
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "tabIndex": {
+     "anyOf": [
+      {
+       "maximum": 999,
+       "minimum": 0,
+       "type": "integer"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "text": {
+     "anyOf": [
+      {
+       "maxLength": 2000,
+       "type": "string"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "theme": {
+     "anyOf": [
+      {
+       "enum": [
+        "terminal",
+        "dark",
+        "light",
+        "attas",
+        "fugle"
+       ]
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "toolTipText": {
+     "anyOf": [
+      {
+       "maxLength": 500,
+       "type": "string"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "type": {
+     "const": "panel"
+    },
+    "validation": {
+     "anyOf": [
+      {
+       "additionalProperties": false,
+       "properties": {
+        "maxLength": {
+         "maximum": 2000,
+         "minimum": 0,
+         "type": "integer"
+        },
+        "maximum": {
+         "maximum": 1000000000000000.0,
+         "minimum": -1000000000000000.0,
+         "type": "number"
+        },
+        "message": {
+         "maxLength": 200,
+         "type": "string"
+        },
+        "minLength": {
+         "maximum": 2000,
+         "minimum": 0,
+         "type": "integer"
+        },
+        "minimum": {
+         "maximum": 1000000000000000.0,
+         "minimum": -1000000000000000.0,
+         "type": "number"
+        },
+        "oneOf": {
+         "maxItems": 500,
+         "type": "array"
+        },
+        "required": {
+         "type": "boolean"
+        }
+       },
+       "type": "object"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "visible": {
+     "anyOf": [
+      {
+       "type": "boolean"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    }
+   },
+   "type": "object"
+  },
+  "phemacast:control.progress-bar": {
+   "additionalProperties": false,
+   "properties": {
+    "backColor": {
+     "anyOf": [
+      {
+       "enum": [
+        "background",
+        "surface",
+        "raised",
+        "hover",
+        "line",
+        "lineSoft",
+        "text",
+        "muted",
+        "dim",
+        "accent",
+        "accentBackground",
+        "positive",
+        "negative"
+       ]
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "dataBindings": {
+     "propertyNames": {
+      "enum": [
+       "-"
+      ]
+     },
+     "type": "object"
+    },
+    "enabled": {
+     "anyOf": [
+      {
+       "type": "boolean"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "events": {
+     "additionalProperties": {
+      "items": {
+       "properties": {
+        "action": {
+         "enum": [
+          "setParameter",
+          "runReference",
+          "refresh",
+          "setProperty",
+          "clearSelection",
+          "openLink",
+          "showMessage",
+          "publish",
+          "openPhema",
+          "setPanelParameters"
+         ]
+        }
+       },
+       "required": [
+        "action"
+       ],
+       "type": "object"
+      },
+      "maxItems": 8,
+      "minItems": 1,
+      "type": "array"
+     },
+     "maxProperties": 32,
+     "propertyNames": {
+      "enum": [
+       "click",
+       "doubleClick",
+       "enter",
+       "leave",
+       "keyDown",
+       "textChanged",
+       "validating",
+       "validated"
+      ]
+     },
+     "type": "object"
+    },
+    "font": {
+     "anyOf": [
+      {
+       "additionalProperties": false,
+       "properties": {
+        "bold": {
+         "type": "boolean"
+        },
+        "family": {
+         "enum": [
+          "sans",
+          "mono"
+         ]
+        },
+        "italic": {
+         "type": "boolean"
+        },
+        "size": {
+         "enum": [
+          "small",
+          "normal",
+          "large"
+         ]
+        }
+       },
+       "type": "object"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "foreColor": {
+     "anyOf": [
+      {
+       "enum": [
+        "background",
+        "surface",
+        "raised",
+        "hover",
+        "line",
+        "lineSoft",
+        "text",
+        "muted",
+        "dim",
+        "accent",
+        "accentBackground",
+        "positive",
+        "negative"
+       ]
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "margin": {
+     "anyOf": [
+      {
+       "enum": [
+        "none",
+        "tight",
+        "normal"
+       ]
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "maximum": {
+     "anyOf": [
+      {
+       "maximum": 1000000000000000.0,
+       "minimum": -1000000000000000.0,
+       "type": "number"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "minimum": {
+     "anyOf": [
+      {
+       "maximum": 1000000000000000.0,
+       "minimum": -1000000000000000.0,
+       "type": "number"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "name": {
+     "anyOf": [
+      {
+       "maxLength": 64,
+       "type": "string"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "padding": {
+     "anyOf": [
+      {
+       "enum": [
+        "none",
+        "tight",
+        "normal"
+       ]
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "style": {
+     "anyOf": [
+      {
+       "enum": [
+        "blocks",
+        "continuous",
+        "marquee"
+       ]
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "tabIndex": {
+     "anyOf": [
+      {
+       "maximum": 999,
+       "minimum": 0,
+       "type": "integer"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "text": {
+     "anyOf": [
+      {
+       "maxLength": 2000,
+       "type": "string"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "theme": {
+     "anyOf": [
+      {
+       "enum": [
+        "terminal",
+        "dark",
+        "light",
+        "attas",
+        "fugle"
+       ]
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "toolTipText": {
+     "anyOf": [
+      {
+       "maxLength": 500,
+       "type": "string"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "type": {
+     "const": "progressBar"
+    },
+    "validation": {
+     "anyOf": [
+      {
+       "additionalProperties": false,
+       "properties": {
+        "maxLength": {
+         "maximum": 2000,
+         "minimum": 0,
+         "type": "integer"
+        },
+        "maximum": {
+         "maximum": 1000000000000000.0,
+         "minimum": -1000000000000000.0,
+         "type": "number"
+        },
+        "message": {
+         "maxLength": 200,
+         "type": "string"
+        },
+        "minLength": {
+         "maximum": 2000,
+         "minimum": 0,
+         "type": "integer"
+        },
+        "minimum": {
+         "maximum": 1000000000000000.0,
+         "minimum": -1000000000000000.0,
+         "type": "number"
+        },
+        "oneOf": {
+         "maxItems": 500,
+         "type": "array"
+        },
+        "required": {
+         "type": "boolean"
+        }
+       },
+       "type": "object"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "value": {},
+    "visible": {
+     "anyOf": [
+      {
+       "type": "boolean"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    }
+   },
+   "type": "object"
+  },
+  "phemacast:control.radio-button": {
+   "additionalProperties": false,
+   "properties": {
+    "backColor": {
+     "anyOf": [
+      {
+       "enum": [
+        "background",
+        "surface",
+        "raised",
+        "hover",
+        "line",
+        "lineSoft",
+        "text",
+        "muted",
+        "dim",
+        "accent",
+        "accentBackground",
+        "positive",
+        "negative"
+       ]
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "checked": {},
+    "dataBindings": {
+     "propertyNames": {
+      "enum": [
+       "checked",
+       "value"
+      ]
+     },
+     "type": "object"
+    },
+    "enabled": {
+     "anyOf": [
+      {
+       "type": "boolean"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "events": {
+     "additionalProperties": {
+      "items": {
+       "properties": {
+        "action": {
+         "enum": [
+          "setParameter",
+          "runReference",
+          "refresh",
+          "setProperty",
+          "clearSelection",
+          "openLink",
+          "showMessage",
+          "publish",
+          "openPhema",
+          "setPanelParameters"
+         ]
+        }
+       },
+       "required": [
+        "action"
+       ],
+       "type": "object"
+      },
+      "maxItems": 8,
+      "minItems": 1,
+      "type": "array"
+     },
+     "maxProperties": 32,
+     "propertyNames": {
+      "enum": [
+       "click",
+       "doubleClick",
+       "enter",
+       "leave",
+       "keyDown",
+       "textChanged",
+       "validating",
+       "validated",
+       "checkedChanged"
+      ]
+     },
+     "type": "object"
+    },
+    "font": {
+     "anyOf": [
+      {
+       "additionalProperties": false,
+       "properties": {
+        "bold": {
+         "type": "boolean"
+        },
+        "family": {
+         "enum": [
+          "sans",
+          "mono"
+         ]
+        },
+        "italic": {
+         "type": "boolean"
+        },
+        "size": {
+         "enum": [
+          "small",
+          "normal",
+          "large"
+         ]
+        }
+       },
+       "type": "object"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "foreColor": {
+     "anyOf": [
+      {
+       "enum": [
+        "background",
+        "surface",
+        "raised",
+        "hover",
+        "line",
+        "lineSoft",
+        "text",
+        "muted",
+        "dim",
+        "accent",
+        "accentBackground",
+        "positive",
+        "negative"
+       ]
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "groupName": {
+     "anyOf": [
+      {
+       "maxLength": 64,
+       "type": "string"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "margin": {
+     "anyOf": [
+      {
+       "enum": [
+        "none",
+        "tight",
+        "normal"
+       ]
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "name": {
+     "anyOf": [
+      {
+       "maxLength": 64,
+       "type": "string"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "padding": {
+     "anyOf": [
+      {
+       "enum": [
+        "none",
+        "tight",
+        "normal"
+       ]
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "tabIndex": {
+     "anyOf": [
+      {
+       "maximum": 999,
+       "minimum": 0,
+       "type": "integer"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "text": {
+     "anyOf": [
+      {
+       "maxLength": 2000,
+       "type": "string"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "theme": {
+     "anyOf": [
+      {
+       "enum": [
+        "terminal",
+        "dark",
+        "light",
+        "attas",
+        "fugle"
+       ]
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "toolTipText": {
+     "anyOf": [
+      {
+       "maxLength": 500,
+       "type": "string"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "type": {
+     "const": "radioButton"
+    },
+    "validation": {
+     "anyOf": [
+      {
+       "additionalProperties": false,
+       "properties": {
+        "maxLength": {
+         "maximum": 2000,
+         "minimum": 0,
+         "type": "integer"
+        },
+        "maximum": {
+         "maximum": 1000000000000000.0,
+         "minimum": -1000000000000000.0,
+         "type": "number"
+        },
+        "message": {
+         "maxLength": 200,
+         "type": "string"
+        },
+        "minLength": {
+         "maximum": 2000,
+         "minimum": 0,
+         "type": "integer"
+        },
+        "minimum": {
+         "maximum": 1000000000000000.0,
+         "minimum": -1000000000000000.0,
+         "type": "number"
+        },
+        "oneOf": {
+         "maxItems": 500,
+         "type": "array"
+        },
+        "required": {
+         "type": "boolean"
+        }
+       },
+       "type": "object"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "value": {},
+    "visible": {
+     "anyOf": [
+      {
+       "type": "boolean"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    }
+   },
+   "type": "object"
+  },
+  "phemacast:control.tab-control": {
+   "additionalProperties": false,
+   "properties": {
+    "backColor": {
+     "anyOf": [
+      {
+       "enum": [
+        "background",
+        "surface",
+        "raised",
+        "hover",
+        "line",
+        "lineSoft",
+        "text",
+        "muted",
+        "dim",
+        "accent",
+        "accentBackground",
+        "positive",
+        "negative"
+       ]
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "dataBindings": {
+     "propertyNames": {
+      "enum": [
+       "selectedIndex"
+      ]
+     },
+     "type": "object"
+    },
+    "enabled": {
+     "anyOf": [
+      {
+       "type": "boolean"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "events": {
+     "additionalProperties": {
+      "items": {
+       "properties": {
+        "action": {
+         "enum": [
+          "setParameter",
+          "runReference",
+          "refresh",
+          "setProperty",
+          "clearSelection",
+          "openLink",
+          "showMessage",
+          "publish",
+          "openPhema",
+          "setPanelParameters"
+         ]
+        }
+       },
+       "required": [
+        "action"
+       ],
+       "type": "object"
+      },
+      "maxItems": 8,
+      "minItems": 1,
+      "type": "array"
+     },
+     "maxProperties": 32,
+     "propertyNames": {
+      "enum": [
+       "click",
+       "doubleClick",
+       "enter",
+       "leave",
+       "keyDown",
+       "textChanged",
+       "validating",
+       "validated",
+       "selectedIndexChanged"
+      ]
+     },
+     "type": "object"
+    },
+    "font": {
+     "anyOf": [
+      {
+       "additionalProperties": false,
+       "properties": {
+        "bold": {
+         "type": "boolean"
+        },
+        "family": {
+         "enum": [
+          "sans",
+          "mono"
+         ]
+        },
+        "italic": {
+         "type": "boolean"
+        },
+        "size": {
+         "enum": [
+          "small",
+          "normal",
+          "large"
+         ]
+        }
+       },
+       "type": "object"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "foreColor": {
+     "anyOf": [
+      {
+       "enum": [
+        "background",
+        "surface",
+        "raised",
+        "hover",
+        "line",
+        "lineSoft",
+        "text",
+        "muted",
+        "dim",
+        "accent",
+        "accentBackground",
+        "positive",
+        "negative"
+       ]
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "margin": {
+     "anyOf": [
+      {
+       "enum": [
+        "none",
+        "tight",
+        "normal"
+       ]
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "name": {
+     "anyOf": [
+      {
+       "maxLength": 64,
+       "type": "string"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "padding": {
+     "anyOf": [
+      {
+       "enum": [
+        "none",
+        "tight",
+        "normal"
+       ]
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "selectedIndex": {},
+    "tabIndex": {
+     "anyOf": [
+      {
+       "maximum": 999,
+       "minimum": 0,
+       "type": "integer"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "tabPages": {},
+    "text": {
+     "anyOf": [
+      {
+       "maxLength": 2000,
+       "type": "string"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "theme": {
+     "anyOf": [
+      {
+       "enum": [
+        "terminal",
+        "dark",
+        "light",
+        "attas",
+        "fugle"
+       ]
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "toolTipText": {
+     "anyOf": [
+      {
+       "maxLength": 500,
+       "type": "string"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "type": {
+     "const": "tabControl"
+    },
+    "validation": {
+     "anyOf": [
+      {
+       "additionalProperties": false,
+       "properties": {
+        "maxLength": {
+         "maximum": 2000,
+         "minimum": 0,
+         "type": "integer"
+        },
+        "maximum": {
+         "maximum": 1000000000000000.0,
+         "minimum": -1000000000000000.0,
+         "type": "number"
+        },
+        "message": {
+         "maxLength": 200,
+         "type": "string"
+        },
+        "minLength": {
+         "maximum": 2000,
+         "minimum": 0,
+         "type": "integer"
+        },
+        "minimum": {
+         "maximum": 1000000000000000.0,
+         "minimum": -1000000000000000.0,
+         "type": "number"
+        },
+        "oneOf": {
+         "maxItems": 500,
+         "type": "array"
+        },
+        "required": {
+         "type": "boolean"
+        }
+       },
+       "type": "object"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "visible": {
+     "anyOf": [
+      {
+       "type": "boolean"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    }
+   },
+   "type": "object"
+  },
+  "phemacast:control.table": {
+   "$defs": {
+    "column": {
+     "additionalProperties": false,
+     "properties": {
+      "autoSizeMode": {
+       "enum": [
+        "notSet",
+        "none",
+        "allCells",
+        "displayedCells",
+        "columnHeader",
+        "fill"
+       ]
+      },
+      "columnType": {
+       "enum": [
+        "textBox",
+        "checkBox",
+        "comboBox",
+        "button",
+        "link"
+       ]
+      },
+      "dataPropertyName": {
+       "maxLength": 100,
+       "type": "string"
+      },
+      "dataSource": {},
+      "defaultCellStyle": {
+       "additionalProperties": false,
+       "properties": {
+        "alignment": {
+         "enum": [
+          "topLeft",
+          "topCenter",
+          "topRight",
+          "middleLeft",
+          "middleCenter",
+          "middleRight",
+          "bottomLeft",
+          "bottomCenter",
+          "bottomRight"
+         ]
+        },
+        "backColor": {
+         "enum": [
+          "background",
+          "surface",
+          "raised",
+          "hover",
+          "line",
+          "lineSoft",
+          "text",
+          "muted",
+          "dim",
+          "accent",
+          "accentBackground",
+          "positive",
+          "negative"
+         ]
+        },
+        "font": {
+         "additionalProperties": false,
+         "properties": {
+          "bold": {
+           "type": "boolean"
+          },
+          "family": {
+           "enum": [
+            "sans",
+            "mono"
+           ]
+          },
+          "italic": {
+           "type": "boolean"
+          },
+          "size": {
+           "enum": [
+            "small",
+            "normal",
+            "large"
+           ]
+          }
+         },
+         "type": "object"
+        },
+        "foreColor": {
+         "enum": [
+          "background",
+          "surface",
+          "raised",
+          "hover",
+          "line",
+          "lineSoft",
+          "text",
+          "muted",
+          "dim",
+          "accent",
+          "accentBackground",
+          "positive",
+          "negative"
+         ]
+        },
+        "format": {
+         "additionalProperties": false,
+         "properties": {
+          "dateTime": {
+           "enum": [
+            "compact",
+            "full"
+           ]
+          },
+          "decimals": {
+           "maximum": 8,
+           "minimum": 0,
+           "type": "integer"
+          },
+          "kind": {
+           "enum": [
+            "datetime",
+            "date",
+            "time",
+            "amount",
+            "percent",
+            "ratio",
+            "count",
+            "number",
+            "text"
+           ]
+          },
+          "signed": {
+           "type": "boolean"
+          }
+         },
+         "required": [
+          "kind"
+         ],
+         "type": "object"
+        },
+        "nullValue": {
+         "maxLength": 80,
+         "type": "string"
+        },
+        "padding": {
+         "enum": [
+          "none",
+          "tight",
+          "normal"
+         ]
+        },
+        "selectionBackColor": {
+         "enum": [
+          "background",
+          "surface",
+          "raised",
+          "hover",
+          "line",
+          "lineSoft",
+          "text",
+          "muted",
+          "dim",
+          "accent",
+          "accentBackground",
+          "positive",
+          "negative"
+         ]
+        },
+        "selectionForeColor": {
+         "enum": [
+          "background",
+          "surface",
+          "raised",
+          "hover",
+          "line",
+          "lineSoft",
+          "text",
+          "muted",
+          "dim",
+          "accent",
+          "accentBackground",
+          "positive",
+          "negative"
+         ]
+        },
+        "wrapMode": {
+         "type": "boolean"
+        }
+       },
+       "type": "object"
+      },
+      "displayIndex": {
+       "maximum": 50,
+       "minimum": 0,
+       "type": "integer"
+      },
+      "displayMember": {
+       "maxLength": 100,
+       "type": "string"
+      },
+      "fillWeight": {
+       "maximum": 1000,
+       "minimum": 1,
+       "type": "number"
+      },
+      "frozen": {
+       "type": "boolean"
+      },
+      "headerText": {
+       "maxLength": 200,
+       "type": "string"
+      },
+      "items": {
+       "maxItems": 500,
+       "type": "array"
+      },
+      "minimumWidth": {
+       "maximum": 4000,
+       "minimum": 0,
+       "type": "integer"
+      },
+      "name": {
+       "maxLength": 64,
+       "type": "string"
+      },
+      "readOnly": {
+       "type": "boolean"
+      },
+      "resizable": {
+       "type": "boolean"
+      },
+      "sortMode": {
+       "enum": [
+        "automatic",
+        "programmatic",
+        "notSortable"
+       ]
+      },
+      "text": {
+       "maxLength": 200,
+       "type": "string"
+      },
+      "toolTipText": {
+       "maxLength": 500,
+       "type": "string"
+      },
+      "useColumnTextForButtonValue": {
+       "type": "boolean"
+      },
+      "validation": {
+       "additionalProperties": false,
+       "properties": {
+        "maxLength": {
+         "maximum": 2000,
+         "minimum": 0,
+         "type": "integer"
+        },
+        "maximum": {
+         "maximum": 1000000000000000.0,
+         "minimum": -1000000000000000.0,
+         "type": "number"
+        },
+        "message": {
+         "maxLength": 200,
+         "type": "string"
+        },
+        "minLength": {
+         "maximum": 2000,
+         "minimum": 0,
+         "type": "integer"
+        },
+        "minimum": {
+         "maximum": 1000000000000000.0,
+         "minimum": -1000000000000000.0,
+         "type": "number"
+        },
+        "oneOf": {
+         "maxItems": 500,
+         "type": "array"
+        },
+        "required": {
+         "type": "boolean"
+        }
+       },
+       "type": "object"
+      },
+      "valueMember": {
+       "maxLength": 100,
+       "type": "string"
+      },
+      "valueType": {
+       "enum": [
+        "string",
+        "number",
+        "integer",
+        "boolean",
+        "date",
+        "dateTime"
+       ]
+      },
+      "visible": {
+       "type": "boolean"
+      },
+      "width": {
+       "maximum": 4000,
+       "minimum": 0,
+       "type": "integer"
+      }
+     },
+     "type": "object"
+    }
+   },
+   "additionalProperties": false,
+   "properties": {
+    "allowUserToAddRows": {
+     "anyOf": [
+      {
+       "type": "boolean"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "allowUserToDeleteRows": {
+     "anyOf": [
+      {
+       "type": "boolean"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "allowUserToOrderColumns": {
+     "anyOf": [
+      {
+       "type": "boolean"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "allowUserToResizeColumns": {
+     "anyOf": [
+      {
+       "type": "boolean"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "alternatingRowsDefaultCellStyle": {
+     "anyOf": [
+      {
+       "additionalProperties": false,
+       "properties": {
+        "alignment": {
+         "enum": [
+          "topLeft",
+          "topCenter",
+          "topRight",
+          "middleLeft",
+          "middleCenter",
+          "middleRight",
+          "bottomLeft",
+          "bottomCenter",
+          "bottomRight"
+         ]
+        },
+        "backColor": {
+         "enum": [
+          "background",
+          "surface",
+          "raised",
+          "hover",
+          "line",
+          "lineSoft",
+          "text",
+          "muted",
+          "dim",
+          "accent",
+          "accentBackground",
+          "positive",
+          "negative"
+         ]
+        },
+        "font": {
+         "additionalProperties": false,
+         "properties": {
+          "bold": {
+           "type": "boolean"
+          },
+          "family": {
+           "enum": [
+            "sans",
+            "mono"
+           ]
+          },
+          "italic": {
+           "type": "boolean"
+          },
+          "size": {
+           "enum": [
+            "small",
+            "normal",
+            "large"
+           ]
+          }
+         },
+         "type": "object"
+        },
+        "foreColor": {
+         "enum": [
+          "background",
+          "surface",
+          "raised",
+          "hover",
+          "line",
+          "lineSoft",
+          "text",
+          "muted",
+          "dim",
+          "accent",
+          "accentBackground",
+          "positive",
+          "negative"
+         ]
+        },
+        "format": {
+         "additionalProperties": false,
+         "properties": {
+          "dateTime": {
+           "enum": [
+            "compact",
+            "full"
+           ]
+          },
+          "decimals": {
+           "maximum": 8,
+           "minimum": 0,
+           "type": "integer"
+          },
+          "kind": {
+           "enum": [
+            "datetime",
+            "date",
+            "time",
+            "amount",
+            "percent",
+            "ratio",
+            "count",
+            "number",
+            "text"
+           ]
+          },
+          "signed": {
+           "type": "boolean"
+          }
+         },
+         "required": [
+          "kind"
+         ],
+         "type": "object"
+        },
+        "nullValue": {
+         "maxLength": 80,
+         "type": "string"
+        },
+        "padding": {
+         "enum": [
+          "none",
+          "tight",
+          "normal"
+         ]
+        },
+        "selectionBackColor": {
+         "enum": [
+          "background",
+          "surface",
+          "raised",
+          "hover",
+          "line",
+          "lineSoft",
+          "text",
+          "muted",
+          "dim",
+          "accent",
+          "accentBackground",
+          "positive",
+          "negative"
+         ]
+        },
+        "selectionForeColor": {
+         "enum": [
+          "background",
+          "surface",
+          "raised",
+          "hover",
+          "line",
+          "lineSoft",
+          "text",
+          "muted",
+          "dim",
+          "accent",
+          "accentBackground",
+          "positive",
+          "negative"
+         ]
+        },
+        "wrapMode": {
+         "type": "boolean"
+        }
+       },
+       "type": "object"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "autoGenerateColumns": {
+     "anyOf": [
+      {
+       "type": "boolean"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "autoSizeColumnsMode": {
+     "anyOf": [
+      {
+       "enum": [
+        "none",
+        "allCells",
+        "displayedCells",
+        "columnHeader",
+        "fill"
+       ]
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "backColor": {
+     "anyOf": [
+      {
+       "enum": [
+        "background",
+        "surface",
+        "raised",
+        "hover",
+        "line",
+        "lineSoft",
+        "text",
+        "muted",
+        "dim",
+        "accent",
+        "accentBackground",
+        "positive",
+        "negative"
+       ]
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "cellBorderStyle": {
+     "anyOf": [
+      {
+       "enum": [
+        "single",
+        "none",
+        "singleHorizontal",
+        "singleVertical"
+       ]
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "cellStyleRules": {
+     "anyOf": [
+      {
+       "items": {
+        "additionalProperties": false,
+        "properties": {
+         "columns": {
+          "items": {
+           "maxLength": 64,
+           "type": "string"
+          },
+          "maxItems": 50,
+          "type": "array"
+         },
+         "style": {
+          "additionalProperties": false,
+          "properties": {
+           "alignment": {
+            "enum": [
+             "topLeft",
+             "topCenter",
+             "topRight",
+             "middleLeft",
+             "middleCenter",
+             "middleRight",
+             "bottomLeft",
+             "bottomCenter",
+             "bottomRight"
+            ]
+           },
+           "backColor": {
+            "enum": [
+             "background",
+             "surface",
+             "raised",
+             "hover",
+             "line",
+             "lineSoft",
+             "text",
+             "muted",
+             "dim",
+             "accent",
+             "accentBackground",
+             "positive",
+             "negative"
+            ]
+           },
+           "font": {
+            "additionalProperties": false,
+            "properties": {
+             "bold": {
+              "type": "boolean"
+             },
+             "family": {
+              "enum": [
+               "sans",
+               "mono"
+              ]
+             },
+             "italic": {
+              "type": "boolean"
+             },
+             "size": {
+              "enum": [
+               "small",
+               "normal",
+               "large"
+              ]
+             }
+            },
+            "type": "object"
+           },
+           "foreColor": {
+            "enum": [
+             "background",
+             "surface",
+             "raised",
+             "hover",
+             "line",
+             "lineSoft",
+             "text",
+             "muted",
+             "dim",
+             "accent",
+             "accentBackground",
+             "positive",
+             "negative"
+            ]
+           },
+           "format": {
+            "additionalProperties": false,
+            "properties": {
+             "dateTime": {
+              "enum": [
+               "compact",
+               "full"
+              ]
+             },
+             "decimals": {
+              "maximum": 8,
+              "minimum": 0,
+              "type": "integer"
+             },
+             "kind": {
+              "enum": [
+               "datetime",
+               "date",
+               "time",
+               "amount",
+               "percent",
+               "ratio",
+               "count",
+               "number",
+               "text"
+              ]
+             },
+             "signed": {
+              "type": "boolean"
+             }
+            },
+            "required": [
+             "kind"
+            ],
+            "type": "object"
+           },
+           "nullValue": {
+            "maxLength": 80,
+            "type": "string"
+           },
+           "padding": {
+            "enum": [
+             "none",
+             "tight",
+             "normal"
+            ]
+           },
+           "selectionBackColor": {
+            "enum": [
+             "background",
+             "surface",
+             "raised",
+             "hover",
+             "line",
+             "lineSoft",
+             "text",
+             "muted",
+             "dim",
+             "accent",
+             "accentBackground",
+             "positive",
+             "negative"
+            ]
+           },
+           "selectionForeColor": {
+            "enum": [
+             "background",
+             "surface",
+             "raised",
+             "hover",
+             "line",
+             "lineSoft",
+             "text",
+             "muted",
+             "dim",
+             "accent",
+             "accentBackground",
+             "positive",
+             "negative"
+            ]
+           },
+           "wrapMode": {
+            "type": "boolean"
+           }
+          },
+          "type": "object"
+         },
+         "when": {
+          "additionalProperties": false,
+          "properties": {
+           "field": {
+            "maxLength": 100,
+            "type": "string"
+           },
+           "op": {
+            "enum": [
+             "=",
+             "!=",
+             "<",
+             "<=",
+             ">",
+             ">=",
+             "null",
+             "notNull"
+            ]
+           },
+           "value": {}
+          },
+          "required": [
+           "field",
+           "op"
+          ],
+          "type": "object"
+         }
+        },
+        "required": [
+         "when",
+         "style"
+        ],
+        "type": "object"
+       },
+       "maxItems": 16,
+       "type": "array"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "clipboardCopyMode": {
+     "anyOf": [
+      {
+       "enum": [
+        "disable",
+        "enableWithoutHeaderText",
+        "enableAlwaysIncludeHeaderText"
+       ]
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "columnHeadersDefaultCellStyle": {
+     "anyOf": [
+      {
+       "additionalProperties": false,
+       "properties": {
+        "alignment": {
+         "enum": [
+          "topLeft",
+          "topCenter",
+          "topRight",
+          "middleLeft",
+          "middleCenter",
+          "middleRight",
+          "bottomLeft",
+          "bottomCenter",
+          "bottomRight"
+         ]
+        },
+        "backColor": {
+         "enum": [
+          "background",
+          "surface",
+          "raised",
+          "hover",
+          "line",
+          "lineSoft",
+          "text",
+          "muted",
+          "dim",
+          "accent",
+          "accentBackground",
+          "positive",
+          "negative"
+         ]
+        },
+        "font": {
+         "additionalProperties": false,
+         "properties": {
+          "bold": {
+           "type": "boolean"
+          },
+          "family": {
+           "enum": [
+            "sans",
+            "mono"
+           ]
+          },
+          "italic": {
+           "type": "boolean"
+          },
+          "size": {
+           "enum": [
+            "small",
+            "normal",
+            "large"
+           ]
+          }
+         },
+         "type": "object"
+        },
+        "foreColor": {
+         "enum": [
+          "background",
+          "surface",
+          "raised",
+          "hover",
+          "line",
+          "lineSoft",
+          "text",
+          "muted",
+          "dim",
+          "accent",
+          "accentBackground",
+          "positive",
+          "negative"
+         ]
+        },
+        "format": {
+         "additionalProperties": false,
+         "properties": {
+          "dateTime": {
+           "enum": [
+            "compact",
+            "full"
+           ]
+          },
+          "decimals": {
+           "maximum": 8,
+           "minimum": 0,
+           "type": "integer"
+          },
+          "kind": {
+           "enum": [
+            "datetime",
+            "date",
+            "time",
+            "amount",
+            "percent",
+            "ratio",
+            "count",
+            "number",
+            "text"
+           ]
+          },
+          "signed": {
+           "type": "boolean"
+          }
+         },
+         "required": [
+          "kind"
+         ],
+         "type": "object"
+        },
+        "nullValue": {
+         "maxLength": 80,
+         "type": "string"
+        },
+        "padding": {
+         "enum": [
+          "none",
+          "tight",
+          "normal"
+         ]
+        },
+        "selectionBackColor": {
+         "enum": [
+          "background",
+          "surface",
+          "raised",
+          "hover",
+          "line",
+          "lineSoft",
+          "text",
+          "muted",
+          "dim",
+          "accent",
+          "accentBackground",
+          "positive",
+          "negative"
+         ]
+        },
+        "selectionForeColor": {
+         "enum": [
+          "background",
+          "surface",
+          "raised",
+          "hover",
+          "line",
+          "lineSoft",
+          "text",
+          "muted",
+          "dim",
+          "accent",
+          "accentBackground",
+          "positive",
+          "negative"
+         ]
+        },
+        "wrapMode": {
+         "type": "boolean"
+        }
+       },
+       "type": "object"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "columnHeadersVisible": {
+     "anyOf": [
+      {
+       "type": "boolean"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "columns": {
+     "anyOf": [
+      {
+       "items": {
+        "$ref": "#/$defs/column"
+       },
+       "maxItems": 50,
+       "type": "array"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "currentCell": {},
+    "dataBindings": {
+     "propertyNames": {
+      "enum": [
+       "rows",
+       "selectedRows",
+       "currentRow",
+       "currentCell",
+       "sortedColumn",
+       "sortOrder"
+      ]
+     },
+     "type": "object"
+    },
+    "dataSource": {},
+    "defaultCellStyle": {
+     "anyOf": [
+      {
+       "additionalProperties": false,
+       "properties": {
+        "alignment": {
+         "enum": [
+          "topLeft",
+          "topCenter",
+          "topRight",
+          "middleLeft",
+          "middleCenter",
+          "middleRight",
+          "bottomLeft",
+          "bottomCenter",
+          "bottomRight"
+         ]
+        },
+        "backColor": {
+         "enum": [
+          "background",
+          "surface",
+          "raised",
+          "hover",
+          "line",
+          "lineSoft",
+          "text",
+          "muted",
+          "dim",
+          "accent",
+          "accentBackground",
+          "positive",
+          "negative"
+         ]
+        },
+        "font": {
+         "additionalProperties": false,
+         "properties": {
+          "bold": {
+           "type": "boolean"
+          },
+          "family": {
+           "enum": [
+            "sans",
+            "mono"
+           ]
+          },
+          "italic": {
+           "type": "boolean"
+          },
+          "size": {
+           "enum": [
+            "small",
+            "normal",
+            "large"
+           ]
+          }
+         },
+         "type": "object"
+        },
+        "foreColor": {
+         "enum": [
+          "background",
+          "surface",
+          "raised",
+          "hover",
+          "line",
+          "lineSoft",
+          "text",
+          "muted",
+          "dim",
+          "accent",
+          "accentBackground",
+          "positive",
+          "negative"
+         ]
+        },
+        "format": {
+         "additionalProperties": false,
+         "properties": {
+          "dateTime": {
+           "enum": [
+            "compact",
+            "full"
+           ]
+          },
+          "decimals": {
+           "maximum": 8,
+           "minimum": 0,
+           "type": "integer"
+          },
+          "kind": {
+           "enum": [
+            "datetime",
+            "date",
+            "time",
+            "amount",
+            "percent",
+            "ratio",
+            "count",
+            "number",
+            "text"
+           ]
+          },
+          "signed": {
+           "type": "boolean"
+          }
+         },
+         "required": [
+          "kind"
+         ],
+         "type": "object"
+        },
+        "nullValue": {
+         "maxLength": 80,
+         "type": "string"
+        },
+        "padding": {
+         "enum": [
+          "none",
+          "tight",
+          "normal"
+         ]
+        },
+        "selectionBackColor": {
+         "enum": [
+          "background",
+          "surface",
+          "raised",
+          "hover",
+          "line",
+          "lineSoft",
+          "text",
+          "muted",
+          "dim",
+          "accent",
+          "accentBackground",
+          "positive",
+          "negative"
+         ]
+        },
+        "selectionForeColor": {
+         "enum": [
+          "background",
+          "surface",
+          "raised",
+          "hover",
+          "line",
+          "lineSoft",
+          "text",
+          "muted",
+          "dim",
+          "accent",
+          "accentBackground",
+          "positive",
+          "negative"
+         ]
+        },
+        "wrapMode": {
+         "type": "boolean"
+        }
+       },
+       "type": "object"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "editMode": {
+     "anyOf": [
+      {
+       "enum": [
+        "editOnEnter",
+        "editOnKeystroke",
+        "editProgrammatically"
+       ]
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "enabled": {
+     "anyOf": [
+      {
+       "type": "boolean"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "events": {
+     "additionalProperties": {
+      "items": {
+       "properties": {
+        "action": {
+         "enum": [
+          "setParameter",
+          "runReference",
+          "refresh",
+          "setProperty",
+          "clearSelection",
+          "openLink",
+          "showMessage",
+          "publish",
+          "openPhema",
+          "setPanelParameters"
+         ]
+        }
+       },
+       "required": [
+        "action"
+       ],
+       "type": "object"
+      },
+      "maxItems": 8,
+      "minItems": 1,
+      "type": "array"
+     },
+     "maxProperties": 32,
+     "propertyNames": {
+      "enum": [
+       "click",
+       "doubleClick",
+       "enter",
+       "leave",
+       "keyDown",
+       "textChanged",
+       "validating",
+       "validated",
+       "cellClick",
+       "cellDoubleClick",
+       "cellContentClick",
+       "cellValueChanged",
+       "cellValidating",
+       "cellEndEdit",
+       "rowEnter",
+       "rowLeave",
+       "userAddedRow",
+       "userDeletingRow",
+       "userDeletedRow",
+       "columnHeaderMouseClick",
+       "sorted",
+       "selectionChanged",
+       "currentCellChanged",
+       "dataBindingComplete",
+       "dataError"
+      ]
+     },
+     "type": "object"
+    },
+    "font": {
+     "anyOf": [
+      {
+       "additionalProperties": false,
+       "properties": {
+        "bold": {
+         "type": "boolean"
+        },
+        "family": {
+         "enum": [
+          "sans",
+          "mono"
+         ]
+        },
+        "italic": {
+         "type": "boolean"
+        },
+        "size": {
+         "enum": [
+          "small",
+          "normal",
+          "large"
+         ]
+        }
+       },
+       "type": "object"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "foreColor": {
+     "anyOf": [
+      {
+       "enum": [
+        "background",
+        "surface",
+        "raised",
+        "hover",
+        "line",
+        "lineSoft",
+        "text",
+        "muted",
+        "dim",
+        "accent",
+        "accentBackground",
+        "positive",
+        "negative"
+       ]
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "gridColor": {
+     "anyOf": [
+      {
+       "enum": [
+        "background",
+        "surface",
+        "raised",
+        "hover",
+        "line",
+        "lineSoft",
+        "text",
+        "muted",
+        "dim",
+        "accent",
+        "accentBackground",
+        "positive",
+        "negative"
+       ]
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "margin": {
+     "anyOf": [
+      {
+       "enum": [
+        "none",
+        "tight",
+        "normal"
+       ]
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "multiSelect": {
+     "anyOf": [
+      {
+       "type": "boolean"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "name": {
+     "anyOf": [
+      {
+       "maxLength": 64,
+       "type": "string"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "padding": {
+     "anyOf": [
+      {
+       "enum": [
+        "none",
+        "tight",
+        "normal"
+       ]
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "readOnly": {
+     "anyOf": [
+      {
+       "type": "boolean"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "rowHeadersVisible": {
+     "anyOf": [
+      {
+       "type": "boolean"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "rowLimit": {
+     "anyOf": [
+      {
+       "maximum": 5000,
+       "minimum": 1,
+       "type": "integer"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "rowsDefaultCellStyle": {
+     "anyOf": [
+      {
+       "additionalProperties": false,
+       "properties": {
+        "alignment": {
+         "enum": [
+          "topLeft",
+          "topCenter",
+          "topRight",
+          "middleLeft",
+          "middleCenter",
+          "middleRight",
+          "bottomLeft",
+          "bottomCenter",
+          "bottomRight"
+         ]
+        },
+        "backColor": {
+         "enum": [
+          "background",
+          "surface",
+          "raised",
+          "hover",
+          "line",
+          "lineSoft",
+          "text",
+          "muted",
+          "dim",
+          "accent",
+          "accentBackground",
+          "positive",
+          "negative"
+         ]
+        },
+        "font": {
+         "additionalProperties": false,
+         "properties": {
+          "bold": {
+           "type": "boolean"
+          },
+          "family": {
+           "enum": [
+            "sans",
+            "mono"
+           ]
+          },
+          "italic": {
+           "type": "boolean"
+          },
+          "size": {
+           "enum": [
+            "small",
+            "normal",
+            "large"
+           ]
+          }
+         },
+         "type": "object"
+        },
+        "foreColor": {
+         "enum": [
+          "background",
+          "surface",
+          "raised",
+          "hover",
+          "line",
+          "lineSoft",
+          "text",
+          "muted",
+          "dim",
+          "accent",
+          "accentBackground",
+          "positive",
+          "negative"
+         ]
+        },
+        "format": {
+         "additionalProperties": false,
+         "properties": {
+          "dateTime": {
+           "enum": [
+            "compact",
+            "full"
+           ]
+          },
+          "decimals": {
+           "maximum": 8,
+           "minimum": 0,
+           "type": "integer"
+          },
+          "kind": {
+           "enum": [
+            "datetime",
+            "date",
+            "time",
+            "amount",
+            "percent",
+            "ratio",
+            "count",
+            "number",
+            "text"
+           ]
+          },
+          "signed": {
+           "type": "boolean"
+          }
+         },
+         "required": [
+          "kind"
+         ],
+         "type": "object"
+        },
+        "nullValue": {
+         "maxLength": 80,
+         "type": "string"
+        },
+        "padding": {
+         "enum": [
+          "none",
+          "tight",
+          "normal"
+         ]
+        },
+        "selectionBackColor": {
+         "enum": [
+          "background",
+          "surface",
+          "raised",
+          "hover",
+          "line",
+          "lineSoft",
+          "text",
+          "muted",
+          "dim",
+          "accent",
+          "accentBackground",
+          "positive",
+          "negative"
+         ]
+        },
+        "selectionForeColor": {
+         "enum": [
+          "background",
+          "surface",
+          "raised",
+          "hover",
+          "line",
+          "lineSoft",
+          "text",
+          "muted",
+          "dim",
+          "accent",
+          "accentBackground",
+          "positive",
+          "negative"
+         ]
+        },
+        "wrapMode": {
+         "type": "boolean"
+        }
+       },
+       "type": "object"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "selectionMode": {
+     "anyOf": [
+      {
+       "enum": [
+        "cellSelect",
+        "fullRowSelect",
+        "fullColumnSelect",
+        "rowHeaderSelect",
+        "columnHeaderSelect"
+       ]
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "showCellToolTips": {
+     "anyOf": [
+      {
+       "type": "boolean"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "sortOrder": {
+     "anyOf": [
+      {
+       "enum": [
+        "none",
+        "ascending",
+        "descending"
+       ]
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "sortedColumn": {
+     "anyOf": [
+      {
+       "maxLength": 64,
+       "type": "string"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "tabIndex": {
+     "anyOf": [
+      {
+       "maximum": 999,
+       "minimum": 0,
+       "type": "integer"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "text": {
+     "anyOf": [
+      {
+       "maxLength": 2000,
+       "type": "string"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "theme": {
+     "anyOf": [
+      {
+       "enum": [
+        "terminal",
+        "dark",
+        "light",
+        "attas",
+        "fugle"
+       ]
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "toolTipText": {
+     "anyOf": [
+      {
+       "maxLength": 500,
+       "type": "string"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "type": {
+     "const": "table"
+    },
+    "validation": {
+     "anyOf": [
+      {
+       "additionalProperties": false,
+       "properties": {
+        "maxLength": {
+         "maximum": 2000,
+         "minimum": 0,
+         "type": "integer"
+        },
+        "maximum": {
+         "maximum": 1000000000000000.0,
+         "minimum": -1000000000000000.0,
+         "type": "number"
+        },
+        "message": {
+         "maxLength": 200,
+         "type": "string"
+        },
+        "minLength": {
+         "maximum": 2000,
+         "minimum": 0,
+         "type": "integer"
+        },
+        "minimum": {
+         "maximum": 1000000000000000.0,
+         "minimum": -1000000000000000.0,
+         "type": "number"
+        },
+        "oneOf": {
+         "maxItems": 500,
+         "type": "array"
+        },
+        "required": {
+         "type": "boolean"
+        }
+       },
+       "type": "object"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "visible": {
+     "anyOf": [
+      {
+       "type": "boolean"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    }
+   },
+   "type": "object"
+  },
+  "phemacast:control.text-box": {
+   "additionalProperties": false,
+   "properties": {
+    "acceptsReturn": {
+     "anyOf": [
+      {
+       "type": "boolean"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "backColor": {
+     "anyOf": [
+      {
+       "enum": [
+        "background",
+        "surface",
+        "raised",
+        "hover",
+        "line",
+        "lineSoft",
+        "text",
+        "muted",
+        "dim",
+        "accent",
+        "accentBackground",
+        "positive",
+        "negative"
+       ]
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "dataBindings": {
+     "propertyNames": {
+      "enum": [
+       "text"
+      ]
+     },
+     "type": "object"
+    },
+    "enabled": {
+     "anyOf": [
+      {
+       "type": "boolean"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "events": {
+     "additionalProperties": {
+      "items": {
+       "properties": {
+        "action": {
+         "enum": [
+          "setParameter",
+          "runReference",
+          "refresh",
+          "setProperty",
+          "clearSelection",
+          "openLink",
+          "showMessage",
+          "publish",
+          "openPhema",
+          "setPanelParameters"
+         ]
+        }
+       },
+       "required": [
+        "action"
+       ],
+       "type": "object"
+      },
+      "maxItems": 8,
+      "minItems": 1,
+      "type": "array"
+     },
+     "maxProperties": 32,
+     "propertyNames": {
+      "enum": [
+       "click",
+       "doubleClick",
+       "enter",
+       "leave",
+       "keyDown",
+       "textChanged",
+       "validating",
+       "validated"
+      ]
+     },
+     "type": "object"
+    },
+    "font": {
+     "anyOf": [
+      {
+       "additionalProperties": false,
+       "properties": {
+        "bold": {
+         "type": "boolean"
+        },
+        "family": {
+         "enum": [
+          "sans",
+          "mono"
+         ]
+        },
+        "italic": {
+         "type": "boolean"
+        },
+        "size": {
+         "enum": [
+          "small",
+          "normal",
+          "large"
+         ]
+        }
+       },
+       "type": "object"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "foreColor": {
+     "anyOf": [
+      {
+       "enum": [
+        "background",
+        "surface",
+        "raised",
+        "hover",
+        "line",
+        "lineSoft",
+        "text",
+        "muted",
+        "dim",
+        "accent",
+        "accentBackground",
+        "positive",
+        "negative"
+       ]
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "margin": {
+     "anyOf": [
+      {
+       "enum": [
+        "none",
+        "tight",
+        "normal"
+       ]
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "maxLength": {
+     "anyOf": [
+      {
+       "maximum": 100000,
+       "minimum": 0,
+       "type": "integer"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "multiline": {
+     "anyOf": [
+      {
+       "type": "boolean"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "name": {
+     "anyOf": [
+      {
+       "maxLength": 64,
+       "type": "string"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "padding": {
+     "anyOf": [
+      {
+       "enum": [
+        "none",
+        "tight",
+        "normal"
+       ]
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "placeholderText": {
+     "anyOf": [
+      {
+       "maxLength": 200,
+       "type": "string"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "readOnly": {
+     "anyOf": [
+      {
+       "type": "boolean"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "tabIndex": {
+     "anyOf": [
+      {
+       "maximum": 999,
+       "minimum": 0,
+       "type": "integer"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "text": {
+     "anyOf": [
+      {
+       "maxLength": 2000,
+       "type": "string"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "textAlign": {
+     "anyOf": [
+      {
+       "enum": [
+        "left",
+        "center",
+        "right"
+       ]
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "theme": {
+     "anyOf": [
+      {
+       "enum": [
+        "terminal",
+        "dark",
+        "light",
+        "attas",
+        "fugle"
+       ]
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "toolTipText": {
+     "anyOf": [
+      {
+       "maxLength": 500,
+       "type": "string"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "type": {
+     "const": "textBox"
+    },
+    "validation": {
+     "anyOf": [
+      {
+       "additionalProperties": false,
+       "properties": {
+        "maxLength": {
+         "maximum": 2000,
+         "minimum": 0,
+         "type": "integer"
+        },
+        "maximum": {
+         "maximum": 1000000000000000.0,
+         "minimum": -1000000000000000.0,
+         "type": "number"
+        },
+        "message": {
+         "maxLength": 200,
+         "type": "string"
+        },
+        "minLength": {
+         "maximum": 2000,
+         "minimum": 0,
+         "type": "integer"
+        },
+        "minimum": {
+         "maximum": 1000000000000000.0,
+         "minimum": -1000000000000000.0,
+         "type": "number"
+        },
+        "oneOf": {
+         "maxItems": 500,
+         "type": "array"
+        },
+        "required": {
+         "type": "boolean"
+        }
+       },
+       "type": "object"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "visible": {
+     "anyOf": [
+      {
+       "type": "boolean"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "wordWrap": {
+     "anyOf": [
+      {
+       "type": "boolean"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    }
+   },
+   "type": "object"
+  },
+  "phemacast:control.track-bar": {
+   "additionalProperties": false,
+   "properties": {
+    "backColor": {
+     "anyOf": [
+      {
+       "enum": [
+        "background",
+        "surface",
+        "raised",
+        "hover",
+        "line",
+        "lineSoft",
+        "text",
+        "muted",
+        "dim",
+        "accent",
+        "accentBackground",
+        "positive",
+        "negative"
+       ]
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "dataBindings": {
+     "propertyNames": {
+      "enum": [
+       "value"
+      ]
+     },
+     "type": "object"
+    },
+    "enabled": {
+     "anyOf": [
+      {
+       "type": "boolean"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "events": {
+     "additionalProperties": {
+      "items": {
+       "properties": {
+        "action": {
+         "enum": [
+          "setParameter",
+          "runReference",
+          "refresh",
+          "setProperty",
+          "clearSelection",
+          "openLink",
+          "showMessage",
+          "publish",
+          "openPhema",
+          "setPanelParameters"
+         ]
+        }
+       },
+       "required": [
+        "action"
+       ],
+       "type": "object"
+      },
+      "maxItems": 8,
+      "minItems": 1,
+      "type": "array"
+     },
+     "maxProperties": 32,
+     "propertyNames": {
+      "enum": [
+       "click",
+       "doubleClick",
+       "enter",
+       "leave",
+       "keyDown",
+       "textChanged",
+       "validating",
+       "validated",
+       "valueChanged",
+       "scroll"
+      ]
+     },
+     "type": "object"
+    },
+    "font": {
+     "anyOf": [
+      {
+       "additionalProperties": false,
+       "properties": {
+        "bold": {
+         "type": "boolean"
+        },
+        "family": {
+         "enum": [
+          "sans",
+          "mono"
+         ]
+        },
+        "italic": {
+         "type": "boolean"
+        },
+        "size": {
+         "enum": [
+          "small",
+          "normal",
+          "large"
+         ]
+        }
+       },
+       "type": "object"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "foreColor": {
+     "anyOf": [
+      {
+       "enum": [
+        "background",
+        "surface",
+        "raised",
+        "hover",
+        "line",
+        "lineSoft",
+        "text",
+        "muted",
+        "dim",
+        "accent",
+        "accentBackground",
+        "positive",
+        "negative"
+       ]
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "largeChange": {
+     "anyOf": [
+      {
+       "maximum": 1000000000000000.0,
+       "minimum": -1000000000000000.0,
+       "type": "number"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "margin": {
+     "anyOf": [
+      {
+       "enum": [
+        "none",
+        "tight",
+        "normal"
+       ]
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "maximum": {
+     "anyOf": [
+      {
+       "maximum": 1000000000000000.0,
+       "minimum": -1000000000000000.0,
+       "type": "number"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "minimum": {
+     "anyOf": [
+      {
+       "maximum": 1000000000000000.0,
+       "minimum": -1000000000000000.0,
+       "type": "number"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "name": {
+     "anyOf": [
+      {
+       "maxLength": 64,
+       "type": "string"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "orientation": {
+     "anyOf": [
+      {
+       "enum": [
+        "horizontal",
+        "vertical"
+       ]
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "padding": {
+     "anyOf": [
+      {
+       "enum": [
+        "none",
+        "tight",
+        "normal"
+       ]
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "smallChange": {
+     "anyOf": [
+      {
+       "maximum": 1000000000000000.0,
+       "minimum": -1000000000000000.0,
+       "type": "number"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "tabIndex": {
+     "anyOf": [
+      {
+       "maximum": 999,
+       "minimum": 0,
+       "type": "integer"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "text": {
+     "anyOf": [
+      {
+       "maxLength": 2000,
+       "type": "string"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "theme": {
+     "anyOf": [
+      {
+       "enum": [
+        "terminal",
+        "dark",
+        "light",
+        "attas",
+        "fugle"
+       ]
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "tickFrequency": {
+     "anyOf": [
+      {
+       "maximum": 1000000000000000.0,
+       "minimum": -1000000000000000.0,
+       "type": "number"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "toolTipText": {
+     "anyOf": [
+      {
+       "maxLength": 500,
+       "type": "string"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "type": {
+     "const": "trackBar"
+    },
+    "validation": {
+     "anyOf": [
+      {
+       "additionalProperties": false,
+       "properties": {
+        "maxLength": {
+         "maximum": 2000,
+         "minimum": 0,
+         "type": "integer"
+        },
+        "maximum": {
+         "maximum": 1000000000000000.0,
+         "minimum": -1000000000000000.0,
+         "type": "number"
+        },
+        "message": {
+         "maxLength": 200,
+         "type": "string"
+        },
+        "minLength": {
+         "maximum": 2000,
+         "minimum": 0,
+         "type": "integer"
+        },
+        "minimum": {
+         "maximum": 1000000000000000.0,
+         "minimum": -1000000000000000.0,
+         "type": "number"
+        },
+        "oneOf": {
+         "maxItems": 500,
+         "type": "array"
+        },
+        "required": {
+         "type": "boolean"
+        }
+       },
+       "type": "object"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    },
+    "value": {},
+    "visible": {
+     "anyOf": [
+      {
+       "type": "boolean"
+      },
+      {
+       "maxProperties": 1,
+       "minProperties": 1,
+       "propertyNames": {
+        "pattern": "^[$][a-z]+$"
+       },
+       "type": "object"
+      }
+     ]
+    }
+   },
+   "type": "object"
+  }
+ },
+ "title": "Phemacast controls",
+ "version": "1.0.0",
+ "vocabulary": {
+  "actions": {
+   "clearSelection": {
+    "optional": [],
+    "required": [
+     "control"
+    ]
+   },
+   "openLink": {
+    "optional": [],
+    "required": [
+     "url"
+    ]
+   },
+   "openPhema": {
+    "optional": [
+     "parameters",
+     "where",
+     "link",
+     "as"
+    ],
+    "required": [
+     "phema"
+    ]
+   },
+   "publish": {
+    "optional": [],
+    "required": [
+     "port",
+     "value"
+    ]
+   },
+   "refresh": {
+    "optional": [],
+    "required": [
+     "reference"
+    ]
+   },
+   "runReference": {
+    "optional": [
+     "parameters"
+    ],
+    "required": [
+     "reference"
+    ]
+   },
+   "setPanelParameters": {
+    "optional": [],
+    "required": [
+     "panel",
+     "values"
+    ]
+   },
+   "setParameter": {
+    "optional": [],
+    "required": [
+     "name",
+     "value"
+    ]
+   },
+   "setProperty": {
+    "optional": [],
+    "required": [
+     "control",
+     "property",
+     "value"
+    ]
+   },
+   "showMessage": {
+    "optional": [
+     "level"
+    ],
+    "required": [
+     "text"
+    ]
+   }
+  },
+  "alignments": [
+   "topLeft",
+   "topCenter",
+   "topRight",
+   "middleLeft",
+   "middleCenter",
+   "middleRight",
+   "bottomLeft",
+   "bottomCenter",
+   "bottomRight"
+  ],
+  "bindings": [
+   "$param",
+   "$result",
+   "$control",
+   "$event",
+   "$link",
+   "$panel",
+   "$panels",
+   "$opened",
+   "$agents"
+  ],
+  "colors": [
+   "background",
+   "surface",
+   "raised",
+   "hover",
+   "line",
+   "lineSoft",
+   "text",
+   "muted",
+   "dim",
+   "accent",
+   "accentBackground",
+   "positive",
+   "negative"
+  ],
+  "column": [
+   "autoSizeMode",
+   "columnType",
+   "dataPropertyName",
+   "dataSource",
+   "defaultCellStyle",
+   "displayIndex",
+   "displayMember",
+   "fillWeight",
+   "frozen",
+   "headerText",
+   "items",
+   "minimumWidth",
+   "name",
+   "readOnly",
+   "resizable",
+   "sortMode",
+   "text",
+   "toolTipText",
+   "useColumnTextForButtonValue",
+   "validation",
+   "valueMember",
+   "valueType",
+   "visible",
+   "width"
+  ],
+  "common": {
+   "events": [
+    "click",
+    "doubleClick",
+    "enter",
+    "leave",
+    "keyDown",
+    "textChanged",
+    "validating",
+    "validated"
+   ],
+   "properties": [
+    "backColor",
+    "enabled",
+    "font",
+    "foreColor",
+    "margin",
+    "name",
+    "padding",
+    "tabIndex",
+    "text",
+    "theme",
+    "toolTipText",
+    "type",
+    "validation",
+    "visible"
+   ]
+  },
+  "formatKinds": [
+   "datetime",
+   "date",
+   "time",
+   "amount",
+   "percent",
+   "ratio",
+   "count",
+   "number",
+   "text"
+  ],
+  "kinds": {
+   "button": {
+    "container": false,
+    "events": [],
+    "properties": []
+   },
+   "checkBox": {
+    "container": false,
+    "events": [
+     "checkedChanged",
+     "checkStateChanged"
+    ],
+    "properties": [
+     "checkState",
+     "checked",
+     "threeState"
+    ]
+   },
+   "checkedListBox": {
+    "container": false,
+    "events": [
+     "selectedIndexChanged",
+     "itemCheck"
+    ],
+    "properties": [
+     "checkOnClick",
+     "checkedValues",
+     "dataSource",
+     "displayMember",
+     "items",
+     "selectedValues",
+     "selectionMode",
+     "valueMember"
+    ]
+   },
+   "comboBox": {
+    "container": false,
+    "events": [
+     "selectedIndexChanged",
+     "selectedValueChanged",
+     "selectionChangeCommitted",
+     "dropDown",
+     "dropDownClosed",
+     "textUpdate"
+    ],
+    "properties": [
+     "autoCompleteMode",
+     "dataSource",
+     "displayMember",
+     "dropDownStyle",
+     "items",
+     "maxDropDownItems",
+     "selectedIndex",
+     "selectedValue",
+     "sorted",
+     "valueMember"
+    ]
+   },
+   "dateTimePicker": {
+    "container": false,
+    "events": [
+     "valueChanged"
+    ],
+    "properties": [
+     "customFormat",
+     "format",
+     "maxDate",
+     "minDate",
+     "showCheckBox",
+     "value"
+    ]
+   },
+   "groupBox": {
+    "container": true,
+    "events": [],
+    "properties": [
+     "borderStyle",
+     "controls"
+    ]
+   },
+   "label": {
+    "container": false,
+    "events": [],
+    "properties": [
+     "autoEllipsis",
+     "textAlign"
+    ]
+   },
+   "linkLabel": {
+    "container": false,
+    "events": [
+     "linkClicked"
+    ],
+    "properties": [
+     "link",
+     "linkVisited"
+    ]
+   },
+   "listBox": {
+    "container": false,
+    "events": [
+     "selectedIndexChanged"
+    ],
+    "properties": [
+     "dataSource",
+     "displayMember",
+     "items",
+     "selectedValues",
+     "selectionMode",
+     "valueMember"
+    ]
+   },
+   "numericUpDown": {
+    "container": false,
+    "events": [
+     "valueChanged"
+    ],
+    "properties": [
+     "decimalPlaces",
+     "increment",
+     "maximum",
+     "minimum",
+     "thousandsSeparator",
+     "value"
+    ]
+   },
+   "panel": {
+    "container": true,
+    "events": [],
+    "properties": [
+     "borderStyle",
+     "controls"
+    ]
+   },
+   "progressBar": {
+    "container": false,
+    "events": [],
+    "properties": [
+     "maximum",
+     "minimum",
+     "style",
+     "value"
+    ]
+   },
+   "radioButton": {
+    "container": false,
+    "events": [
+     "checkedChanged"
+    ],
+    "properties": [
+     "checked",
+     "groupName",
+     "value"
+    ]
+   },
+   "tabControl": {
+    "container": true,
+    "events": [
+     "selectedIndexChanged"
+    ],
+    "properties": [
+     "selectedIndex",
+     "tabPages"
+    ]
+   },
+   "table": {
+    "container": false,
+    "events": [
+     "cellClick",
+     "cellDoubleClick",
+     "cellContentClick",
+     "cellValueChanged",
+     "cellValidating",
+     "cellEndEdit",
+     "rowEnter",
+     "rowLeave",
+     "userAddedRow",
+     "userDeletingRow",
+     "userDeletedRow",
+     "columnHeaderMouseClick",
+     "sorted",
+     "selectionChanged",
+     "currentCellChanged",
+     "dataBindingComplete",
+     "dataError"
+    ],
+    "properties": [
+     "allowUserToAddRows",
+     "allowUserToDeleteRows",
+     "allowUserToOrderColumns",
+     "allowUserToResizeColumns",
+     "alternatingRowsDefaultCellStyle",
+     "autoGenerateColumns",
+     "autoSizeColumnsMode",
+     "cellBorderStyle",
+     "cellStyleRules",
+     "clipboardCopyMode",
+     "columnHeadersDefaultCellStyle",
+     "columnHeadersVisible",
+     "columns",
+     "currentCell",
+     "dataSource",
+     "defaultCellStyle",
+     "editMode",
+     "gridColor",
+     "multiSelect",
+     "readOnly",
+     "rowHeadersVisible",
+     "rowLimit",
+     "rowsDefaultCellStyle",
+     "selectionMode",
+     "showCellToolTips",
+     "sortOrder",
+     "sortedColumn"
+    ]
+   },
+   "textBox": {
+    "container": false,
+    "events": [],
+    "properties": [
+     "acceptsReturn",
+     "maxLength",
+     "multiline",
+     "placeholderText",
+     "readOnly",
+     "textAlign",
+     "wordWrap"
+    ]
+   },
+   "trackBar": {
+    "container": false,
+    "events": [
+     "valueChanged",
+     "scroll"
+    ],
+    "properties": [
+     "largeChange",
+     "maximum",
+     "minimum",
+     "orientation",
+     "smallChange",
+     "tickFrequency",
+     "value"
+    ]
+   }
+  },
+  "levels": [
+   "info",
+   "success",
+   "warning",
+   "error"
+  ],
+  "limits": {
+   "actionsPerEvent": 8,
+   "columns": 50,
+   "controls": 64,
+   "depth": 4,
+   "documentBytes": 200000,
+   "items": 500,
+   "name": 64,
+   "rows": 5000,
+   "styleRules": 16,
+   "text": 2000
+  },
+  "ops": [
+   "=",
+   "!=",
+   "<",
+   "<=",
+   ">",
+   ">=",
+   "null",
+   "notNull"
+  ],
+  "ports": {
+   "extension": "phemacast:ports",
+   "groups": [
+    "red",
+    "amber",
+    "green",
+    "teal",
+    "blue",
+    "purple"
+   ],
+   "maxValueBytes": 32768,
+   "share": [
+    "readWrite",
+    "read",
+    "none"
+   ],
+   "types": [
+    "instrument",
+    "instruments",
+    "date",
+    "dateRange",
+    "interval",
+    "text",
+    "number",
+    "boolean",
+    "agent",
+    "rows"
+   ]
+  },
+  "renderers": {
+   "button": "phemacast:control.button",
+   "checkBox": "phemacast:control.check-box",
+   "checkedListBox": "phemacast:control.checked-list-box",
+   "comboBox": "phemacast:control.combo-box",
+   "dateTimePicker": "phemacast:control.date-time-picker",
+   "groupBox": "phemacast:control.group-box",
+   "label": "phemacast:control.label",
+   "linkLabel": "phemacast:control.link-label",
+   "listBox": "phemacast:control.list-box",
+   "numericUpDown": "phemacast:control.numeric-up-down",
+   "panel": "phemacast:control.panel",
+   "progressBar": "phemacast:control.progress-bar",
+   "radioButton": "phemacast:control.radio-button",
+   "tabControl": "phemacast:control.tab-control",
+   "table": "phemacast:control.table",
+   "textBox": "phemacast:control.text-box",
+   "trackBar": "phemacast:control.track-bar"
+  },
+  "state": {
+   "checkBox": [
+    "checked",
+    "checkState"
+   ],
+   "checkedListBox": [
+    "selectedValues",
+    "checkedValues"
+   ],
+   "comboBox": [
+    "selectedValue",
+    "selectedIndex",
+    "text"
+   ],
+   "dateTimePicker": [
+    "value"
+   ],
+   "listBox": [
+    "selectedValues"
+   ],
+   "numericUpDown": [
+    "value"
+   ],
+   "radioButton": [
+    "checked",
+    "value"
+   ],
+   "tabControl": [
+    "selectedIndex"
+   ],
+   "table": [
+    "rows",
+    "selectedRows",
+    "currentRow",
+    "currentCell",
+    "sortedColumn",
+    "sortOrder"
+   ],
+   "textBox": [
+    "text"
+   ],
+   "trackBar": [
+    "value"
+   ]
+  },
+  "themes": [
+   "terminal",
+   "dark",
+   "light",
+   "attas",
+   "fugle"
+  ],
+  "version": "1.0.0",
+  "where": [
+   "newPanel",
+   "replaceThis",
+   "newWorkspace"
+  ]
+ }
+}

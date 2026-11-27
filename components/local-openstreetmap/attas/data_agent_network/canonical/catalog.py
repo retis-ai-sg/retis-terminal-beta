@@ -59,6 +59,8 @@ FIELDS = {
     'url': ('string', 'URI', 'Content location supplied by the publisher.'),
     'summary': ('string', 'text', 'Source-supplied summary or excerpt, without automatic translation.'),
     'publisher': ('string', 'text', 'Identified publisher of the content.'),
+    'feed': ('string', 'text', 'Name of the feed or channel that published the item.'),
+    'feedTags': ('array', 'identifier', 'Tags the source declares for the feed, such as finance or tw; not tags of the item itself.'),
     'instrumentReferences': ('array', 'identifier', 'Listings explicitly associated with the content.'),
     'eventAt': ('string', 'ISO-8601', 'Time or date of the corporate announcement or scheduled event.'),
     'reportedEps': ('number', 'currency-per-share', 'EPS reported for the specified event or fiscal period, with accounting basis retained.'),
@@ -83,6 +85,8 @@ PROFILES = {
     'company.financials.v1': ['ticker','period','periodType','revenue','netIncome','freeCashFlow','currency'],
     'company.peers.v1': ['ticker','period','marketCap','priceEarnings','revenueGrowth','operatingMargin','currency'],
     'research.news.v1': ['ticker','headline','publishedAt','url','publisher','summary','instrumentReferences'],
+    # The newest items across a source's feeds, for no listing in particular (Alvin, 2026-11-24: analysts tag every news item).
+    'research.news_feed.v1': ['headline','publishedAt','url','publisher','summary','feed','feedTags'],
     'company.earnings.v1': ['ticker','eventAt','period','reportedEps','reportedRevenue','surprisePercent','currency','epsBasis'],
     'company.estimates.v1': ['ticker','period','periodType','asOf','estimatedEps','estimatedRevenue','currency','epsBasis'],
     'research.commentary.v1': ['ticker','comment','publishedAt','publisher','instrumentReferences'],
@@ -96,6 +100,10 @@ PROFILES = {
 from .research_models import FIELDS as RESEARCH_FIELDS, PROFILES as RESEARCH_PROFILES
 FIELDS.update(RESEARCH_FIELDS)
 PROFILES.update(RESEARCH_PROFILES)
+
+
+# A profile's rows join on its listing unless they belong to none: a news feed's items join on their address.
+JOIN_KEYS = {'research.news_feed.v1': ['url']}
 
 
 def value_schema(field):
@@ -134,7 +142,7 @@ def _resources():
                           'title':schema,'description':'Source-independent display requirements for '+schema,
                           'base_ref':reference(base),'fields':{f:field_refs[f] for f in fields},
                           'dependencies':[reference(base),*[field_refs[f] for f in fields]],
-                          'constraints':{'joinKeys':['ticker'],'missing':'explicit','contentTranslation':False},
+                          'constraints':{'joinKeys':JOIN_KEYS.get(schema,['ticker']),'missing':'explicit','contentTranslation':False},
                           'interface':{'schema_language':'json-schema-2020-12','request_schema':{'type':'object'},
                                        'response_schema':{'type':'array','maxItems':10000,'items':{'type':'object','properties':{f:value_schema(f) for f in fields}}}},
                           'extensions':{'ai.attas:legacySchema':schema}})
@@ -157,14 +165,22 @@ def model_requirement(requirement):
     if model and not result.get('modelRef') and set(result.get('fields', [])) <= set(model['fields']):
         result['modelRef'] = reference(model)
         result['modelContract'] = 'model-requirement/1'
-        keys = {'market.history.v1':['ticker','timestamp'], 'research.news.v1':['url'],
+        keys = {'market.history.v1':['ticker','timestamp'], 'research.news.v1':['url'], 'research.news_feed.v1':['url'],
                 'company.financials.v1':['ticker','period'],'company.estimates.v1':['ticker','period'],
                 'company.earnings.v1':['ticker','eventAt'],
                 'company.institutional.v1':['ticker','timestamp','investor'],
+                'company.shareholding-distribution.v1':['ticker','timestamp','holdingBand'],
+                'company.insider-holdings.v1':['ticker','period','filingOrder'],
                 'company.margin.v1':['ticker','timestamp'],
                 'company.statement-items.v1':['ticker','period','metric'],
+                'company.income-statement.v1':['ticker','period','metric'],
+                'company.balance-sheet.v1':['ticker','period','metric'],
+                'company.cash-flow.v1':['ticker','period','metric'],
                 'company.distributions.v1':['ticker','eventAt'],
                 'company.events.v1':['ticker','eventAt','eventType'],
+                'company.revenue-monthly.v1':['ticker','period'],
+                'company.announcements.v1':['ticker','publishedAt','headline'],
+                'company.esg.v1':['ticker','reportYear'],
                 'fund.holdings.v1':['ticker','holdingId','asOf'],
                 'market.orderbook.v1':['ticker','level'],
                 'market.trades.v1':['ticker','observedAt'],

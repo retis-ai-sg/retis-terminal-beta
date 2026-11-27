@@ -69,6 +69,11 @@ export class AgentViewNode {
   });
  }
  pushEvent(value){this.view.pushEvent(value);}
+ /** An action the open view offers AI apps, run by the view's own code (`AgentView#action`). */
+ action(name,input,options){return this.view.action(name,input,options);}
+ /** The actions the mounted release offers AI apps, as declared in its reviewed manifest; [] before a mount. */
+ get actions(){return structuredClone(this.view.spec?.aiActions||[]);}
+ get mountId(){return this.view.spec?this.view.mountId:null;}
  updateContext(value){this.context=value;this.view.updateContext(value);}
  dispose(){this.epoch++;this.view.dispose();this.busy.dispose();}
 }

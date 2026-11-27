@@ -118,6 +118,10 @@ class OpenDataSource(FinancialProviderDataSource):
             **({'attribution': definition['attribution']} if definition.get('attribution') else {}),
             # The terms the data comes under, so a view can show them with the credit (licence check, 2026-11-15).
             **({'license': definition['license']} if definition.get('license') else {}),
+            # The description and licence in other languages, by language tag; licence names stay as published.
+            **({'translations': copy.deepcopy(definition['translations'])} if definition.get('translations') else {}),
+            # A credit for each endpoint where its maps ask different ones (endpoint id -> credit).
+            **({'attributions': dict(definition['attributions'])} if definition.get('attributions') else {}),
             'symbology': {**copy.deepcopy(SYMBOLOGY), 'evidence': [f'attas/data_agent_network/catalogs/{self.VENDOR_ID}/manifest.json']},
             'connectivity': {'status': 'configured', 'transport': 'https', 'pulse_name': 'data_availability',
                              'authentication': definition['authentication'],

@@ -1,0 +1,34 @@
+/* Common controls (phemacast:control.*): compact, theme tokens only. Containers lay their controls out in a wrapping
+   row, as a FlowLayoutPanel does; a table inside one takes the full width. */
+.phema-ctl{color:var(--text);font-size:13px;min-width:0;box-sizing:border-box}
+.phema-ctl[hidden]{display:none!important}
+.phema-ctl[data-control-theme]{background:var(--surface)}
+.ctl-flow{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;min-width:0}
+.ctl-flow>.ctl-table-host{flex:1 1 100%;min-height:120px}
+.ctl-panel,.ctl-group-box,.ctl-tab-control{width:100%}
+.ctl-panel[data-border="fixedSingle"],.ctl-group-box[data-border="fixedSingle"]{border:1px solid var(--line);border-radius:4px;padding:6px 8px}
+.ctl-group-box{margin:0;padding:6px 8px}
+.ctl-group-box legend{color:var(--muted);font-size:12px;padding:0 4px}
+.ctl-text{display:inline-block;max-width:100%}
+.ctl-ellipsis{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.phema-ctl input[type=text],.phema-ctl input[type=number],.phema-ctl input[type=date],.phema-ctl input[type=time],.phema-ctl input[type=datetime-local],.phema-ctl textarea,.phema-ctl select{font:inherit;color:var(--text);background:var(--bg);border:1px solid var(--line);border-radius:4px;padding:3px 6px;min-width:0;box-sizing:border-box}
+.phema-ctl textarea{width:100%;min-height:60px;resize:vertical}
+.ctl-text-box input,.ctl-combo-box select,.ctl-combo-box input{min-width:120px}
+.ctl-numeric-up-down input{width:110px;text-align:right;font-variant-numeric:tabular-nums}
+.phema-ctl select[multiple],.phema-ctl select[size]{min-width:140px}
+.phema-ctl input:focus-visible,.phema-ctl select:focus-visible,.phema-ctl textarea:focus-visible,.phema-ctl button:focus-visible{outline:1px solid var(--accent);outline-offset:1px}
+.phema-ctl [aria-invalid="true"]{border-color:var(--red);box-shadow:0 0 0 1px var(--red)}
+.ctl-button{font:inherit;font-size:12px;padding:3px 12px;border:1px solid var(--line);border-radius:4px;background:var(--raised);color:var(--text);cursor:pointer}
+.ctl-button:hover{background:var(--hover)}
+.ctl-link{all:unset;color:var(--accent);text-decoration:underline;cursor:pointer}
+.ctl-link.ctl-visited{color:var(--muted)}
+.ctl-check{display:inline-flex;align-items:center;gap:5px;cursor:pointer}
+.ctl-checked-list-box{display:flex;flex-direction:column;gap:2px;max-height:180px;overflow:auto}
+.ctl-track-bar input{accent-color:var(--accent)}
+.ctl-track-bar input.ctl-vertical{writing-mode:vertical-lr;direction:rtl;height:120px}
+.ctl-progress-bar progress{width:160px;accent-color:var(--accent)}
+.ctl-tablist{display:flex;gap:2px;border-bottom:1px solid var(--line);margin-bottom:6px}
+.ctl-tablist [role=tab]{all:unset;padding:4px 10px;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent}
+.ctl-tablist [role=tab][aria-selected="true"]{color:var(--text);border-bottom-color:var(--accent)}
+.ctl-disabled{opacity:.6}
+.ctl-disabled *{cursor:default}

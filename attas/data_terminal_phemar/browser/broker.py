@@ -2,6 +2,28 @@
 import asyncio
 from fastapi import HTTPException
 
+
+class CallUser(dict):
+    """One call's copy of its window's user, whose token is the window login's current one at each use. A window
+    renews its Plaza login while long calls run, and Plaza refuses the token a renewal replaced. `current` reads the
+    login the call started with, so its account never changes; once that login ends, the call keeps its own token."""
+    def __init__(self, user, current):
+        super().__init__(user)
+        self.current = current
+
+    def __getitem__(self, key):
+        value = super().__getitem__(key)
+        if key != 'token':
+            return value
+        try:
+            return self.current() or value
+        except Exception:
+            return value  # an unreadable login store leaves the call its own token
+
+    def get(self, key, default=None):
+        return self[key] if key == 'token' and key in self else super().get(key, default)
+
+
 class NetworkBroker:
     def __init__(self, store, network):
         self.store, self.network = store, network
@@ -26,11 +48,24 @@ class NetworkBroker:
             return await self.resolve_for(user,getattr(child,'phema',None),args['reference'],args['inputs'],child=child)
         raise HTTPException(403, 'Unsupported Browser transport operation.')
 
+    def following(self, user):
+        """`user` for one call, following its window login's token while that login holds the token the call has."""
+        scope = getattr(self, 'terminal_scope', None)
+        if not scope or not user.get('token'):
+            return dict(user)
+        from ..window_sessions import window_scope
+        binding = self.store.terminal_login(window_scope(scope, user.get('terminalWindow', '')))
+        sid = binding['session_id'] if binding and binding.get('owner') == user.get('id') else None
+        if not sid or (self.store.read_session(sid) or {}).get('access_token') != user['token']:
+            return dict(user)
+        return CallUser(user, lambda: (self.store.read_session(sid) or {}).get('access_token'))
+
     async def resolve_for(self, user, root, ref, inputs, child=None):
         """Resolve one reference of a reviewed Phema as `user`: a Browser's call, or a scheduled run's tick."""
         from phemacast.core.composition import reference_paths, walk_compositions
         from phemacast.core.composition_resolution import reference_contract
         from ..phema_security import check
+        user = self.following(user)
         bind = getattr(self.network, 'bind_account', None)
         if bind: bind(user.get('id'))
         if getattr(self, 'native_trust', None):

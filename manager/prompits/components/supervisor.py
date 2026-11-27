@@ -105,6 +105,7 @@ class Supervisor:
         # Variables given to one start (such as a key a client hands over): kept in memory for its restarts, never
         # written to the records. A manager that restarts no longer has them, and waits to be given them again.
         self._start_env: dict[str, dict[str, str]] = {}
+        self._masked: dict[str, int] = {}  # how far each log is checked for credentials (logs.mask_secrets)
 
     # ----- what to run
     def component(self, component_id: str) -> Component:
@@ -212,7 +213,8 @@ class Supervisor:
         return self.start(component_id)
 
     def tick(self) -> list[dict[str, Any]]:
-        """Call every few seconds: notice exits, restart what is due, rotate logs. Returns the events raised."""
+        """Call every few seconds: notice exits, restart what is due, mask credentials in logs and rotate them.
+        Returns the events raised."""
         events = []
         for component_id, process in list(self._children.items()):
             code = process.poll()
@@ -236,8 +238,11 @@ class Supervisor:
                         events.append(self.state.record_event("waiting", component_id, reason=str(error)))
                     except SupervisorError as error:
                         events.append(self.state.record_event("start_failed", component_id, reason=str(error)))
-        for component_id in desired:
-            logs.rotate_if_needed(self.layout.log_path(component_id), max_bytes=self.max_log_bytes)
+        for component_id in desired:  # a credential a component printed is masked, then the log rotates if due
+            path = self.layout.log_path(component_id)
+            self._masked[component_id] = logs.mask_secrets(path, self._masked.get(component_id, 0))
+            if logs.rotate_if_needed(path, max_bytes=self.max_log_bytes):
+                self._masked[component_id] = 0
         return events
 
     def shutdown(self, *, stop_components: bool = False):
@@ -299,10 +304,13 @@ class Supervisor:
         if os.name == "nt":
             kwargs["creationflags"] = kwargs.get("creationflags", 0) | CREATE_NO_WINDOW
         with open(log_path, "ab") as log:
+            log.write(logs.start_line(component_id, component.version, self.clock()).encode("utf-8"))
+            log.flush()
             try:
                 process = subprocess.Popen(command, cwd=str(cwd), env=env, stdin=subprocess.DEVNULL,
                                            stdout=log, stderr=subprocess.STDOUT, **kwargs)
             except OSError as error:
+                log.write(f"ERROR: {component_id} could not start: {error}\n".encode("utf-8", "replace"))
                 raise SupervisorError(f"{component_id} could not start: {error}") from error
         started_at = self.clock()
         self._children[component_id] = process

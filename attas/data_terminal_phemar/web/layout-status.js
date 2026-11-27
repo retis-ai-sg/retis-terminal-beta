@@ -1,4 +1,4 @@
-import {t,label,setUIText} from './i18n.js';
+import {t,label,setUIText,attribute} from './i18n.js';
 import {displayTime} from './time-display.js';
 import {failureText} from './failure-messages.js';
 export function layoutFetchStatus(state,requirements){
@@ -9,14 +9,14 @@ export function layoutFetchStatus(state,requirements){
  if(state.layoutConflict)return {text:t('Layout update needs review'),key:'Layout update needs review',args:[],detail:state.layoutConflict.requirements.join(', '),busy:false};
  // Plaza did not answer the trust check, or does not list an agent yet: not a decision, so say it is retrying rather than ask for approval.
  if(state.security?.trustUnconfirmed&&Object.values(state.content?.results||{}).some(r=>r?.status==='blocked'))return {text:t('Can’t confirm trust, retrying…'),key:'Can’t confirm trust, retrying…',args:[],detail:t('Plaza hasn’t confirmed this layout’s agents yet. It reloads by itself in a few seconds.'),busy:true};
- // Panels blocked by permission wait for the viewer's approval, not for data.
- if(Object.values(state.content?.results||{}).some(r=>r?.status==='blocked'))return {text:t('Approval required'),key:'Approval required',args:[],detail:t('Approve this layout to load its panels.'),busy:false};
+ // Panels blocked by permission wait for the viewer's approval, not for data. The status opens Phema permissions (♧).
+ if(Object.values(state.content?.results||{}).some(r=>r?.status==='blocked'))return {text:t('Approval required'),key:'Approval required',args:[],detail:t(APPROVE),busy:false,approve:true};
  if(state.sourceMode==='snapshot')return {text:t('Snapshot'),key:'Snapshot',args:[],detail:state.content?.snapshotId||'',busy:false};
  // A form waiting for the viewer's input has finished loading; only content still on its way is pending.
  const waitsForInput=r=>r.status==='pending'&&r.reason==='interaction-required';
  const content=state.content?.results||{},pending=Object.entries(content).filter(([,r])=>r.status!=='ready'&&!waitsForInput(r)&&!(r.status==='pending'&&r.reason==='manual'&&state.content?.status==='ready'));
  // Panels whose source failed are unavailable, not on their way: the window says so, as the panels do.
- if(pending.length){const busy=pending.some(([,r])=>r.status==='resolving'),failed=pending.filter(([,r])=>['unavailable','failed'].includes(r.status)).length;const key=busy?'Resolving content':failed?'{0} of {1} panels unavailable':'Content pending',args=!busy&&failed?[failed,Object.keys(content).length]:[];return {text:t(key,...args),key,args,detail:pending.map(([id,r])=>id+': '+r.status+(r.reason?' · '+failureText(r.reason):'')).join('\n'),busy};}
+ if(pending.length){const busy=pending.some(([,r])=>r.status==='resolving'),failed=pending.filter(([,r])=>['unavailable','failed'].includes(r.status)).length;const key=busy?'Resolving content':failed?'{0} of {1} panels unavailable':'Content pending',args=!busy&&failed?[failed,Object.keys(content).length]:[];return {text:t(key,...args),key,args,detail:pending.map(([id,r])=>id+': '+r.status+(r.reason?' · '+failureText(r.reason,r.message):'')).join('\n'),busy};}
  const results=state.results||{};
  const waiting=requirements.filter(r=>!results[r.id]||results[r.id].status==='loading'||results[r.id].refreshStatus==='loading');
  const failed=requirements.filter(r=>results[r.id]?.status==='unavailable'||results[r.id]?.refreshStatus==='unavailable');
@@ -32,5 +32,12 @@ export function layoutFetchStatus(state,requirements){
  return {text,key,args,detail,busy:waiting.length>0};
 }
 
-export function statusHTML(value){return value.key?label(value.key,...value.args):String(value.text||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
-export function updateStatus(node,value){node.innerHTML=statusHTML(value);node.title=value.detail;node.dataset.busy=String(value.busy);}
+const APPROVE='Approve this layout in Phema permissions to load its panels.';
+const escape=value=>String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+// A window waiting for approval says so with a button that opens its Phema permissions, where it is approved.
+// Without a window to open them for, the status is text.
+export function statusHTML(value,browserId){
+ const text=value.key?label(value.key,...value.args):escape(value.text||'');
+ return value.approve&&browserId?`<button type="button" class="layout-approve" data-phema-permissions="${escape(browserId)}" ${attribute('title',APPROVE)}>${text}</button>`:text;
+}
+export function updateStatus(node,value,browserId){node.innerHTML=statusHTML(value,browserId);node.title=value.detail;node.dataset.busy=String(value.busy);}

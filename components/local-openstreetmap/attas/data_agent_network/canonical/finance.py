@@ -8,7 +8,7 @@ import time
 from datetime import datetime, timezone
 from .earnings import earnings_rows
 
-CANONICAL_SCHEMAS={"market.quotes.v1","market.history.v1","company.profile.v1","company.financials.v1","research.reports.v1","research.news.v1","company.peers.v1","company.earnings.v1","company.estimates.v1","portfolio.holdings.v1","market.fx.v1"}
+CANONICAL_SCHEMAS={"market.quotes.v1","market.history.v1","company.profile.v1","company.financials.v1","research.reports.v1","research.news.v1","research.news_feed.v1","company.peers.v1","company.earnings.v1","company.estimates.v1","portfolio.holdings.v1","market.fx.v1"}
 
 def history_window(rows, chart_range, now=None):
     days = {'1D': 1, '1W': 7, '1M': 31, '3M': 93, '1Y': 365}[chart_range]

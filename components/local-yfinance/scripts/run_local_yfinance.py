@@ -10,6 +10,7 @@ import time
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
+from prompits.components import logs as component_logs  # noqa: E402  every start's log format
 
 
 def prepare(directory, port):
@@ -39,9 +40,7 @@ NETWORK_RETRIES = 2
 def configure_logging():
     """The component log (Retis MAS Manager → Logs): when it started and what each request did, with a time on every
     line. Libraries keep to warnings and errors."""
-    logging.basicConfig(level=logging.WARNING, stream=sys.stdout, format='%(asctime)s %(levelname)s %(name)s: %(message)s')
-    for name in ('local_yfinance', 'attas.local_source'):
-        logging.getLogger(name).setLevel(logging.INFO)
+    component_logs.configure_logging('local_yfinance', 'attas.local_source')
 
 
 def load_yfinance(retries=NETWORK_RETRIES):

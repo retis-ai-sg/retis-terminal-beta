@@ -57,19 +57,26 @@ export function resizeFrame(frame, edge, dx, dy, bounds) {
 }
 
 /**
- * Tile row-major with 12px gaps when space permits. If the canvas is too short
- * for the minimum heights, rows overlap evenly while remaining fully in bounds.
- * A host can grow its scrollable canvas to avoid that compact fallback.
+ * Tile row-major with 12px gaps, in columns about 500px wide. When those rows would not fit at the minimum height,
+ * use more columns (down to the minimum width) until they do, so no window covers another's title bar: five windows
+ * on a 1400 x 700 canvas tile 3 x 2, not 2 x 3. Only when no column count fits do the rows overlap evenly, as before,
+ * while remaining fully in bounds. A host can grow its scrollable canvas to avoid that compact fallback.
  */
 export function tileFrames(count, bounds) {
   const total = Math.max(0, Math.floor(finite(count, 0)));
   if (total === 0) return [];
   const canvas = canvasBounds(bounds);
   const gap = 12;
-  const columns = Math.max(1, Math.min(total, Math.floor(canvas.width / 500)));
+  const minWidth = Math.min(360, canvas.width);
+  const minHeight = Math.min(280, canvas.height);
+  const preferred = Math.max(1, Math.min(total, Math.floor(canvas.width / 500)));
+  const fits = columns => (canvas.width - gap * (columns - 1)) / columns >= minWidth
+    && Math.ceil(total / columns) * (minHeight + gap) - gap <= canvas.height;
+  let columns = preferred;
+  for (let more = preferred; more <= total; more += 1) if (fits(more)) { columns = more; break; }
   const rows = Math.ceil(total / columns);
-  const width = Math.max(Math.min(360, canvas.width), (canvas.width - gap * (columns - 1)) / columns);
-  const height = Math.max(Math.min(280, canvas.height), (canvas.height - gap * (rows - 1)) / rows);
+  const width = Math.max(minWidth, (canvas.width - gap * (columns - 1)) / columns);
+  const height = Math.max(minHeight, (canvas.height - gap * (rows - 1)) / rows);
   const rowStep = rows > 1 ? Math.min(height + gap, (canvas.height - height) / (rows - 1)) : 0;
 
   return Array.from({ length: total }, (_, index) => normalizeFrame({
@@ -101,4 +108,21 @@ export function cascadeFrame(index, bounds) {
     width: Math.min(620, canvas.width),
     height: Math.min(560, canvas.height),
   }, canvas);
+}
+
+/**
+ * Where a newly opened window goes without moving any open one: a free tile (freeFrame), else the first cascade
+ * step that does not start where an open window starts, so it never hides another's title bar exactly. The open
+ * windows stay where they are; only the person's Tile or Arrange windows tiles them again.
+ */
+export function openingFrame(frames, bounds) {
+  const free = freeFrame(frames, bounds);
+  if (free) return free;
+  const open = (frames || []).filter(Boolean);
+  const taken = frame => open.some(other => Math.abs(other.x - frame.x) < 8 && Math.abs(other.y - frame.y) < 8);
+  for (let step = 0; step <= open.length; step += 1) {
+    const frame = cascadeFrame(step, bounds);
+    if (!taken(frame)) return frame;
+  }
+  return cascadeFrame(open.length, bounds);
 }

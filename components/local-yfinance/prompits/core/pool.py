@@ -9,12 +9,13 @@ Core types exposed here include `DataItem`, `Pool`, `PoolCap`, and
 `PoolOperationPractice`, which carry the main behavior or state managed by this module.
 """
 
+import re
 import threading
 import uuid
 from abc import abstractmethod, ABC
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Dict, List, Any, Optional, Union
+from typing import Dict, Iterable, List, Any, Optional, Union
 from fastapi import APIRouter, FastAPI, HTTPException
 from starlette.concurrency import run_in_threadpool
 from .message import Message
@@ -52,6 +53,17 @@ class PoolCap(str, Enum):
     BLOB = "blob"
     SEARCH = "search"
     MEMORY = "memory"
+
+
+# A blob key is a relative path of short lowercase segments: never absolute, never `..`, never empty segments.
+BLOB_KEY = re.compile(r'^[a-z0-9][a-z0-9_.-]{0,99}(/[a-z0-9][a-z0-9_.-]{0,99}){0,7}$')
+
+
+def check_blob_key(key: Any) -> str:
+    """Return `key` when it is a valid blob key; raise ValueError otherwise."""
+    if not isinstance(key, str) or not BLOB_KEY.fullmatch(key) or any(part in ('.', '..') for part in key.split('/')):
+        raise ValueError('Invalid blob key.')
+    return key
 
 
 class PoolOperationPractice(Practice, ABC):
@@ -360,6 +372,42 @@ class Pool(Pit, ABC):
     def disconnect_practice(self) -> Practice:
         """Disconnect the practice."""
         raise NotImplementedError("disconnect_practice not implemented")
+
+    def delete_row(self, table_name: str, row_id: str) -> bool:
+        """Remove one row by its `id`; True when one was removed. Optional: pools without it raise
+        NotImplementedError."""
+        raise NotImplementedError(f'{self.__class__.__name__} does not delete rows.')
+
+    # Blobs (PoolCap.BLOB): opaque bytes under a key, beside the pool's tables. Optional: a pool that does not
+    # declare PoolCap.BLOB raises NotImplementedError. They are not published as practices; the agent that owns the
+    # pool decides who may read or write them.
+
+    def supports_blobs(self) -> bool:
+        """Whether this pool stores blobs."""
+        return PoolCap.BLOB in self.capabilities
+
+    def put_blob(self, key: str, chunks: Iterable[bytes]) -> int:
+        """Store the bytes from `chunks` under `key`, replacing any blob there; return the size.
+
+        The blob appears only once every chunk is written: a reader sees the old blob or the new one, never a part.
+        """
+        raise NotImplementedError(f'{self.__class__.__name__} does not store blobs.')
+
+    def read_blob(self, key: str, offset: int = 0, length: Optional[int] = None) -> Optional[bytes]:
+        """Up to `length` bytes of the blob from `offset` (all of the rest when None); None when there is no blob."""
+        raise NotImplementedError(f'{self.__class__.__name__} does not store blobs.')
+
+    def blob_size(self, key: str) -> Optional[int]:
+        """The blob's size in bytes, or None when there is no blob."""
+        raise NotImplementedError(f'{self.__class__.__name__} does not store blobs.')
+
+    def delete_blob(self, key: str) -> bool:
+        """Remove the blob; True when one was removed."""
+        raise NotImplementedError(f'{self.__class__.__name__} does not store blobs.')
+
+    def list_blobs(self, prefix: str = '') -> List[str]:
+        """Every blob key that starts with `prefix`, sorted."""
+        raise NotImplementedError(f'{self.__class__.__name__} does not store blobs.')
 
     def get_operation_practices(self) -> List[Practice]:
         """Return the operation practices."""

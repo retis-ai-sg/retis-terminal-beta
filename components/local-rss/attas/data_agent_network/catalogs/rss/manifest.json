@@ -1,0 +1,9 @@
+{
+  "active_snapshot": "snapshots/20261123T0000000000-a885e08c6201.json",
+  "content_hash": "a885e08c62019f1ffd6ebbfcddb2ec3dc8103f2fb72e9f73ba1e2c11cd2b5c09",
+  "endpoint_count": 6,
+  "file_hash": "eb4450dd5c2a5e6f13cd72f1cfe136f8862b69152b5263621ee43b6040a68718",
+  "parser_version": "RSSCatalog:3",
+  "retrieved_at": "2026-11-23T00:00:00+00:00",
+  "vendor_id": "rss"
+}

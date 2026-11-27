@@ -7,6 +7,7 @@ authenticated WebSocket market-data channels.
 
 from __future__ import annotations
 
+import copy
 from dataclasses import asdict, replace
 import json
 import re
@@ -518,6 +519,27 @@ def _response_schema(rows: Sequence[tuple[str, str, str, bool]]) -> Mapping[str,
     return root
 
 
+# An object row whose page lists no sub-fields but says "子欄位同 `foreign`" (sub-fields as foreign) has its sibling's.
+_SAME_SUBFIELDS_RE = re.compile(r"子欄位同\s*`?([A-Za-z_][A-Za-z0-9_]*)`?")
+
+
+def _same_subfields(schema: dict[str, Any]) -> dict[str, Any]:
+    properties = schema.get("properties") if isinstance(schema, dict) else None
+    if not isinstance(properties, dict):
+        return schema
+    for node in properties.values():
+        _same_subfields(node.get("items", node) if isinstance(node, dict) else {})
+    for node in properties.values():
+        found = _SAME_SUBFIELDS_RE.search(str(node.get("description") or "")) if isinstance(node, dict) else None
+        sibling = properties.get(found.group(1)) if found else None
+        if (node.get("type") == "object" and not node.get("properties") and isinstance(sibling, dict)
+                and sibling.get("type") == "object" and sibling.get("properties")):
+            node["properties"] = copy.deepcopy(sibling["properties"])
+            if sibling.get("required"):
+                node["required"] = list(sibling["required"])
+    return schema
+
+
 def _inferred_schema(value: Any) -> Mapping[str, Any]:
     if value is None:
         return {"type": "null"}
@@ -598,7 +620,7 @@ def _parameter_specs(rows: Sequence[tuple[str, str, str, bool]], route: str, *, 
 class FugleSpecParser(AbstractSpecParser):
     """Normalize every endpoint page linked by Fugle's official LLM index."""
 
-    VERSION = "5"
+    VERSION = "6"
     _SECTION_RE = re.compile(r"<!-- SOURCE URL: (https://developer\.fugle\.tw/[^ ]+) -->\n(.*?)(?=\n\n<!-- SOURCE URL:|\Z)", re.S)
     # "屬於 **開發者** 及 **進階用戶** 方案的專屬功能！" marks a plan-only endpoint.
     _PLAN_RE = re.compile(r"^屬於.+方案的專屬功能！?[ \t]*$", re.M)
@@ -638,7 +660,7 @@ class FugleSpecParser(AbstractSpecParser):
                 continue
             name, description = self._name_and_description(page)
             response_rows = _markdown_table(page, "Response")
-            schema = _response_schema(response_rows) if response_rows else _example_response_schema(page)
+            schema = _same_subfields(_response_schema(response_rows)) if response_rows else _example_response_schema(page)
             if not schema:
                 continue
             if is_websocket:

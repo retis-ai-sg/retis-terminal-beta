@@ -1,5 +1,10 @@
 /** Generic discovery and mounting of inert entries declared by owning agents. */
 import {createOwnerBusy} from './owner-busy.js';
+const escapeArg=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+// After this long the time so far shows beside the step, so a slow answer doesn't look like a stuck page.
+const ELAPSED_AFTER_MS=5000;
+/** A status line while something opens: `label` at first, then `say(key,...args)` names what it waits for now. It
+ * keeps message keys, so a language change redraws it. Returns the function that removes it, with `say` on it. */
 export function openingIndicator(text,label='Loading layouts…'){
  if(!document.querySelector('link[data-workspace-launcher-style]')){
   const link=document.createElement('link');link.rel='stylesheet';
@@ -11,22 +16,32 @@ export function openingIndicator(text,label='Loading layouts…'){
  indicator.setAttribute('aria-live','polite');indicator.setAttribute('aria-busy','true');
  const spinner=document.createElement('span');spinner.className='workspace-opening-spinner';spinner.setAttribute('aria-hidden','true');
  const message=document.createElement('span');message.textContent=text(label);message.dataset.uiKey=label;
- indicator.append(spinner,message);document.body.append(indicator);
- return ()=>indicator.remove();
+ const elapsed=document.createElement('small');elapsed.className='workspace-opening-elapsed';elapsed.hidden=true;
+ indicator.append(spinner,message,elapsed);document.body.append(indicator);
+ const started=Date.now(),timer=setInterval(()=>{
+  const waited=Date.now()-started;if(waited<ELAPSED_AFTER_MS)return;
+  const seconds=String(Math.round(waited/1000));
+  elapsed.hidden=false;elapsed.textContent=text('{0} s',seconds);elapsed.dataset.uiKey='{0} s';elapsed.dataset.uiArgs=JSON.stringify([seconds]);
+ },1000);
+ const clear=()=>{clearInterval(timer);indicator.remove();};
+ clear.say=(key,...args)=>{message.textContent=text(key,...args);message.dataset.uiKey=key;message.dataset.uiArgs=JSON.stringify(args.map(escapeArg));};
+ return clear;
 }
 
 export function installWorkspaceLauncher({request,text=x=>x,showButton=true}){
  let active,pending;
- const openPreferred=({name,resolve,present}={})=>{
+ // `where` names the Plaza asked first; `resolve` and `present` get `say` to name the step they wait for.
+ const openPreferred=({name,resolve,present,where}={})=>{
   if(pending)return pending;
   const clearIndicator=openingIndicator(text);
+  if(where)clearIndicator.say('Finding {0} on {1}…',name,where);
   pending=(async()=>{
    const value=await request('/api/agent-workspaces');
    if(!Array.isArray(value?.entries))throw new Error(text('Workspace discovery returned an invalid response.'));
    const matches=value.entries.filter(e=>typeof e?.name==='string'&&e.name.trim().toLocaleLowerCase()===String(name||'').trim().toLocaleLowerCase()&&e.source_mode==='parameters'&&e.phema);
    if(matches.length!==1)throw new Error(matches.length?text('More than one matching owner entry is available. Choose it in Agent workspaces.'):String(name)+': '+text('No accessible owner entry is available.'));
-   const detail=await resolve(matches[0]);
-   if(present)return await present(detail);
+   const detail=await resolve(matches[0],clearIndicator.say);
+   if(present)return await present(detail,clearIndicator.say);
    document.dispatchEvent(new CustomEvent('phemacast:open-result',{detail}));
   })().finally(()=>{clearIndicator();pending=null;});
   return pending;

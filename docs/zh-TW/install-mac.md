@@ -16,7 +16,7 @@
 
    左圖是英文版 macOS 的畫面，中文版的按鈕是 **完成** 與 **丟到垃圾桶**。
 
-4. 螢幕上方的選單列會出現 Retis Terminal 圖示，瀏覽器會自動開啟 Retis Terminal。點圖示可以看到 Retis Terminal 的版本，以及 **開啟** 與 **結束**。接著看 [第一次使用](first-run.md)。
+4. 螢幕上方的選單列會出現 Retis Terminal 圖示，瀏覽器會自動開啟 Retis Terminal。點圖示可以看到 Retis Terminal 的版本，以及 **開啟**、**檢查更新** 與 **結束**。接著看 [第一次使用](first-run.md)。
 
 ## 確認安裝檔沒有被改過（選用）
 
@@ -32,6 +32,6 @@ shasum -a 256 ~/Downloads/Retis-Terminal-<版本>.dmg
 
 - **關掉瀏覽器分頁不會關閉 Retis Terminal。** 要再開啟，點選單列圖示 → **開啟**。要完全結束，點 **結束**。
 - **Retis MAS 管理員會在登入時啟動。** Retis Terminal 附帶 Retis MAS 管理員，負責在這台電腦上安裝與執行程式，例如 [本機 yfinance](local-yfinance.md) 與 [本機 OpenStreetMap](local-openstreetmap.md)。它會在您登入 Mac 時啟動，並在背景持續執行，按 **結束** 關閉 Retis Terminal 後也一樣。macOS 可能會通知您新增了背景項目。
-- **更新：** Retis Terminal 開著時，每天自動檢查一次新版本。有新版本時會跳出 **有新版本** 視窗，選單列圖示的選單也會出現 **有新版本 … → 下載**。點 **下載** 後照第 1–3 步安裝即可，您的資料和登入都會保留。
+- **更新：** Retis Terminal 開著時，每天自動檢查一次新版本；想立即檢查，在選單列圖示的選單選 **檢查更新**，會告訴您已是最新版本，或提供新版本。有新版本時會跳出 **有新版本** 視窗，選單列圖示的選單也會出現 **有新版本 … → 下載**。點 **下載** 後照第 1–3 步安裝即可，您的資料和登入都會保留。
 - **移除：** 先在 Retis MAS 管理員移除本機 yfinance 與本機 OpenStreetMap，再把 **應用程式** 裡的 Retis Terminal 丟到垃圾桶。您的工作區保留在 `~/Library/Application Support/Retis Terminal`，不需要時可一併刪除。如果 **系統設定 → 一般 → 登入項目** 仍列出 Retis 的背景項目，請把它關閉。
 - 如果 macOS 說「無法打開，因為無法驗證開發者」，請看 [常見問題](faq.md#mac-無法打開)。

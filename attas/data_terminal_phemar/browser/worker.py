@@ -5,6 +5,7 @@
 # See BUSINESS_LOGIC_OBSOLETE.json. This marker does not retire live routes.
 import asyncio
 import json
+import logging
 import sys
 import secrets
 import traceback
@@ -27,6 +28,17 @@ def network_error(message):
     from phemacast.core.composition_resolution import DECLARED_FAILURES
     if message.get('failureCategory') in DECLARED_FAILURES:error.failure_category=message['failureCategory']
     return error
+
+
+def log_to_terminal(stream=None):
+    """This worker's warnings in terminal.log as the Terminal writes its own (scripts/serve_data_terminal.py): the
+    time, then the level. The worker shares the Terminal's stderr, so a panel's failure ('Reference … failed') has a
+    time and a level, and the problem report keeps it."""
+    handler = logging.StreamHandler(stream or sys.stderr)
+    handler.setFormatter(logging.Formatter('%(asctime)s %(levelname)s:  %(message)s', '%Y-%m-%d %H:%M:%S%z'))
+    root = logging.getLogger()
+    root.addHandler(handler)
+    root.setLevel(logging.WARNING)
 
 
 class TerminalNetwork(Network):
@@ -134,4 +146,5 @@ async def main():
 
 
 if __name__ == '__main__':
+    log_to_terminal()
     asyncio.run(main())

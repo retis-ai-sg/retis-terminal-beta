@@ -7,6 +7,7 @@ cache reads when its permission scope changes.
 from __future__ import annotations
 import asyncio
 import copy
+import re
 import json
 import logging
 import sqlite3
@@ -34,6 +35,7 @@ def resolution_failure(error):
     if status is None and response is not None:
         status = getattr(response, 'status_code', None)
     category = {400: 'request-rejected', 401: 'authentication-required',
+                402: 'points-insufficient',
                 403: 'access-denied', 404: 'source-unavailable',
                 409: 'request-conflict', 422: 'input-rejected',
                 429: 'source-busy', 502: 'source-failed',
@@ -61,6 +63,63 @@ def bind(value, parameters, results):
         source = value['$result']
         return pointer(results[source['reference']]['value'], source.get('path', ''))
     return {k: bind(v, parameters, results) for k, v in value.items()}
+
+
+def bind_keeping_live(phema, parameters):
+    """`phema` with the page's values bound in, as an owner opens a stored page, except what the host reads live as
+    the page changes: the controls' own media (their dataBindings, data sources and events), the ports between
+    panels, and the agent a reference asks when the viewer chooses it. Binding those would freeze a page value
+    into a control, a port or a target at the moment the page opened."""
+    from .composition import composition, walk_compositions
+    from .controls import RENDERERS
+    controls = set(RENDERERS.values())
+    value, kept = copy.deepcopy(phema), {}
+
+    def keep(holder, key):
+        token = f'\x00live:{len(kept)}'
+        kept[token] = holder[key]
+        holder[key] = token
+
+    for _, child in walk_compositions(value):
+        node = composition(child)
+        if 'phemacast:ports' in (node.get('extensions') or {}):
+            keep(node['extensions'], 'phemacast:ports')
+        for ref in node.get('references') or []:
+            if isinstance(ref, dict) and isinstance((ref.get('target') or {}).get('agentId'), dict):
+                keep(ref['target'], 'agentId')
+        layout = (((node.get('presentation') or {}).get('document') or {}).get('design') or {}).get('layout') or {}
+        stack = list(layout.get('children') or [])
+        while stack:
+            child_node = stack.pop()
+            if not isinstance(child_node, dict):
+                continue
+            if (child_node.get('renderer') or {}).get('id') in controls and 'media' in child_node:
+                keep(child_node, 'media')
+            stack += child_node.get('children') or []
+
+    def restore(item):
+        if isinstance(item, str) and item in kept:
+            return kept[item]
+        if isinstance(item, list):
+            return [restore(v) for v in item]
+        if isinstance(item, dict):
+            return {k: restore(v) for k, v in item.items()}
+        return item
+    return restore(bind(value, parameters, {}))
+
+
+AGENT = re.compile(r'^[A-Za-z0-9][A-Za-z0-9_.:-]{0,199}$')
+
+
+def bound_target(ref, parameters, results):
+    """The reference as it runs now: a target the viewer chose ({"$param": …}) becomes that agent's id."""
+    target = ref.get('target') or {}
+    if not any(isinstance(v, dict) for v in target.values()):
+        return ref
+    chosen = bind(target, parameters, results)
+    if not isinstance(chosen.get('agentId'), str) or not AGENT.fullmatch(chosen['agentId']):
+        raise ValueError('Choose the agent this panel asks.')
+    return {**ref, 'target': chosen}
 
 
 def select(value, rule):
@@ -149,6 +208,35 @@ def reference_contract(ref):
     return digest({k:v for k,v in ref.items() if k not in {'refresh','maxAgeSeconds','timeoutSeconds','onFailure','required'}})
 
 
+def bound_request(ref, parameters, results):
+    """What a reference asks under these parameters: its target, inputs and selection, bound as a call binds them."""
+    return [bound_target(ref, parameters, results).get('target'), bind(ref.get('inputs', {}), parameters, results),
+            bind(ref.get('select'), parameters, results)]
+
+
+def earlier_results(refs, previous, parameters):
+    """The results of `previous` (a resolve in the same authorization scope) that a resolve under `parameters` keeps.
+
+    A reference keeps its result while its definition (reference contract) is unchanged and it asks the same thing
+    under the new parameters as under the old ones: the same bound target, inputs and selection. A page setting it
+    does not bind, such as a chart's range for a quote panel, keeps its result; a view's interaction result keeps
+    the inputs it was given. A reference that reads a dropped result, or depends on a dropped reference, drops too."""
+    earlier, before = previous.get('results') or {}, previous.get('parameters')
+    contracts = previous.get('referenceContracts') or {}
+
+    def changed(ref):
+        if contracts.get(ref['id']) != reference_contract(ref): return True
+        if before == parameters: return False
+        try: return bound_request(ref, before, earlier) != bound_request(ref, parameters, earlier)
+        except (KeyError, IndexError, TypeError, ValueError): return True  # It cannot be bound under one of them.
+    dropped = {id for id, ref in refs.items() if changed(ref)}
+    while True:
+        downstream = {id for id, ref in refs.items() if dependencies(ref) & dropped} - dropped
+        if not downstream: break
+        dropped |= downstream
+    return {id: copy.deepcopy(state) for id, state in earlier.items() if id in refs and id not in dropped}
+
+
 class CompositionResolver:
     def __init__(self, store, handlers, *, max_concurrency=4, authorize=None):
         self.store, self.handlers = store, dict(handlers)
@@ -163,8 +251,10 @@ class CompositionResolver:
         await validate_async(value.get('input_schema', {}), parameters)
         refs = {r['id']: r for r in composition(value).get('references', [])}
         previous = previous or {}
-        if previous and (previous.get('parameters') != parameters or previous.get('authorizationScopeHash') != digest(authorization_scope)): previous = {}
-        results = {id:copy.deepcopy(state) for id,state in previous.get('results', {}).items() if id in refs and previous.get('referenceContracts',{}).get(id)==reference_contract(refs[id])}
+        # A changed authorization scope drops every earlier result, the components' too. A changed page parameter drops
+        # only the results bound to it (earlier_results); each component applies the same rule to its own parameters.
+        if previous and previous.get('authorizationScopeHash') != digest(authorization_scope): previous = {}
+        results = earlier_results(refs, previous, parameters)
         all_paths = reference_paths(value)
         if refresh is not None and set(refresh) - set(all_paths): raise ValueError('Unknown refresh reference.')
         chosen = set(refs) if refresh is None else set(refresh)
@@ -188,7 +278,7 @@ class CompositionResolver:
         def kept(ref, rule):
             if not reads_only(ref, rule): return None
             if any(results.get(dep, {}).get('status') != 'ready' for dep in dependencies(ref)): return None
-            try: key = cache_key(ref, bind(ref.get('inputs', {}), parameters, results), bind(ref.get('select'), parameters, results), authorization_scope)
+            try: key = cache_key(bound_target(ref, parameters, results), bind(ref.get('inputs', {}), parameters, results), bind(ref.get('select'), parameters, results), authorization_scope)
             except (KeyError, IndexError, TypeError, ValueError): return None
             cached = self.store.cached(owner, key)
             return {**cached, 'kept': True} if cached and cached.get('status') == 'ready' else None
@@ -230,6 +320,7 @@ class CompositionResolver:
             await report(id, {**last_known, 'status': 'resolving'})
             cached, key = None, None
             try:
+                ref = bound_target(ref, parameters, results)
                 inputs = bind(ref.get('inputs', {}), parameters, results)
                 if id in (interaction_inputs or {}):
                     supplied=interaction_inputs[id]

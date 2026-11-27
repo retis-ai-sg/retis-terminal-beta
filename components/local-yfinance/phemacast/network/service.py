@@ -9,6 +9,7 @@ import asyncio
 from contextlib import nullcontext
 import ipaddress
 import json
+import logging
 from pathlib import Path
 import re
 import time
@@ -19,6 +20,15 @@ from .discovery import Advertisement, PROTOCOL
 
 LOOPBACK = '127.0.0.1'
 CALLER = {'authentication': 'this-computer'}
+LOG = logging.getLogger(__name__)
+# How often a running resource checks its settings and this computer's addresses for its Bonjour advert.
+ADVERT_CHECK_SECONDS = 5
+# How often it checks that this computer still hears its advert (`Advertisement.heard`), and how many unheard checks in
+# a row make it announce again on new sockets, as restarting the program did on 2026-11-26. Each announcement that
+# doesn't help doubles the wait before the next check, up to HEARD_CHECK_MAX_SECONDS.
+HEARD_CHECK_SECONDS = 60
+HEARD_CHECK_MAX_SECONDS = 3600
+UNHEARD_CHECKS = 2
 # Every client is on this computer, so one budget covers them all: generous enough for a Terminal with several
 # open views polling their components, small enough to stop a runaway local program.
 REQUESTS_PER_MINUTE = 1200
@@ -71,6 +81,8 @@ class LocalResource:
         self.app = FastAPI(docs_url=None, openapi_url=None, redoc_url=None)
         self.advertisement = Advertisement(config) if config.get('advertiseBonjour') else None
         self.server = self.task = self.settings_task = None
+        self.unheard, self.heard_every = 0, HEARD_CHECK_SECONDS
+        self.next_heard_check = time.monotonic() + HEARD_CHECK_SECONDS
         self._install()
 
     def settings(self):
@@ -205,18 +217,69 @@ class LocalResource:
                 if self.advertisement:await self.advertisement.start()
                 async def monitor():
                     while True:
-                        await asyncio.sleep(5)
-                        desired = self.settings().get('acceptLocalConnections') and self.config.get('advertiseBonjour')
-                        if desired and (not self.advertisement or not self.advertisement.zc):
-                            self.advertisement = Advertisement(self.config)
-                            await self.advertisement.start()
-                        elif not desired and self.advertisement:await self.advertisement.close()
+                        began = time.time()
+                        await asyncio.sleep(ADVERT_CHECK_SECONDS)
+                        # A check that took a minute longer by the wall clock: the computer slept in between.
+                        slept = time.time() - began > ADVERT_CHECK_SECONDS + 60
+                        try:await self.keep_advertised(reannounce=slept)
+                        except Exception as exc:  # in the middle of a network change: tried again at the next check
+                            LOG.warning('Bonjour announcement failed; trying again: %s', exc)
                 self.settings_task = asyncio.create_task(monitor())
                 return
             if self.task.done():self.task.result();raise RuntimeError('Local resource listener failed.')
             await asyncio.sleep(.1)
         await self.close()
         raise RuntimeError('Local resource listener startup timed out.')
+
+    async def keep_advertised(self, reannounce=False):
+        """Announce while the settings allow it, and announce again on this computer's new addresses after a network
+        change: a Terminal keeps only adverts that name its own computer's addresses. After the computer slept
+        (`reannounce`) it announces again too: sockets opened before the sleep may no longer be heard. So does an advert
+        this computer no longer hears (`unheard`). Each new announcement is logged."""
+        desired = self.settings().get('acceptLocalConnections') and self.config.get('advertiseBonjour')
+        current = self.advertisement if self.advertisement and self.advertisement.zc else None
+        if desired and current:
+            if reannounce:
+                LOG.warning('Bonjour: %s announces itself again after the computer slept.', self.config['name'])
+                await current.close(goodbye=False)
+            elif current.moved():
+                LOG.warning('Bonjour: %s announces itself again on this computer\'s new addresses.', self.config['name'])
+                await current.close()
+            elif await self.unheard_too_long(current):
+                LOG.warning('Bonjour: this computer has not heard %s for %d checks; it announces itself again on new '
+                            'sockets.', self.config['name'], UNHEARD_CHECKS)
+                await current.close(goodbye=False)
+        if desired and (not self.advertisement or not self.advertisement.zc):
+            self.advertisement = Advertisement(self.config)
+            await self.advertisement.start()
+        elif not desired and self.advertisement:await self.advertisement.close()
+
+    async def unheard_too_long(self, advertisement):
+        """Whether the advert has gone unheard for UNHEARD_CHECKS checks in a row (checked every `heard_every` seconds).
+        A check that can't tell counts neither way."""
+        now = time.monotonic()
+        if now < self.next_heard_check:
+            return False
+        try:
+            heard = await advertisement.heard()
+        except Exception as exc:  # the check itself must never stop the advert
+            LOG.warning('Bonjour: could not check that this computer hears %s: %s', self.config['name'], exc)
+            heard = None
+        self.next_heard_check = time.monotonic() + self.heard_every
+        if heard is None:
+            return False
+        if heard:
+            if self.heard_every != HEARD_CHECK_SECONDS:
+                LOG.warning('Bonjour: this computer hears %s again.', self.config['name'])
+            self.unheard, self.heard_every = 0, HEARD_CHECK_SECONDS
+            return False
+        self.unheard += 1
+        if self.unheard < UNHEARD_CHECKS:
+            return False
+        # Announcing again didn't help last time either (Bonjour on this computer may be off): wait longer each time.
+        self.unheard, self.heard_every = 0, min(self.heard_every * 2, HEARD_CHECK_MAX_SECONDS)
+        self.next_heard_check = time.monotonic() + self.heard_every
+        return True
 
     async def close(self):
         if self.settings_task:

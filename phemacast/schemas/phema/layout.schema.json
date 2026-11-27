@@ -496,6 +496,9 @@
       "properties": {
         "phemacast:ui": {
           "$ref": "#/$defs/ui"
+        },
+        "phemacast:split-containers": {
+          "$ref": "#/$defs/splitContainers"
         }
       }
     }
@@ -546,6 +549,62 @@
         "messages"
       ],
       "additionalProperties": false
+    },
+    "splitContainers": {
+      "type": "array",
+      "maxItems": 4,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "panel1",
+          "panel2"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,63}$"
+          },
+          "orientation": {
+            "enum": [
+              "vertical"
+            ]
+          },
+          "panel1": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$"
+          },
+          "panel2": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$"
+          },
+          "splitterDistance": {
+            "type": "number",
+            "minimum": 5,
+            "maximum": 95
+          },
+          "panel1MinSize": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2000
+          },
+          "panel2MinSize": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2000
+          },
+          "isSplitterFixed": {
+            "type": "boolean"
+          },
+          "panel1Collapsed": {
+            "type": "boolean"
+          },
+          "panel2Collapsed": {
+            "type": "boolean"
+          }
+        }
+      }
     }
   }
 }

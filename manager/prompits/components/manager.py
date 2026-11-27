@@ -18,6 +18,7 @@ from typing import Any, Callable, Iterable, Mapping, Sequence
 from prompits.components import health as health_checks
 from prompits.components import logs
 from prompits.components import monitor
+from prompits.components import settings as component_settings
 from prompits.components.report import write_report
 from prompits.components.installer import InstallError, Installer, Opener, https_opener, pip_libraries
 from prompits.components.parts_list import Component, PartsList, PartsListError, parse_component, parse_payload, verify
@@ -263,6 +264,26 @@ class ComponentManager:
             events.append(self.state.record_event(kind, job['component'], data=job['data'], code=job.get('code')))
         return events
 
+    # ----- settings
+    def configure(self, component_id: str, values: Mapping[str, Any]) -> dict[str, Any]:
+        """Keep the settings chosen for an installed component (its installed version declares them) and restart it
+        when it runs, so it reads them; a stopped one reads them at its next start."""
+        try:
+            component = self.supervisor.component(component_id)
+        except SupervisorError as error:
+            raise ManagerError(str(error)) from error
+        if not component.settings:
+            raise ManagerError(f"{component_id} has no settings.")
+        try:
+            kept = component_settings.write(self.layout.data_dir(component_id), component.settings, values)
+        except component_settings.SettingsError as error:
+            raise ManagerError(str(error)) from error
+        # The event names what changed, never the values (an address or a name the user typed).
+        self.state.record_event("settings_changed", component_id, fields=sorted(kept))
+        if self.supervisor.is_running(component_id):
+            return self.restart(component_id)
+        return self._row(component_id)
+
     # ----- data downloads
     def download_data(self, component_id: str, data_id: str) -> dict[str, Any]:
         """Start the component's download of one of its data sets, as its parts list describes."""
@@ -294,7 +315,7 @@ class ComponentManager:
         """Every component's row, this computer's disk, and what needs attention."""
         rows = self.status(language=language, probe=probe)
         space = monitor.disk(self.layout.root)
-        return {'components': rows, 'disk': space, 'alerts': monitor.alerts(rows, space, now=self.clock())}
+        return {'components': rows, 'disk': space, 'alerts': monitor.alerts(rows, now=self.clock())}
 
     def report(self, *, extra: dict[str, Any] | None = None, attachments: dict[str, str] | None = None) -> dict[str, Any]:
         """Write a problem report (records, recent events, every log's end, no credentials); return where it is.
@@ -318,11 +339,12 @@ class ComponentManager:
         return [self._row(component_id, language=language, probe=probe) for component_id in ids]
 
     def logs(self, component_id: str, lines: int = 200) -> list[str]:
-        return logs.tail(self.layout.log_path(component_id), lines)
+        """The end of the component's log, without credentials."""
+        return [logs.redact(line) for line in logs.tail(self.layout.log_path(component_id), lines)]
 
     def data_logs(self, component_id: str, lines: int = 200) -> list[str]:
-        """The end of the component's data download log (empty when it never downloaded)."""
-        return logs.tail(self.layout.log_path(component_id).with_name(f'{component_id}-data.log'), lines)
+        """The end of the component's data download log (empty when it never downloaded), without credentials."""
+        return [logs.redact(line) for line in logs.tail(self.layout.log_path(component_id).with_name(f'{component_id}-data.log'), lines)]
 
     def events(self, *, since: float = 0.0, component_id: str | None = None) -> list[dict[str, Any]]:
         return self.state.events(since=since, component_id=component_id)
@@ -362,6 +384,11 @@ class ComponentManager:
         finally:
             self._installing.pop(component.id, None)
 
+    def _last_error(self, component_id: str) -> str:
+        runtime = self.supervisor.runtime(component_id)
+        crashed = not runtime["running"] and runtime["last_exit_code"] not in (None, 0)
+        return logs.last_error(self.layout.log_path(component_id), crashed=crashed)
+
     def _row(self, component_id: str, *, language: str = "en", probe: bool = True) -> dict[str, Any]:
         data = self.state.read()
         record = data["components"].get(component_id)
@@ -391,7 +418,10 @@ class ComponentManager:
             "notices": [{key: str(item.get(key) or "") for key in ("name", "version", "license")}
                         for item in ((offered or described).raw.get("notices") or () if (offered or described) else ())
                         if isinstance(item, Mapping)],
-            "last_error": logs.last_error(self.layout.log_path(component_id)) if current else "",
+            "last_error": self._last_error(component_id) if current else "",
+            # What the user may change for the installed version, with the values it runs with.
+            "settings": component_settings.shown(entry.settings, component_settings.read(self.layout.data_dir(component_id), entry.settings),
+                                                 language) if entry is not None and entry.settings and not (record or {}).get("bundled") else [],
             "health": None,
             "reason": "",
         }
@@ -407,8 +437,10 @@ class ComponentManager:
         row["data_job"] = self.data_jobs.view(component_id)
         # Programs change only on install or update; downloaded data grows while a download runs, so it is re-read sooner.
         downloading = (row["data_job"] or {}).get("state") == "running"
+        # Both are None until first measured: a row never waits for a folder walk.
         row["data_bytes"] = monitor.folder_size(self.layout.data_dir(component_id), max_age=5.0 if downloading else 30.0)
-        row["disk_bytes"] = monitor.folder_size(self.layout.versions_dir(component_id)) + row["data_bytes"]
+        programs = monitor.folder_size(self.layout.versions_dir(component_id))
+        row["disk_bytes"] = programs + row["data_bytes"] if programs is not None and row["data_bytes"] is not None else None
         if runtime["crash_loop"]:
             row.update(state="unhealthy", reason="keeps crashing")
         elif runtime["restart_in"] is not None:
@@ -422,17 +454,19 @@ class ComponentManager:
         else:
             report = self.probe(entry.run.port, entry.run.health_path)
             row["health"] = report.as_dict()
-            row.update(self._health_state(report, runtime))
+            row.update(self._health_state(report, runtime, language))
         return row
 
-    def _health_state(self, report: health_checks.HealthReport, runtime: dict[str, Any]) -> dict[str, str]:
+    def _health_state(self, report: health_checks.HealthReport, runtime: dict[str, Any], language: str = "en") -> dict[str, str]:
+        """The row's state, and the component's reason in the viewer's language when it gave one (health `reasons`)."""
         in_grace = runtime.get("started_at") is not None and self.clock() - runtime["started_at"] < self.start_grace
+        reason = report.reason_in(language)
         if report.reachable and report.up:
             for need in report.needs:
                 if need in NEEDS_STATES:
-                    return {"state": NEEDS_STATES[need], "reason": report.reason}
+                    return {"state": NEEDS_STATES[need], "reason": reason}
             if report.ready:
                 return {"state": "running", "reason": ""}
         if in_grace:
-            return {"state": "starting", "reason": report.reason}
-        return {"state": "unhealthy", "reason": report.reason or "not ready"}
+            return {"state": "starting", "reason": reason}
+        return {"state": "unhealthy", "reason": reason or "not ready"}

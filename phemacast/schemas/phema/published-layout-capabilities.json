@@ -1,0 +1,1304 @@
+[
+ {
+  "configurationSchema": {
+   "properties": {
+    "grammar": {
+     "const": "phemacast:layout/1"
+    }
+   },
+   "required": [
+    "grammar"
+   ],
+   "type": "object"
+  },
+  "dependencies": [
+   {
+    "id": "phemacast:composition",
+    "version": "1.1.0"
+   },
+   {
+    "id": "phemacast:grid",
+    "version": "1.1.0"
+   }
+  ],
+  "description": "Interpret a source-independent layout with grids, tabs, namespaced renderers and data bindings.",
+  "examples": [
+   {
+    "input": {
+     "description": "Latest articles and media.",
+     "design": {
+      "dataRequirements": [],
+      "id": "reading-room",
+      "layout": {
+       "children": [
+        {
+         "id": "welcome",
+         "media": {
+          "text": "Choose an article."
+         },
+         "position": {
+          "column": 1,
+          "columnSpan": 12,
+          "row": 1,
+          "rowSpan": 2
+         },
+         "renderer": {
+          "id": "phemacast:media.text",
+          "version": "1.1.0"
+         },
+         "title": "Welcome"
+        }
+       ],
+       "columns": 12,
+       "id": "main",
+       "type": "grid"
+      },
+      "params": {},
+      "schemaVersion": "phemacast:layout/1",
+      "title": "Reading room"
+     },
+     "id": "reading-room",
+     "name": "Reading room"
+    },
+    "name": "reading-room"
+   },
+   {
+    "input": {},
+    "name": "missing-document",
+    "valid": false
+   }
+  ],
+  "extensions": {
+   "phemacast:conformance": {
+    "protocol": "capability-evidence/1",
+    "suite": "phemacast/tests/test_layout.py",
+    "verification": "declared"
+   },
+   "phemacast:provenance": {
+    "publisherNamespace": "phemacast",
+    "spec": "urn:phemacast:layout:1"
+   }
+  },
+  "id": "phemacast:layout",
+  "inputSchema": {
+   "$defs": {
+    "ui": {
+     "additionalProperties": false,
+     "properties": {
+      "defaultLocale": {
+       "pattern": "^[a-z]{2,3}(?:-[A-Za-z0-9]{2,8})*$",
+       "type": "string"
+      },
+      "messages": {
+       "additionalProperties": {
+        "additionalProperties": {
+         "maxLength": 4000,
+         "minLength": 1,
+         "type": "string"
+        },
+        "maxProperties": 20,
+        "propertyNames": {
+         "pattern": "^[a-z]{2,3}(?:-[A-Za-z0-9]{2,8})*$",
+         "type": "string"
+        },
+        "type": "object"
+       },
+       "maxProperties": 1000,
+       "propertyNames": {
+        "maxLength": 2000,
+        "minLength": 1
+       },
+       "type": "object"
+      },
+      "version": {
+       "const": 1
+      }
+     },
+     "required": [
+      "version",
+      "defaultLocale",
+      "messages"
+     ],
+     "type": "object"
+    }
+   },
+   "$id": "urn:phemacast:layout:1",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "additionalProperties": false,
+   "properties": {
+    "description": {
+     "maxLength": 240,
+     "type": "string"
+    },
+    "design": {
+     "additionalProperties": false,
+     "properties": {
+      "dataRequirements": {
+       "items": {
+        "additionalProperties": false,
+        "allOf": [
+         {
+          "if": {
+           "properties": {
+            "refreshMode": {
+             "const": "interval"
+            }
+           },
+           "required": [
+            "refreshMode"
+           ]
+          },
+          "then": {
+           "required": [
+            "refreshSeconds"
+           ]
+          }
+         }
+        ],
+        "properties": {
+         "allowLossy": {
+          "type": "boolean"
+         },
+         "arguments": {
+          "type": "object"
+         },
+         "currency": {
+          "maxLength": 80,
+          "type": "string"
+         },
+         "dependsOn": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$",
+          "type": "string"
+         },
+         "essential": {
+          "type": "boolean"
+         },
+         "extensions": {
+          "propertyNames": {
+           "pattern": "^[A-Za-z0-9_.-]+:.+$"
+          },
+          "type": "object"
+         },
+         "fields": {
+          "items": {
+           "maxLength": 128,
+           "type": "string"
+          },
+          "maxItems": 100,
+          "minItems": 1,
+          "type": "array"
+         },
+         "frequency": {
+          "maxLength": 80,
+          "type": "string"
+         },
+         "id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$",
+          "type": "string"
+         },
+         "join": {
+          "additionalProperties": false,
+          "properties": {
+           "dimensions": {
+            "items": {
+             "type": "string"
+            },
+            "maxItems": 8,
+            "type": "array"
+           },
+           "keys": {
+            "items": {
+             "type": "string"
+            },
+            "maxItems": 4,
+            "type": "array"
+           },
+           "maxSkewSeconds": {
+            "maximum": 31536000,
+            "minimum": 0,
+            "type": "number"
+           },
+           "mode": {
+            "enum": [
+             "single-source",
+             "fill-missing"
+            ]
+           }
+          },
+          "type": "object"
+         },
+         "label": {
+          "maxLength": 120,
+          "type": "string"
+         },
+         "limit": {
+          "maximum": 100,
+          "minimum": 1,
+          "type": "integer"
+         },
+         "maxAgeSeconds": {
+          "maximum": 31536000,
+          "minimum": 1,
+          "type": "number"
+         },
+         "mode": {
+          "enum": [
+           "snapshot",
+           "stream",
+           "interactive"
+          ]
+         },
+         "modelContract": {
+          "const": "model-requirement/1"
+         },
+         "modelRef": {
+          "additionalProperties": false,
+          "properties": {
+           "digest": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+           },
+           "id": {
+            "maxLength": 256,
+            "type": "string"
+           },
+           "version": {
+            "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+            "type": "string"
+           }
+          },
+          "required": [
+           "id",
+           "version",
+           "digest"
+          ],
+          "type": "object"
+         },
+         "optionalFields": {
+          "items": {
+           "maxLength": 128,
+           "type": "string"
+          },
+          "maxItems": 100,
+          "type": "array",
+          "uniqueItems": true
+         },
+         "refreshMode": {
+          "enum": [
+           "automatic",
+           "interval",
+           "manual"
+          ]
+         },
+         "refreshSeconds": {
+          "maximum": 86400,
+          "minimum": 60,
+          "type": "integer"
+         },
+         "schema": {
+          "maxLength": 128,
+          "type": "string"
+         },
+         "timezone": {
+          "maxLength": 80,
+          "type": "string"
+         },
+         "units": {
+          "maxLength": 80,
+          "type": "string"
+         }
+        },
+        "required": [
+         "id",
+         "label",
+         "fields",
+         "mode",
+         "essential"
+        ],
+        "type": "object"
+       },
+       "maxItems": 24,
+       "type": "array"
+      },
+      "id": {
+       "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$",
+       "type": "string"
+      },
+      "layout": {
+       "additionalProperties": false,
+       "properties": {
+        "areas": {
+         "items": {
+          "items": {
+           "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$",
+           "type": "string"
+          },
+          "maxItems": 2,
+          "minItems": 2,
+          "type": "array"
+         },
+         "maxItems": 2,
+         "minItems": 2,
+         "type": "array"
+        },
+        "children": {
+         "items": {
+          "additionalProperties": false,
+          "properties": {
+           "area": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$",
+            "type": "string"
+           },
+           "componentId": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$",
+            "type": "string"
+           },
+           "extensions": {
+            "propertyNames": {
+             "pattern": "^[A-Za-z0-9_.-]+:.+$"
+            },
+            "type": "object"
+           },
+           "fallback": {
+            "type": "object"
+           },
+           "fieldMappings": {
+            "type": "object"
+           },
+           "id": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$",
+            "type": "string"
+           },
+           "media": {
+            "type": "object"
+           },
+           "position": {
+            "additionalProperties": false,
+            "properties": {
+             "column": {
+              "maximum": 24,
+              "minimum": 1,
+              "type": "number"
+             },
+             "columnSpan": {
+              "maximum": 24,
+              "minimum": 1,
+              "type": "number"
+             },
+             "row": {
+              "maximum": 24,
+              "minimum": 1,
+              "type": "number"
+             },
+             "rowSpan": {
+              "maximum": 6,
+              "minimum": 1,
+              "type": "number"
+             }
+            },
+            "required": [
+             "column",
+             "row",
+             "columnSpan",
+             "rowSpan"
+            ],
+            "type": "object"
+           },
+           "referenceId": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$",
+            "type": "string"
+           },
+           "renderer": {
+            "additionalProperties": false,
+            "properties": {
+             "features": {
+              "items": {
+               "maxLength": 128,
+               "type": "string"
+              },
+              "type": "array"
+             },
+             "id": {
+              "pattern": "^[a-z][a-z0-9_.-]*:[a-zA-Z0-9_.-]+$",
+              "type": "string"
+             },
+             "limits": {
+              "additionalProperties": {
+               "minimum": 0,
+               "type": "number"
+              },
+              "type": "object"
+             },
+             "required": {
+              "type": "boolean"
+             },
+             "version": {
+              "pattern": "^\\d+\\.\\d+\\.\\d+$",
+              "type": "string"
+             }
+            },
+            "required": [
+             "id",
+             "version"
+            ],
+            "type": "object"
+           },
+           "requirementId": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$",
+            "type": "string"
+           },
+           "supplementalRequirementIds": {
+            "items": {
+             "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$",
+             "type": "string"
+            },
+            "maxItems": 4,
+            "type": "array"
+           },
+           "tabId": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$",
+            "type": "string"
+           },
+           "title": {
+            "maxLength": 80,
+            "minLength": 1,
+            "type": "string"
+           }
+          },
+          "required": [
+           "id",
+           "title",
+           "renderer"
+          ],
+          "type": "object"
+         },
+         "maxItems": 12,
+         "type": "array"
+        },
+        "columns": {
+         "oneOf": [
+          {
+           "const": 12
+          },
+          {
+           "pattern": "^[0-9]+(?:\\.[0-9]+)?fr [0-9]+(?:\\.[0-9]+)?fr$",
+           "type": "string"
+          }
+         ]
+        },
+        "id": {
+         "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$",
+         "type": "string"
+        },
+        "snapToGrid": {
+         "type": "boolean"
+        },
+        "tabbedView": {
+         "additionalProperties": false,
+         "properties": {
+          "id": {
+           "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$",
+           "type": "string"
+          },
+          "position": {
+           "additionalProperties": false,
+           "properties": {
+            "column": {
+             "maximum": 24,
+             "minimum": 1,
+             "type": "number"
+            },
+            "columnSpan": {
+             "maximum": 24,
+             "minimum": 1,
+             "type": "number"
+            },
+            "row": {
+             "maximum": 24,
+             "minimum": 1,
+             "type": "number"
+            },
+            "rowSpan": {
+             "maximum": 6,
+             "minimum": 1,
+             "type": "number"
+            }
+           },
+           "required": [
+            "column",
+            "row",
+            "columnSpan",
+            "rowSpan"
+           ],
+           "type": "object"
+          },
+          "tabs": {
+           "items": {
+            "additionalProperties": false,
+            "properties": {
+             "id": {
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$",
+              "type": "string"
+             },
+             "title": {
+              "maxLength": 80,
+              "type": "string"
+             }
+            },
+            "required": [
+             "id",
+             "title"
+            ],
+            "type": "object"
+           },
+           "maxItems": 8,
+           "minItems": 1,
+           "type": "array"
+          }
+         },
+         "required": [
+          "id",
+          "position",
+          "tabs"
+         ],
+         "type": "object"
+        },
+        "type": {
+         "const": "grid"
+        }
+       },
+       "required": [
+        "id",
+        "type",
+        "columns",
+        "children"
+       ],
+       "type": "object"
+      },
+      "params": {
+       "additionalProperties": {
+        "type": "object"
+       },
+       "maxProperties": 100,
+       "type": "object"
+      },
+      "schemaVersion": {
+       "const": "phemacast:layout/1"
+      },
+      "title": {
+       "maxLength": 80,
+       "minLength": 1,
+       "type": "string"
+      }
+     },
+     "required": [
+      "schemaVersion",
+      "id",
+      "title",
+      "params",
+      "layout",
+      "dataRequirements"
+     ],
+     "type": "object"
+    },
+    "extensions": {
+     "properties": {
+      "phemacast:ui": {
+       "$ref": "#/$defs/ui"
+      }
+     },
+     "propertyNames": {
+      "pattern": "^[A-Za-z0-9_.-]+:.+$"
+     },
+     "type": "object"
+    },
+    "id": {
+     "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$",
+     "type": "string"
+    },
+    "name": {
+     "maxLength": 80,
+     "minLength": 1,
+     "type": "string"
+    }
+   },
+   "required": [
+    "id",
+    "name",
+    "description",
+    "design"
+   ],
+   "title": "Phemacast Layout 1",
+   "type": "object"
+  },
+  "outputSchema": {
+   "properties": {
+    "missingFields": {
+     "items": {
+      "type": "string"
+     },
+     "type": "array"
+    },
+    "rendered": {
+     "type": "boolean"
+    }
+   },
+   "required": [
+    "rendered"
+   ],
+   "type": "object"
+  },
+  "version": "1.0.0"
+ },
+ {
+  "configurationSchema": {
+   "properties": {
+    "grammar": {
+     "const": "phemacast:layout/1"
+    }
+   },
+   "required": [
+    "grammar"
+   ],
+   "type": "object"
+  },
+  "dependencies": [
+   {
+    "id": "phemacast:composition",
+    "version": "1.1.0"
+   },
+   {
+    "id": "phemacast:grid",
+    "version": "1.1.0"
+   }
+  ],
+  "description": "Interpret a source-independent layout with grids, tabs, namespaced renderers and data bindings.",
+  "examples": [
+   {
+    "input": {
+     "description": "Latest articles and media.",
+     "design": {
+      "dataRequirements": [],
+      "id": "reading-room",
+      "layout": {
+       "children": [
+        {
+         "id": "welcome",
+         "media": {
+          "text": "Choose an article."
+         },
+         "position": {
+          "column": 1,
+          "columnSpan": 12,
+          "row": 1,
+          "rowSpan": 2
+         },
+         "renderer": {
+          "id": "phemacast:media.text",
+          "version": "1.1.0"
+         },
+         "title": "Welcome"
+        }
+       ],
+       "columns": 12,
+       "id": "main",
+       "type": "grid"
+      },
+      "params": {},
+      "schemaVersion": "phemacast:layout/1",
+      "title": "Reading room"
+     },
+     "id": "reading-room",
+     "name": "Reading room"
+    },
+    "name": "reading-room"
+   },
+   {
+    "input": {},
+    "name": "missing-document",
+    "valid": false
+   }
+  ],
+  "extensions": {
+   "phemacast:conformance": {
+    "protocol": "capability-evidence/1",
+    "suite": "phemacast/tests/test_layout.py",
+    "verification": "declared"
+   },
+   "phemacast:provenance": {
+    "publisherNamespace": "phemacast",
+    "spec": "urn:phemacast:layout:1"
+   }
+  },
+  "id": "phemacast:layout",
+  "inputSchema": {
+   "$defs": {
+    "ui": {
+     "additionalProperties": false,
+     "properties": {
+      "defaultLocale": {
+       "pattern": "^[a-z]{2,3}(?:-[A-Za-z0-9]{2,8})*$",
+       "type": "string"
+      },
+      "messages": {
+       "additionalProperties": {
+        "additionalProperties": {
+         "maxLength": 4000,
+         "minLength": 1,
+         "type": "string"
+        },
+        "maxProperties": 20,
+        "propertyNames": {
+         "pattern": "^[a-z]{2,3}(?:-[A-Za-z0-9]{2,8})*$",
+         "type": "string"
+        },
+        "type": "object"
+       },
+       "maxProperties": 1000,
+       "propertyNames": {
+        "maxLength": 2000,
+        "minLength": 1
+       },
+       "type": "object"
+      },
+      "version": {
+       "const": 1
+      }
+     },
+     "required": [
+      "version",
+      "defaultLocale",
+      "messages"
+     ],
+     "type": "object"
+    }
+   },
+   "$id": "urn:phemacast:layout:1",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "additionalProperties": false,
+   "properties": {
+    "description": {
+     "maxLength": 240,
+     "type": "string"
+    },
+    "design": {
+     "additionalProperties": false,
+     "properties": {
+      "dataRequirements": {
+       "items": {
+        "additionalProperties": false,
+        "allOf": [
+         {
+          "if": {
+           "properties": {
+            "refreshMode": {
+             "const": "interval"
+            }
+           },
+           "required": [
+            "refreshMode"
+           ]
+          },
+          "then": {
+           "required": [
+            "refreshSeconds"
+           ]
+          }
+         }
+        ],
+        "properties": {
+         "allowLossy": {
+          "type": "boolean"
+         },
+         "arguments": {
+          "type": "object"
+         },
+         "currency": {
+          "maxLength": 80,
+          "type": "string"
+         },
+         "dependsOn": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$",
+          "type": "string"
+         },
+         "essential": {
+          "type": "boolean"
+         },
+         "extensions": {
+          "propertyNames": {
+           "pattern": "^[A-Za-z0-9_.-]+:.+$"
+          },
+          "type": "object"
+         },
+         "fields": {
+          "items": {
+           "maxLength": 128,
+           "type": "string"
+          },
+          "maxItems": 100,
+          "minItems": 1,
+          "type": "array"
+         },
+         "frequency": {
+          "maxLength": 80,
+          "type": "string"
+         },
+         "id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$",
+          "type": "string"
+         },
+         "join": {
+          "additionalProperties": false,
+          "properties": {
+           "dimensions": {
+            "items": {
+             "type": "string"
+            },
+            "maxItems": 8,
+            "type": "array"
+           },
+           "keys": {
+            "items": {
+             "type": "string"
+            },
+            "maxItems": 4,
+            "type": "array"
+           },
+           "maxSkewSeconds": {
+            "maximum": 31536000,
+            "minimum": 0,
+            "type": "number"
+           },
+           "mode": {
+            "enum": [
+             "single-source",
+             "fill-missing"
+            ]
+           }
+          },
+          "type": "object"
+         },
+         "label": {
+          "maxLength": 120,
+          "type": "string"
+         },
+         "limit": {
+          "maximum": 100,
+          "minimum": 1,
+          "type": "integer"
+         },
+         "maxAgeSeconds": {
+          "maximum": 31536000,
+          "minimum": 1,
+          "type": "number"
+         },
+         "mode": {
+          "enum": [
+           "snapshot",
+           "stream",
+           "interactive"
+          ]
+         },
+         "modelContract": {
+          "const": "model-requirement/1"
+         },
+         "modelRef": {
+          "additionalProperties": false,
+          "properties": {
+           "digest": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+           },
+           "id": {
+            "maxLength": 256,
+            "type": "string"
+           },
+           "version": {
+            "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+            "type": "string"
+           }
+          },
+          "required": [
+           "id",
+           "version",
+           "digest"
+          ],
+          "type": "object"
+         },
+         "optionalFields": {
+          "items": {
+           "maxLength": 128,
+           "type": "string"
+          },
+          "maxItems": 100,
+          "type": "array",
+          "uniqueItems": true
+         },
+         "refreshMode": {
+          "enum": [
+           "automatic",
+           "interval",
+           "manual"
+          ]
+         },
+         "refreshSeconds": {
+          "maximum": 86400,
+          "minimum": 60,
+          "type": "integer"
+         },
+         "schema": {
+          "maxLength": 128,
+          "type": "string"
+         },
+         "timezone": {
+          "maxLength": 80,
+          "type": "string"
+         },
+         "units": {
+          "maxLength": 80,
+          "type": "string"
+         }
+        },
+        "required": [
+         "id",
+         "label",
+         "fields",
+         "mode",
+         "essential"
+        ],
+        "type": "object"
+       },
+       "maxItems": 24,
+       "type": "array"
+      },
+      "id": {
+       "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$",
+       "type": "string"
+      },
+      "layout": {
+       "additionalProperties": false,
+       "properties": {
+        "areas": {
+         "items": {
+          "items": {
+           "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$",
+           "type": "string"
+          },
+          "maxItems": 2,
+          "minItems": 2,
+          "type": "array"
+         },
+         "maxItems": 2,
+         "minItems": 2,
+         "type": "array"
+        },
+        "children": {
+         "items": {
+          "additionalProperties": false,
+          "properties": {
+           "area": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$",
+            "type": "string"
+           },
+           "componentId": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$",
+            "type": "string"
+           },
+           "extensions": {
+            "propertyNames": {
+             "pattern": "^[A-Za-z0-9_.-]+:.+$"
+            },
+            "type": "object"
+           },
+           "fallback": {
+            "type": "object"
+           },
+           "fieldMappings": {
+            "type": "object"
+           },
+           "id": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$",
+            "type": "string"
+           },
+           "media": {
+            "type": "object"
+           },
+           "position": {
+            "additionalProperties": false,
+            "properties": {
+             "column": {
+              "maximum": 24,
+              "minimum": 1,
+              "type": "number"
+             },
+             "columnSpan": {
+              "maximum": 24,
+              "minimum": 1,
+              "type": "number"
+             },
+             "row": {
+              "maximum": 24,
+              "minimum": 1,
+              "type": "number"
+             },
+             "rowSpan": {
+              "maximum": 6,
+              "minimum": 1,
+              "type": "number"
+             }
+            },
+            "required": [
+             "column",
+             "row",
+             "columnSpan",
+             "rowSpan"
+            ],
+            "type": "object"
+           },
+           "referenceId": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$",
+            "type": "string"
+           },
+           "renderer": {
+            "additionalProperties": false,
+            "properties": {
+             "features": {
+              "items": {
+               "maxLength": 128,
+               "type": "string"
+              },
+              "type": "array"
+             },
+             "id": {
+              "pattern": "^[a-z][a-z0-9_.-]*:[a-zA-Z0-9_.-]+$",
+              "type": "string"
+             },
+             "limits": {
+              "additionalProperties": {
+               "minimum": 0,
+               "type": "number"
+              },
+              "type": "object"
+             },
+             "required": {
+              "type": "boolean"
+             },
+             "version": {
+              "pattern": "^\\d+\\.\\d+\\.\\d+$",
+              "type": "string"
+             }
+            },
+            "required": [
+             "id",
+             "version"
+            ],
+            "type": "object"
+           },
+           "requirementId": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$",
+            "type": "string"
+           },
+           "supplementalRequirementIds": {
+            "items": {
+             "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$",
+             "type": "string"
+            },
+            "maxItems": 4,
+            "type": "array"
+           },
+           "tabId": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$",
+            "type": "string"
+           },
+           "title": {
+            "maxLength": 80,
+            "minLength": 1,
+            "type": "string"
+           }
+          },
+          "required": [
+           "id",
+           "title",
+           "renderer"
+          ],
+          "type": "object"
+         },
+         "maxItems": 12,
+         "type": "array"
+        },
+        "columns": {
+         "oneOf": [
+          {
+           "const": 12
+          },
+          {
+           "pattern": "^[0-9]+(?:\\.[0-9]+)?fr [0-9]+(?:\\.[0-9]+)?fr$",
+           "type": "string"
+          }
+         ]
+        },
+        "id": {
+         "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$",
+         "type": "string"
+        },
+        "snapToGrid": {
+         "type": "boolean"
+        },
+        "tabbedView": {
+         "additionalProperties": false,
+         "properties": {
+          "id": {
+           "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$",
+           "type": "string"
+          },
+          "position": {
+           "additionalProperties": false,
+           "properties": {
+            "column": {
+             "maximum": 24,
+             "minimum": 1,
+             "type": "number"
+            },
+            "columnSpan": {
+             "maximum": 24,
+             "minimum": 1,
+             "type": "number"
+            },
+            "row": {
+             "maximum": 24,
+             "minimum": 1,
+             "type": "number"
+            },
+            "rowSpan": {
+             "maximum": 6,
+             "minimum": 1,
+             "type": "number"
+            }
+           },
+           "required": [
+            "column",
+            "row",
+            "columnSpan",
+            "rowSpan"
+           ],
+           "type": "object"
+          },
+          "tabs": {
+           "items": {
+            "additionalProperties": false,
+            "properties": {
+             "id": {
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$",
+              "type": "string"
+             },
+             "title": {
+              "maxLength": 80,
+              "type": "string"
+             }
+            },
+            "required": [
+             "id",
+             "title"
+            ],
+            "type": "object"
+           },
+           "maxItems": 12,
+           "minItems": 1,
+           "type": "array"
+          }
+         },
+         "required": [
+          "id",
+          "position",
+          "tabs"
+         ],
+         "type": "object"
+        },
+        "type": {
+         "const": "grid"
+        }
+       },
+       "required": [
+        "id",
+        "type",
+        "columns",
+        "children"
+       ],
+       "type": "object"
+      },
+      "params": {
+       "additionalProperties": {
+        "type": "object"
+       },
+       "maxProperties": 100,
+       "type": "object"
+      },
+      "schemaVersion": {
+       "const": "phemacast:layout/1"
+      },
+      "title": {
+       "maxLength": 80,
+       "minLength": 1,
+       "type": "string"
+      }
+     },
+     "required": [
+      "schemaVersion",
+      "id",
+      "title",
+      "params",
+      "layout",
+      "dataRequirements"
+     ],
+     "type": "object"
+    },
+    "extensions": {
+     "properties": {
+      "phemacast:ui": {
+       "$ref": "#/$defs/ui"
+      }
+     },
+     "propertyNames": {
+      "pattern": "^[A-Za-z0-9_.-]+:.+$"
+     },
+     "type": "object"
+    },
+    "id": {
+     "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$",
+     "type": "string"
+    },
+    "name": {
+     "maxLength": 80,
+     "minLength": 1,
+     "type": "string"
+    }
+   },
+   "required": [
+    "id",
+    "name",
+    "description",
+    "design"
+   ],
+   "title": "Phemacast Layout 1",
+   "type": "object"
+  },
+  "outputSchema": {
+   "properties": {
+    "missingFields": {
+     "items": {
+      "type": "string"
+     },
+     "type": "array"
+    },
+    "rendered": {
+     "type": "boolean"
+    }
+   },
+   "required": [
+    "rendered"
+   ],
+   "type": "object"
+  },
+  "version": "1.1.0"
+ }
+]

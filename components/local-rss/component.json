@@ -1,0 +1,482 @@
+{
+  "entry": "scripts/run_local_rss.py",
+  "files": {
+    "THIRD_PARTY_NOTICES.txt": "36be2bbbe23a8a6ef94b06d96fc0842f2c7c662d6a85a5827ddbdc4cd3a8fe46",
+    "attas/data_agent_network/__init__.py": "405d0a9496105a87a6db7ebf507ebb390acbf903518a3a8fca1f9275595600cc",
+    "attas/data_agent_network/canonical/__init__.py": "73e3385985718464c4a271367eee6ebf8ce1779726fe21f4036bb04609d455cc",
+    "attas/data_agent_network/canonical/analytics.py": "025684ce03d79931f8fa44969daf9ad4773dba86736be7d1b9735762d6c1b14a",
+    "attas/data_agent_network/canonical/catalog.py": "5aa60265bec4a6c6e2772044ad32e6d1e35a03ee85ebe25674a0a47fe599ceae",
+    "attas/data_agent_network/canonical/coverage.py": "03cda5877cc7d94765945be8dea8d000dbda444efd3f8d216be9df36c31e8a8a",
+    "attas/data_agent_network/canonical/earnings.py": "e6340f3d02aaa778dd189ae6488c21a2014cfa1a0d58756349c5f988fd8f0edd",
+    "attas/data_agent_network/canonical/finance.py": "2a61fa15816adb784e4965cd8e6b5de9b09cf415127054fe31aa902b45741eb5",
+    "attas/data_agent_network/canonical/history.py": "3b271eceaf8ca2045b09186dab76cbdbc0a86d03f3b13883ac10eed24f408a8f",
+    "attas/data_agent_network/canonical/history_bindings.py": "4e677025d10b7aab74cfe393192428cdfa0332e0dbc49e868a399f5d9b241783",
+    "attas/data_agent_network/canonical/installed.py": "94a26aa35c97c30f06e41334e51b8e579e2eed401dec68afc600aaf2b2253dce",
+    "attas/data_agent_network/canonical/native.py": "26f2f976f2a92531cb5a635b1ec92906f6a2b895f57927cba753aa081376127d",
+    "attas/data_agent_network/canonical/research_models.py": "3e27789142bbccd6115a50bdb9092840b492129b8cbba700c15871250f5cb63e",
+    "attas/data_agent_network/canonical/research_sources.py": "e4e7101449f9cf2bf15add6eca6c98a3d362fc11dd0cf9ffe193235ab2dcf62f",
+    "attas/data_agent_network/canonical/routes.py": "5d7eb2c1b99ae4fbc3b2b447f885f1fa262263e63394675db9d47b9b2dd41e69",
+    "attas/data_agent_network/canonical/service.py": "054370babd00133e98369747b5cd68e8ccbae5489656c9b290b7bda433dafa92",
+    "attas/data_agent_network/canonical/stream.py": "e86f6da7c852f34dfc4770df597e46d1f91b35e934daa89e7ba73907d2bca401",
+    "attas/data_agent_network/canonical/workspace.py": "b1a88eaf227451ee215a1c43c06aed02f46f5891143601b9f9d46aafcc5501dd",
+    "attas/data_agent_network/catalogs/rss/manifest.json": "1f371ee4bc5fa02a71f18ab2b031baa9914cf1b934b062efa93f4143846dd050",
+    "attas/data_agent_network/catalogs/rss/snapshots/20261123T0000000000-a885e08c6201.json": "eb4450dd5c2a5e6f13cd72f1cfe136f8862b69152b5263621ee43b6040a68718",
+    "attas/data_agent_network/contracts.py": "25e6b680516c71ea03361d53881a34aa8dc24723a61943275ace4b4a614463f8",
+    "attas/data_agent_network/lan_endpoint.py": "f39e18d7451f42885167053dd4f7bc05c162e361299af78348f7cfb1dc87d258",
+    "attas/data_agent_network/local_resources.py": "5474670d5835c55268919442f123a03666cbeb5a3c73af1ba4bfee13ae6933b9",
+    "attas/data_agent_network/provider_runtime/__init__.py": "5d7ef54c5332c6b616000b47a64e8e8ecd80fd60bbeb05bf67bb484537f19c8e",
+    "attas/data_agent_network/provider_runtime/deployment.py": "fe87ee7716b971b592c1b1b2a49e63d748842c04832f0a57b7f6bb796dec92b5",
+    "attas/data_agent_network/provider_runtime/fugle.py": "31be5efed915fac076f4558ae56bc2badabc66b43df707d3a415450755d0d994",
+    "attas/data_agent_network/provider_runtime/routes.py": "369e07733f107d46a57bf6f628f13bf33c473b068b456097f3bbbe0fe44ed811",
+    "attas/data_agent_network/provider_runtime/service.py": "0a6bd6c5d4d7d5d658010b5f537504d78d98d759faac2cc66028b565b47a52ba",
+    "attas/data_agent_network/provider_runtime/stream_hub.py": "67e3ad292baecc0001fc7d4cc0519a9ebbc10721a93755c4e29dd7be49a79f54",
+    "attas/data_agent_network/provider_runtime/streams.py": "5909d6f1a6e7b4a4ee77304b425bb122254241ca0b4343f3ceef4bffbfe98d56",
+    "attas/data_agent_network/provider_runtime/vault.py": "e0b3cd9d9cfbf1b315c0f628cebc87d0d93264c1795daa71323f9e1af750f586",
+    "attas/data_agent_network/provider_runtime/yfinance.py": "b5a5cf2a9bb479500300354184b6374ed7bab055c7ed5771fc3d6b73ea0fbdd5",
+    "attas/data_agent_network/rss/__init__.py": "b3268078f0cb0973777a1867889e407e2752f9332cf3a90c02d585f5e97d90ca",
+    "attas/data_agent_network/rss/contracts.py": "b1139c5ac7ad8a9a7993c7d21fc1d497cd31ddaf874b06ffad4b2caeb44abf91",
+    "attas/data_agent_network/rss/defaults.py": "be91b6d713fe83d1108a3c765c55bcc7444cae2148f71e5ed93e3ff59e54d5eb",
+    "attas/data_agent_network/rss/feed_groups.json": "8cc7ad3c3cfe48fe0a6bc43a1295d17af31b884195877a060187847e00a1cb21",
+    "attas/data_agent_network/rss/feeds.py": "cfd8da5a75070d40bed5d575397c383a19fa242b8545620edc092d79fd6adece",
+    "attas/data_agent_network/rss/groups.py": "0f0289d8c10297d786b60b12fc573b81dc281a290e71d308f0e45ef3a56d5cfb",
+    "attas/data_agent_network/rss/groups_release.py": "bf959ed07e016e75e48eac7760a5bf5228907fe45c2090311af0249de41ca08a",
+    "attas/data_agent_network/rss/library.py": "c39f1cdf15da93194e8d99e341f2362409aca57c37616872dbf5ffd59fb32fcb",
+    "attas/data_agent_network/rss/local.py": "24cafeb07d11cb44ab25643966aacc60a16e22bb6e9da819dad62e4f6952ca71",
+    "attas/data_agent_network/rss/mcp_tools.py": "1b2503b2f8adb8b09691d4ba48917db2aa9099893b74bfaf4e878a61c8baca93",
+    "attas/data_agent_network/rss/news.py": "f6ffe28285af5c9db06274198d9c59bcc37ead21fab4b333ed69cd8a9692b781",
+    "attas/data_agent_network/rss/release.py": "ba05f45d461e0289f8b49758432722f550cbb88eb2848dbfc1c2182a3a8c4077",
+    "attas/data_agent_network/rss/site.py": "ec68e82719f59130287c1906badd781e060a9db9eaac9a6dd87b7e24e4477590",
+    "attas/data_agent_network/rss/source.py": "01c112fb330d93565a8e3a8d7d23574c959b6ae6913ad3c8afc428112e2f8341",
+    "attas/data_agent_network/rss/story.py": "ded3f515435c892492d20a3c3b2a3a33b3de530f2c8a8dcfcd5b1d540cf797b9",
+    "attas/data_agent_network/rss/subscriptions.py": "defb8928d00a54df6752db686ae59194545423d5103d014aceb65b92533ac686",
+    "attas/data_agent_network/rss/view/opml.js": "8c8b50fff1a1b7b97c6cc96adc93919b67cdc5c6d67670198258e8459929557c",
+    "attas/data_agent_network/rss/view/reader.css": "a0ae84f25d6b79dd78a3c0148484ada2eb82996c06c25e161302d93aa6994c82",
+    "attas/data_agent_network/rss/view/reader.js": "eef0b6ef28a465a48f360dfd884ef2564958caf6556bfa5c5f96f3fe46d39015",
+    "attas/data_agent_network/rss/view/viewer.css": "1629679a98545af2376bd3e3bc1c81387a2ce61d8cf6e34c16390e1e908b1500",
+    "attas/data_agent_network/rss/view/viewer.js": "54b2ad3e10083d5153e27b35800a66df643e0b53590a0de9cb4fe04a06d54042",
+    "attas/data_agent_network/scaffold/__init__.py": "1cbef4b11f4d288ee931e31682d4a5fb39f1596aa0af33aa961f5c823b58893b",
+    "attas/data_agent_network/scaffold/bloomberg.py": "aa29834e70d1dd0d3ba92a68fff43e90106f9612aee143a9e375bc99fd2952c3",
+    "attas/data_agent_network/scaffold/connections.py": "7598ba3a1d81f72b0f9951bfe53a3261ad2dc8b2f3558bd3db043c1da51efcd2",
+    "attas/data_agent_network/scaffold/direct_access.py": "f8994d743b80a0488238ca1ee978e4cb4954bb2c919f9e79dd27568372c2ef5d",
+    "attas/data_agent_network/scaffold/enterprise_products.py": "a9b8fe562403ffcd92a4189ef4665db2f02e4efeaaefd3ae32da4b4265af78dc",
+    "attas/data_agent_network/scaffold/fields.py": "3d5aa21081201f9816aad7ab884e52de4e42220bc743087c396d3e8697e6bf3c",
+    "attas/data_agent_network/scaffold/financial.py": "f43b0a50e6ebecf96d3da51a25be2e4bda388e6fad70b4cdfd8f4fe568990764",
+    "attas/data_agent_network/scaffold/historical_prices.py": "170d0ab6a880c150044d21c5d31d08807e80b0d96f3c17d5e8aa7ff4fc4d4382",
+    "attas/data_agent_network/scaffold/history.py": "812656b6fe722be9bfd95b7ef4409d0984b9c2368b47f0df6c89e96a586bb413",
+    "attas/data_agent_network/scaffold/ingestion.py": "781ad9e6e3be7cf53f8aeecf31af12769dc5f579ac51eb805d61731c8250db77",
+    "attas/data_agent_network/scaffold/lseg.py": "e7f509522c22889782270ac0211ca5212c150fed02158b9f506f7350bb187797",
+    "attas/data_agent_network/scaffold/lseg_products.py": "a5ddfb93a50b698aefe46f78479b8c22da802cd099fb42a79a945a274c3a1327",
+    "attas/data_agent_network/scaffold/models.py": "69b2e2349d3271948fb1d28c39b6c48ab949cf2eb6a1be88bbe017dd4c36363b",
+    "attas/data_agent_network/scaffold/parsers.py": "9b4a32f827b3985b9d7e81613da3a40e24421c08439d5879fa582b8afb5095d0",
+    "attas/data_agent_network/scaffold/provider_catalog.py": "36e3dc1b30b68debcf301e638fb4a29f8cc834248cab5d301792671c07a8f161",
+    "attas/data_agent_network/scaffold/readers.py": "cb2727f3a72bfcdf007f469f5a2f62e2c4d714e2025332494541f45a1094ad5f",
+    "attas/data_agent_network/scaffold/repository.py": "3e3ede65753dc1a7ea464c6a1ed1e794c1b6cd51682796de600d482321ca6a87",
+    "attas/data_agent_network/scaffold/schema_contract.py": "0176bf90ff56a49daa13d1b674295123a14cd35e2a5a119200d0141325229604",
+    "attas/data_agent_network/scaffold/shioaji.py": "054d8447dd7d8e8abed54f0bfa8b82ecd1fc3be0bdd6d38bec9e4b2f4251151a",
+    "attas/data_agent_network/scaffold/sources.py": "02a7b00c64123d10141bfa838796d4b64e06de2bc09b5c8439c60e1ce1a8b5ef",
+    "attas/data_agent_network/scaffold/taiwan.py": "f0e6a8c0cfac68ef50c3ed63ea43761200ad4a20355254ab4f1d3a8bf640453d",
+    "attas/data_agent_network/scaffold/workspace_spec.py": "af7a0323d5e279d0c160e6cb0788cfb29cc64781fde61f19cf33642d380a608e",
+    "attas/data_agent_network/symbology.schema.json": "359266f993fbad48554538a939b8ce978df5a10262d36b84487fc8fb76b39659",
+    "attas/data_agent_network/symbology_config.py": "e5c15c1371d5c5a26d5fd05dc58a0fe72d3c258cbeca78e11a76fd462f3c2680",
+    "attas/data_agent_network/timezones.py": "e7cbbac62677eadb4692867b0d8c7afdd0745aa0e378641a417fd0d2aea376ab",
+    "attas/source_lifecycle/__init__.py": "bc0957ea59f1d2edc6b952c14743af3c8ed3738622fdd446181cbac645e854d2",
+    "attas/source_lifecycle/archive.py": "2056c98b12f8066c7dffd19c1533afd7a4e1828fcdb2bb3b942f50a141dacaf3",
+    "attas/source_lifecycle/source.py": "83d13066acdacf7d77545de4c5be275ecf6b6d2f3054fa4a0d3532d20e5b2f87",
+    "phemacast/__init__.py": "332f01f4c28215f8b4f12ae810bdeace2c26bc134134d775e105f8c76867f575",
+    "phemacast/agent_view/__init__.py": "b97ede307a8fbbe2f8f42871050463eb3aa5d2af14223a3132008e4179e81e64",
+    "phemacast/agent_view/broker.py": "435aef165f89ffa02864909341287fa3155f19d3fbd6140d72a54192d3806ba8",
+    "phemacast/agent_view/contracts.py": "6540cf59d81f199c174a8ba3831bfa632ae5f9547f3668b140697bb851d68468",
+    "phemacast/agent_view/release.py": "62ea0e7dde78ef312829b8d8b26820f738c556a72b5ff946e9b7a56f041080e0",
+    "phemacast/agents/pulser.py": "642deb4abc482cb40e6f0482cb3ab66ab5eefcfe26bd9b8afd13870ca1931819",
+    "phemacast/agents/quote_cascade.py": "f23431b1176e8ee7f78af989d97714c3ee7eee2d575a9dd5634b44ec334b9b66",
+    "phemacast/core/composition.py": "45bea885911947fcbc6419d6079c14adf8b73973daa056023ce3720c6e0f3a57",
+    "phemacast/core/composition_contracts.py": "084cb9aa187ea04d5084e8555556b01de509122de2cfd0318ef59c70fccccee2",
+    "phemacast/core/composition_media.py": "4f291cc64cfd97a61a8ec3995d4d8bd2d50b37259106d37406e144581847d579",
+    "phemacast/core/composition_permissions.py": "33c925d7e62485cbc6dfe61ed1823a3c388f3076d70421070f8ed34d6365d684",
+    "phemacast/core/controls.py": "9154e746f03bd787f9ad208dd1e942d7dcffeb4f9bb14327bd5485d8f4aa1adb",
+    "phemacast/core/data_requests.py": "85bb972ea01135a7d224372ad2ebbd7be3e7775789ef4ad5d0eca9a2c86be196",
+    "phemacast/core/display_format.py": "df986cc0c9656415215877e5a9ac5fee9441c30cb61b346881973534f2352480",
+    "phemacast/core/layout.py": "8ccfbdf6b9529ff24c506ff6ca9431ca122003813b73a1e40938b5a7f0db9f7f",
+    "phemacast/core/llm_content.py": "a5f7dd53f9dd03442dee3e7d82413db072cbfafdd8d2511b7a38b8847937c0d2",
+    "phemacast/core/model_execution.py": "3395ba10fdb6f8c51302001a0107501d984a6bcc37270d1491090925b1ea2da9",
+    "phemacast/core/phema.py": "c828f156426cc76ab82fba8c6059128be08a0fcda732c6ff64b234cf7ab0bf82",
+    "phemacast/core/ports.py": "6d10ae8a8762d7815f0554875ae0aa6e189cd0fd9f2148b9ec454fdceb8f2e47",
+    "phemacast/core/pulse_observability.py": "1571d7f104828ca66acb16b479e462088670e47868ce770d6c137582d6101c76",
+    "phemacast/core/pulse_runtime.py": "fe291b40b8789889720ea09b7a9cfef7560eb944dc1baa45a93f912e988ad609",
+    "phemacast/core/schema_security.py": "54369eb7c6dcdd1ded333c6079771a4c213452e14722a4a914ac1b7c98d00b83",
+    "phemacast/core/schema_worker.py": "e7d4ada190b3d30c28f11c6d520c103d66ce68b26fe1c1c592e59235c09e3055",
+    "phemacast/core/split_containers.py": "148a6f8fcdc9681112c17b6d6f3170769eb717abb40cee35f4e9a95b49ae9bdc",
+    "phemacast/core/ui_localization.py": "84e23a1596678541f411bd5ca58fe8736eb536761012040f780c9e7ea6bd3fee",
+    "phemacast/models.py": "a1c8ecbfd9ecf1b705777443fbbc544ca87e94385a524b0a665df5c0e3048e9c",
+    "phemacast/network/__init__.py": "43dade91df751986721d03d08a43e48bc6894f195e61442000b5749bc656813d",
+    "phemacast/network/configure.py": "b1c8072bb96ea98547f9417e0e01c843af1ab8684aa43ff2de402109552198e0",
+    "phemacast/network/discovery.py": "21096a68561e93ec43740810599268ad06019101655541804b5d7be78bdbb53e",
+    "phemacast/network/mcp.py": "4b6a46c5dc6072acda134efac9ead264997266d7d02c92e379054e60094d2cf0",
+    "phemacast/network/service.py": "824b7fddfbaa48f992b293205726caf0239b65bc3defccadde1cf77800e1bc21",
+    "phemacast/practices/__init__.py": "698aeb5539f1a0787c712666c00c5d8944a6544998a5b8b9be51a247384e9249",
+    "phemacast/practices/pulser.py": "90060691161b5e842165988ae82f3ca0ce1b330cb49781056b644410756f7559",
+    "phemacast/practices/quote.py": "fe47660a194957508805b7b390354e62a239ab6b3e945862c855a3d86c370efc",
+    "phemacast/pulsers/data_agent_pulser.py": "7278cf2fec45a62ec22f2031a552f4ab51e5efbe82eccaa66f643f9e4cac54ba",
+    "phemacast/schemas/phema/layout.schema.json": "8719bd3df422680244b25c08a489efde9aabf40f98651bff8e22181756c13c6a",
+    "phemacast/system.py": "d63e6313d9bc9d2a1564231b98fc51ddc0ac9377ad80d09852a67531dc38688a",
+    "prompits/__init__.py": "a743e32fd533d44c4802f4cff5db5416e3bd82523e7754858b07cddff5f9eb08",
+    "prompits/agents/base.py": "00db64b773e44131944460f3c885ce2e914cafe4ec77a1114c517cc266e47aff",
+    "prompits/agents/standby.py": "2b648b40158438ec804b86a9e048d99058ce03db7f8c53439efbc428edd8bfff",
+    "prompits/channels/__init__.py": "139e8eec7b1984cb5ff94ca32641e7b72d9201b165c42fb5d1a4e7ac2bcdd236",
+    "prompits/channels/notifications.py": "78d03a9ac862eb1526a9710e73da2b92b5c180fa396ec3d39675c797b92aad3f",
+    "prompits/channels/runtime.py": "35f063dc60b179477513732d1cd9300c777fc1c7f0e1983456537012cb45e142",
+    "prompits/components/__init__.py": "90fe79efbf4e271c18e2e96eb5a740e280e6ed1221b134a173bf6c58c92c2306",
+    "prompits/components/health.py": "bfe78a3e89a45c32cb3e723782c274e237b379276e499576b171795f0ee3c761",
+    "prompits/components/logs.py": "9fde83feb056e32ca25a0b840b92a01d92df87f3e2bb350f291dba60d9d1db61",
+    "prompits/core/access_roles.py": "36830be740f49a3363ce015f5decd82931f2f10b3ece299cfbd46a64120711c9",
+    "prompits/core/agent_config.py": "ab4cd19280b954c2ea2946a7a4e1ef469681d31569f21f5a5c2a595b3d11947e",
+    "prompits/core/approved_access.py": "ea837a6fdd5e6cd6ede2bbebfa045602203713cf000f3144f13dc180bc299baa",
+    "prompits/core/blueprint.py": "170ea8813a459d94a2c709a682dcdd034acb405f762679f54660b2d916b93515",
+    "prompits/core/call_grants.py": "0fc6b2ac7f3fdaa63be8ba61927f9fcf19ccf7818de9a0892225e6cad2b213e5",
+    "prompits/core/capabilities.py": "8a30bbd0040559dd5c89be442aa152e04d201936a30a957eae0c0715945f46df",
+    "prompits/core/directory_runtime.py": "2df14cf60db67ea50af08c8fe22fcb8c5afd9d1f21c3d7bf1ffefe1db5cb2238",
+    "prompits/core/file_lock.py": "70c9ff07a664bcf3d62ea7a5e8caf677026bc8d2f61a223b996726df1d45e510",
+    "prompits/core/init_schema.py": "500e8e212a844ff12c25b53094948e5d4e11d06bb21eaca580a97fd78a686246",
+    "prompits/core/job_history.py": "acdf02cf20ac6856a0bd4f0aa3957792b594da1ad3a65dc4f37d69838b8fcfde",
+    "prompits/core/json_response.py": "3161639b47a7b8bfdb0200989446a841e55b01896ecbc3ff5c3e2e29f10ad171",
+    "prompits/core/log_paths.py": "3e57202727ff3f16b8c141d1e277e0771029fa2b2c3fabe9b1c7ca9284e96589",
+    "prompits/core/message.py": "84ea326d812d9243c39650175fc5dbb8df4ae3185258842523f0fb83bfc6c241",
+    "prompits/core/observability.py": "76d1164652222d2cef1484c8eaede82e49555ce8ae5023bf77190034079b7d7f",
+    "prompits/core/observability_routes.py": "4762c601cca7c7e85f79b28a22bc4e61f40ceb61c50d509d7cfdb46e2a3e3f28",
+    "prompits/core/operation_contracts.py": "0b2e580d6904329375f5d0cbacfc41c14fc613b1f9a1af9506a50bd10cf4cf2c",
+    "prompits/core/operation_input.py": "a7c8a409454de3e75f58922aafd033e8b040b54d72487c17cacb010b9a94cdf2",
+    "prompits/core/pit.py": "ba8c3659fbca8972c1a2fe96622c1a0842237872598585197f1e3d81d7b86b8d",
+    "prompits/core/plaza_jobs.py": "4593aee1c7d0303e1c1db7930afe5dbc368e5923e28d894dc88ca3a556adc76f",
+    "prompits/core/pool.py": "89d205287836fa3082fb6f9d78a10a17a975cf4085c3a394fb5055a1982593d2",
+    "prompits/core/practice.py": "f2c78c398a502b17c5618cbc65768ce7814083a0dd0be1d0843e1ccf551fc9c7",
+    "prompits/core/process_utils.py": "2f43f9170834747796a23809498c3e0a8dcab88f1e9ec2bd48258bef505947bb",
+    "prompits/core/pulse_mapping.py": "5b49f650f6df82d4426cd54f31fdb65a2d78cee3476e0a196b3f75d2f5af5531",
+    "prompits/core/pulse_models.py": "b802ec1ca530b3dfd04e779d445e15bea69684a90fc7db2e09cea29493b1e13e",
+    "prompits/core/pulse_schemas.py": "d7c1084b6ff0fb3788aaa6383d7904c718fb89173cbc45850f1c699c0f54293f",
+    "prompits/core/resource_registry.py": "337f2d6ad3afdfab1ddd94b11492ff5c5759263fe480cc616808aefa55e6cbb8",
+    "prompits/core/schema.py": "b712e3abe793527abde5232d1e934d8c8072bd144edf3b928e8969db93e9929c",
+    "prompits/mcp/__init__.py": "7c4e695f20d48f725de1e8d04b1c5e76a5f9072f8ecba79bd01f2541e48fb042",
+    "prompits/mcp/client.py": "3132c3dfd4ffe46bf23cba59196e027f47e584bf0040e1fdbae0592b765d5ee9",
+    "prompits/mcp/server.py": "47794b498fc7c6c6924b7159d3fe323c2b72cb1823eff17af66ef425b52e344b",
+    "prompits/practices/__init__.py": "62ced013e74813246af027247e3bbf373453091aae95847d4ee6bde6f54087cc",
+    "prompits/practices/plaza.py": "7a54e4f4524dde4d8152d6a6afc3eca39ac8d508228384dbe3607d8f1e9a221e",
+    "requirements.lock": "ee3b4896127d2eeec1c16b9c2059245cde32881ca29060e4108e10aebbba6f0c",
+    "scripts/run_local_rss.py": "2ee7f3a3eff3af8290e45c67a989363a93541fcc72b47c869e7d1b92a5574c3f",
+    "start.py": "c52123fd574c984aeeef2a8a009f473be0b1d3b07d819d43c8cc2ecae618e8f2"
+  },
+  "id": "local-rss",
+  "offer": {
+    "descriptions": {
+      "en": "Public RSS and Atom feeds you add, read by this computer, with the RSS Viewer.",
+      "zh-Hant": "由這台電腦讀取您新增的公開 RSS 與 Atom 訂閱，附 RSS 閱讀器。"
+    },
+    "id": "local-rss",
+    "names": {
+      "en": "Local RSS",
+      "zh-Hant": "本機 RSS"
+    },
+    "notices": [
+      {
+        "homepage": "https://github.com/fastapi/annotated-doc",
+        "license": "MIT",
+        "name": "annotated-doc",
+        "version": "0.0.5"
+      },
+      {
+        "homepage": "https://github.com/annotated-types/annotated-types",
+        "license": "MIT",
+        "name": "annotated-types",
+        "version": "0.8.0"
+      },
+      {
+        "homepage": "https://anyio.readthedocs.io/en/latest/",
+        "license": "MIT",
+        "name": "anyio",
+        "version": "4.15.1"
+      },
+      {
+        "homepage": "https://www.attrs.org/",
+        "license": "MIT",
+        "name": "attrs",
+        "version": "26.1.0"
+      },
+      {
+        "homepage": "https://github.com/certifi/python-certifi",
+        "license": "MPL-2.0",
+        "name": "certifi",
+        "version": "2026.10.23"
+      },
+      {
+        "homepage": "https://cffi.readthedocs.io/",
+        "license": "MIT-0",
+        "name": "cffi",
+        "version": "2.1.1"
+      },
+      {
+        "homepage": "https://charset-normalizer.readthedocs.io/",
+        "license": "MIT",
+        "name": "charset-normalizer",
+        "version": "3.5.1"
+      },
+      {
+        "homepage": "https://click.palletsprojects.com/",
+        "license": "BSD-3-Clause",
+        "name": "click",
+        "version": "8.5.0"
+      },
+      {
+        "homepage": "https://cryptography.io/",
+        "license": "Apache-2.0 OR BSD-3-Clause",
+        "name": "cryptography",
+        "version": "50.0.1"
+      },
+      {
+        "homepage": "https://github.com/fastapi/fastapi",
+        "license": "MIT",
+        "name": "fastapi",
+        "version": "0.141.1"
+      },
+      {
+        "homepage": "https://github.com/python-hyper/h11",
+        "license": "MIT",
+        "name": "h11",
+        "version": "0.16.0"
+      },
+      {
+        "homepage": "https://www.encode.io/httpcore",
+        "license": "BSD-3-Clause",
+        "name": "httpcore",
+        "version": "1.0.9"
+      },
+      {
+        "homepage": "https://github.com/pydantic/httpx2",
+        "license": "BSD-3-Clause",
+        "name": "httpcore2",
+        "version": "2.16.2"
+      },
+      {
+        "homepage": "https://www.python-httpx.org",
+        "license": "BSD-3-Clause",
+        "name": "httpx",
+        "version": "0.27.2"
+      },
+      {
+        "homepage": "https://github.com/pydantic/httpx2",
+        "license": "BSD-3-Clause",
+        "name": "httpx2",
+        "version": "2.16.2"
+      },
+      {
+        "homepage": "https://github.com/kjd/idna",
+        "license": "BSD-3-Clause",
+        "name": "idna",
+        "version": "3.20"
+      },
+      {
+        "homepage": "https://github.com/pydron/ifaddr",
+        "license": "MIT",
+        "name": "ifaddr",
+        "version": "0.2.0"
+      },
+      {
+        "homepage": "https://jinja.palletsprojects.com/",
+        "license": "BSD License",
+        "name": "Jinja2",
+        "version": "3.1.6"
+      },
+      {
+        "homepage": "https://github.com/python-jsonschema/jsonschema",
+        "license": "MIT",
+        "name": "jsonschema",
+        "version": "4.23.0"
+      },
+      {
+        "homepage": "https://jsonschema-specifications.readthedocs.io/",
+        "license": "MIT",
+        "name": "jsonschema-specifications",
+        "version": "2025.9.1"
+      },
+      {
+        "homepage": "https://markupsafe.palletsprojects.com/",
+        "license": "BSD-3-Clause",
+        "name": "MarkupSafe",
+        "version": "3.0.3"
+      },
+      {
+        "homepage": "https://modelcontextprotocol.io",
+        "license": "MIT",
+        "name": "mcp",
+        "version": "2.3.0"
+      },
+      {
+        "homepage": "https://modelcontextprotocol.io",
+        "license": "MIT",
+        "name": "mcp-types",
+        "version": "2.3.0"
+      },
+      {
+        "homepage": "https://github.com/open-telemetry/opentelemetry-python/tree/main/opentelemetry-api",
+        "license": "Apache-2.0",
+        "name": "opentelemetry-api",
+        "version": "1.45.2"
+      },
+      {
+        "homepage": "https://pillow.readthedocs.io",
+        "license": "MIT-CMU",
+        "name": "pillow",
+        "version": "13.0.0"
+      },
+      {
+        "homepage": "https://github.com/giampaolo/psutil",
+        "license": "BSD-3-Clause",
+        "name": "psutil",
+        "version": "7.2.2"
+      },
+      {
+        "homepage": "https://github.com/eliben/pycparser",
+        "license": "BSD-3-Clause",
+        "name": "pycparser",
+        "version": "3.0"
+      },
+      {
+        "homepage": "https://github.com/pydantic/pydantic",
+        "license": "MIT",
+        "name": "pydantic",
+        "version": "2.12.5"
+      },
+      {
+        "homepage": "https://github.com/pydantic/pydantic-core",
+        "license": "MIT",
+        "name": "pydantic_core",
+        "version": "2.41.5"
+      },
+      {
+        "homepage": "https://github.com/jpadilla/pyjwt",
+        "license": "MIT",
+        "name": "PyJWT",
+        "version": "2.14.0"
+      },
+      {
+        "homepage": "https://github.com/Kludex/python-multipart",
+        "license": "Apache-2.0",
+        "name": "python-multipart",
+        "version": "0.0.31"
+      },
+      {
+        "homepage": "https://github.com/mhammond/pywin32",
+        "license": "PSF",
+        "name": "pywin32",
+        "version": "312"
+      },
+      {
+        "homepage": "https://referencing.readthedocs.io/",
+        "license": "MIT",
+        "name": "referencing",
+        "version": "0.37.0"
+      },
+      {
+        "homepage": "https://requests.readthedocs.io",
+        "license": "Apache-2.0",
+        "name": "requests",
+        "version": "2.33.0"
+      },
+      {
+        "homepage": "https://rpds.readthedocs.io/",
+        "license": "MIT",
+        "name": "rpds-py",
+        "version": "2026.6.3"
+      },
+      {
+        "homepage": "https://github.com/python-trio/sniffio",
+        "license": "MIT OR Apache-2.0",
+        "name": "sniffio",
+        "version": "1.3.1"
+      },
+      {
+        "homepage": "https://github.com/sysid/sse-starlette",
+        "license": "BSD-3-Clause",
+        "name": "sse-starlette",
+        "version": "3.4.11"
+      },
+      {
+        "homepage": "https://github.com/Kludex/starlette",
+        "license": "BSD-3-Clause",
+        "name": "starlette",
+        "version": "1.6.0"
+      },
+      {
+        "homepage": "https://truststore.readthedocs.io",
+        "license": "MIT",
+        "name": "truststore",
+        "version": "0.10.5"
+      },
+      {
+        "homepage": "https://typing-extensions.readthedocs.io/",
+        "license": "PSF-2.0",
+        "name": "typing_extensions",
+        "version": "4.16.0"
+      },
+      {
+        "homepage": "https://github.com/pydantic/typing-inspection",
+        "license": "MIT",
+        "name": "typing-inspection",
+        "version": "0.4.4"
+      },
+      {
+        "homepage": "https://urllib3.readthedocs.io",
+        "license": "MIT",
+        "name": "urllib3",
+        "version": "2.8.0"
+      },
+      {
+        "homepage": "https://www.uvicorn.org/",
+        "license": "BSD-3-Clause",
+        "name": "uvicorn",
+        "version": "0.34.0"
+      },
+      {
+        "homepage": "https://github.com/python-websockets/websockets",
+        "license": "BSD-3-Clause",
+        "name": "websockets",
+        "version": "15.0.1"
+      },
+      {
+        "homepage": "https://python-zeroconf.readthedocs.io",
+        "license": "LGPL-2.1-or-later",
+        "name": "zeroconf",
+        "version": "0.151.3"
+      }
+    ],
+    "optional": true,
+    "platforms": [
+      "macos-arm64",
+      "windows-x86_64",
+      "linux-x86_64",
+      "linux-arm64"
+    ],
+    "run": {
+      "command": [
+        "{python}",
+        "-I",
+        "-S",
+        "-X",
+        "utf8",
+        "{component_dir}/start.py",
+        "--state",
+        "{data_dir}",
+        "--port",
+        "28520",
+        "--health-port",
+        "28521"
+      ],
+      "env": {
+        "PROMPITS_ENV_FILE": "none",
+        "PYTHON_DOTENV_DISABLED": "1"
+      },
+      "health_path": "/health",
+      "port": 28521
+    },
+    "version": "0.1.9-beta"
+  },
+  "version": "0.1.9-beta"
+}

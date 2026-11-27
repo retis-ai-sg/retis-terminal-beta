@@ -24,6 +24,14 @@ HASH = re.compile(r'^[a-f0-9]{64}$')
 ID = re.compile(r'^[A-Za-z][A-Za-z0-9_.:-]{0,127}$')
 LOCAL = re.compile(r'^/[A-Za-z0-9_./:-]{1,255}$')
 EFFECT_KEYS = {'writesState','externalSend','paidExecution','startsJob','opensStream'}
+# Actions an owner offers to AI apps in its view (manifest extension). The view's own code runs each one in its frame.
+AI_ACTIONS = 'phemacast:ai-actions'
+AI_ACTION_ID = re.compile(r'^[a-z][a-z0-9_]{0,63}$')
+AI_ACTION_EFFECTS = ('read','view','edit','run','schedule','delete','send')
+# Control and bidirectional-override characters; the same set the host refuses in a view's title and status.
+UNSAFE_TEXT = re.compile(r'[\x00-\x1f\x7f-\x9f\u202a-\u202e\u2066-\u2069]')
+CREDENTIAL_NAME = re.compile(r'(api.?key|token|secret|password|passwd|credential|cookie|session)', re.I)
+POINTER = re.compile(r'(?:/[A-Za-z0-9_~-]+)+')
 
 
 def exact(value, required, optional=()):
@@ -59,6 +67,71 @@ def origin(value, *, allow_local=False):
 
 
 def manifest_digest(value):return digest(value)
+
+
+def _property_names(node, depth=0):
+    """Every property name a schema declares or requires, at any depth."""
+    if depth>64:return
+    if isinstance(node,dict):
+        for key,item in node.items():
+            if key in ('properties','patternProperties','dependentSchemas','dependentRequired') and isinstance(item,dict):yield from item
+            if key=='required' and isinstance(item,list):yield from (name for name in item if isinstance(name,str))
+            yield from _property_names(item,depth+1)
+    elif isinstance(node,list):
+        for item in node:yield from _property_names(item,depth+1)
+
+
+def _plain_text(value, low, high, field):
+    if not isinstance(value,str) or not low<=len(value)<=high or (low and not value.strip()) or UNSAFE_TEXT.search(value):
+        raise ValueError(f'An AI action {field} is plain text of {low} to {high} characters.')
+
+
+def validate_ai_actions(value):
+    """Check `extensions['phemacast:ai-actions']`: the actions an AI app may ask the view to take.
+
+    Declaring an action grants nothing. The container still checks each call against this list, its input schema and
+    its effect, and never offers `delete` or `send` actions to AI apps.
+    """
+    if not isinstance(value,dict) or set(value)!={'version','actions'}:raise ValueError('AI actions need exactly a version and an action list.')
+    if value['version']!='1.0.0':raise ValueError('Unsupported AI actions version.')
+    actions=value['actions']
+    if not isinstance(actions,list) or not 1<=len(actions)<=32:raise ValueError('Declare 1 to 32 AI actions.')
+    seen=set()
+    for action in actions:
+        exact(action,['id','title','description','effect','inputSchema','maxPoints','confirm','sourceModes'],['outputSchema','idempotencyPointer'])
+        if not isinstance(action['id'],str) or not AI_ACTION_ID.fullmatch(action['id']) or action['id'] in seen:
+            raise ValueError('Each AI action needs a unique lower-case id.')
+        seen.add(action['id'])
+        _plain_text(action['title'],1,80,'title');_plain_text(action['description'],0,500,'description')
+        if action['effect'] not in AI_ACTION_EFFECTS:raise ValueError('Declare the AI action effect.')
+        schema=action['inputSchema']
+        if not isinstance(schema,dict) or schema.get('type')!='object' or schema.get('additionalProperties') is not False:
+            raise ValueError('An AI action input is a closed object schema.')
+        bounded_schema(schema)
+        if len(canonical(schema).encode())>32_000:raise ValueError('An AI action input schema exceeds 32 KB.')
+        if any(CREDENTIAL_NAME.search(name) for name in _property_names(schema)):
+            raise ValueError('AI action inputs never carry keys, tokens, passwords or other credentials.')
+        if 'outputSchema' in action:
+            if not isinstance(action['outputSchema'],dict):raise ValueError('An AI action output schema is a schema object.')
+            bounded_schema(action['outputSchema'])
+        points=action['maxPoints']
+        if type(points) is not int or not 0<=points<=100_000:raise ValueError('AI action points are a whole number from 0 to 100000.')
+        if action['effect'] in ('read','view') and points:raise ValueError('Read and view actions are free.')
+        if 'idempotencyPointer' in action and (not isinstance(action['idempotencyPointer'],str) or not POINTER.fullmatch(action['idempotencyPointer'])):
+            raise ValueError('Invalid AI action idempotency pointer.')
+        if action['confirm'] not in ('auto','always'):raise ValueError('An AI action confirms auto or always.')
+        modes=action['sourceModes']
+        if (not isinstance(modes,list) or not modes or any(not isinstance(mode,str) for mode in modes)
+                or len(set(modes))!=len(modes) or not set(modes)<={'parameters','snapshot'}):
+            raise ValueError('Explicit AI action source modes required.')
+        if 'snapshot' in modes and action['effect']!='read':raise ValueError('Only read actions may run on a snapshot.')
+    return deepcopy(value)
+
+
+def ai_actions(manifest):
+    """The actions a validated manifest offers to AI apps, as a new list; empty when it offers none."""
+    declared=(manifest.get('extensions') or {}).get(AI_ACTIONS)
+    return deepcopy(declared['actions']) if declared else []
 
 
 def validate_manifest(value, *, allow_local=False):
@@ -107,6 +180,7 @@ def validate_manifest(value, *, allow_local=False):
         raise ValueError('Private bindings require a separate private-data disclosure.')
     extensions=value.get('extensions',{})
     if not isinstance(extensions,dict) or len(extensions)>64 or any(not re.fullmatch(r'[a-z][a-z0-9.-]+:[A-Za-z0-9._-]+',k) for k in extensions):raise ValueError('Use namespaced extensions.')
+    if AI_ACTIONS in extensions:validate_ai_actions(extensions[AI_ACTIONS])
     if len(canonical(value).encode())>512_000:raise ValueError('Manifest too large.')
     return deepcopy(value)
 

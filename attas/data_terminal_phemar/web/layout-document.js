@@ -1,6 +1,6 @@
 /** Financial application adapter; the shared grammar has no product semantics. */
 import {LAYOUT_GRAMMAR} from './layout-contract.js';
-const MEDIA=['text','image','audio','video','scene','interactive'];
+const MEDIA=['text','image','audio','video','scene','interactive','viewer'];
 // A panel's per-field display formats travel in this framework extension, which hosts without it ignore.
 const FIELD_FORMATS='phemacast:fieldFormats';
 const SURFACE_FIELDS=['id','title','position','area','tabId','requirementId','supplementalRequirementIds','fieldMappings','referenceId','componentId','media','fallback'];

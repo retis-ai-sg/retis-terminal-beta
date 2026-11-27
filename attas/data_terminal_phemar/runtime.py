@@ -109,7 +109,9 @@ def create_app(kind='data-terminal', agent_id='data-terminal', port=28400, *, st
         value['meta']['phemar_capabilities'] = [{**value['meta']['phemar_capabilities'][0], **descriptor_value()}]
         value['meta']['phemar_feature_descriptor'] = descriptor_value()
         value.setdefault('practices', []).extend([{'id':p,'name':p,'cost':0,'path':'/use_practice/'+p} for p in ('get_pulse_data','quote_pulse_data')])
-        value.setdefault('meta', {})['data_terminal'] = {'version': VERSION, 'channel': CHANNEL, 'kind': kind, 'id': identity or agent_id, 'ui': '/'}
+        from phemacast.core.data_requests import KINDS
+        value.setdefault('meta', {})['data_terminal'] = {'version': VERSION, 'channel': CHANNEL, 'kind': kind, 'id': identity or agent_id, 'ui': '/',
+                                                         'dataRequests': list(KINDS)}  # what this Terminal answers in a processor's data request
         if identity:
             value['meta']['agent_identity'] = identity
         return value
@@ -180,6 +182,8 @@ def create_app(kind='data-terminal', agent_id='data-terminal', port=28400, *, st
         # for the viewer, in every Terminal; other links still use the stored Phema approval.
         from .native_trust import NativeTrust
         engine.native_trust = engine.broker.native_trust = NativeTrust(network)
+        # A Phema call reads its window login's current token at each use (browser/broker.py).
+        engine.broker.terminal_scope = terminal_scope
     scheduled_runs = None  # set once principal exists; Data Terminal only
 
     @asynccontextmanager
@@ -192,7 +196,12 @@ def create_app(kind='data-terminal', agent_id='data-terminal', port=28400, *, st
         runner = asyncio.create_task(scheduled_runs.loop()) if scheduled_runs else None
         enrollment = getattr(app.state, 'enrollment', None)
         enrollment_task = asyncio.create_task(enrollment.watch()) if enrollment else None
+        # Windows that never save again still shed history their rules no longer keep.
+        from .workspace_history import prune_all
+        history_trim = asyncio.create_task(asyncio.to_thread(prune_all, store))
         yield
+        if not history_trim.done():history_trim.cancel()
+        await asyncio.gather(history_trim, return_exceptions=True)
         if plaza_selection:await plaza_selection.close()
         if enrollment_task:
             enrollment_task.cancel()
@@ -223,7 +232,7 @@ def create_app(kind='data-terminal', agent_id='data-terminal', port=28400, *, st
         return await client.request(method,plaza_url+path,**kwargs)
 
 
-    session_checks = {}  # access-token digest -> (expiry, successful Plaza session check)
+    session_checks = {}  # access-token digest -> (expiry, successful Plaza session check, when Plaza answered it)
     async def sign_out_refused(request, window, reason):
         """Plaza refused this window's session: close what the window runs, end its sign-in here, and keep the
         reason, so the signed-out window says why."""
@@ -292,8 +301,9 @@ def create_app(kind='data-terminal', agent_id='data-terminal', port=28400, *, st
             lapsing = bool(session and session.get('refresh_token')) and isinstance(ends, (int, float)) and ends - time.time() < WINDOW_RENEW_BEFORE
             reused = bool(checked and checked[0] > time.monotonic()) and not lapsing
             if reused:
-                response = checked[1]
+                response, reported_at = checked[1], checked[2]
             else:
+                reported_at = time.time()
                 response = await client.get(plaza_url + '/api/ui_auth/me', headers={'Authorization': f'Bearer {token}'})
             if (expired_session(response) or lapsing and response.is_success) and session and session.get('refresh_token'):
                 holder = secrets.token_hex(16)
@@ -353,7 +363,7 @@ def create_app(kind='data-terminal', agent_id='data-terminal', port=28400, *, st
             if not reused:
                 if len(session_checks) >= 1024:
                     session_checks.clear()
-                session_checks[hashlib.sha256(token.encode()).hexdigest()] = (time.monotonic() + 30, response)
+                session_checks[hashlib.sha256(token.encode()).hexdigest()] = (time.monotonic() + 30, response, reported_at)
             if getattr(request.state,'expected_session_owner',str(id)) != str(id):
                 if required:raise HTTPException(401,'Cached Plaza identity changed. Sign in again.')
                 return None
@@ -396,6 +406,10 @@ def create_app(kind='data-terminal', agent_id='data-terminal', port=28400, *, st
                     except HTTPException:preference={}
                     if getattr(client,'public_network',None):client.public_network.prefer_local=preference.get('preferLocal',True)
             network.remember_account(token, str(id))
+            # The account's available points as Plaza reported them in this session check; the answer carries them to
+            # the window's top bar (X-Plaza-Points in boundary below). The Terminal keeps and prices nothing.
+            if type(user.get('credit_points')) is int:
+                request.state.plaza_points = (user['credit_points'], reported_at, not reused)
             authenticated = {'id': str(id), 'name': user.get('display_name') or user.get('email') or str(id), 'token': token, **({'email': str(user['email'])} if user.get('email') else {}), **({'terminalWindow':window} if window else {})}
             return authenticated
         except httpx.RequestError:
@@ -408,10 +422,19 @@ def create_app(kind='data-terminal', agent_id='data-terminal', port=28400, *, st
         # Views may ask this Terminal to repeat one declared reference on a timer, as their user.
         from .scheduled_runs import ScheduledRuns
         scheduled_runs = app.state.scheduled_runs = ScheduledRuns(store, engine, principal, terminal_scope)
+        # AI apps on this computer that control a window, approved there with one click (mcp_access.py).
+        from . import mcp_access
+        # Only the main app: an AI app sends no window header, so it never reaches a Plaza connection's sub-app.
+        if allow_plaza_selection and mcp_access.enabled(kind=kind, public_connection=public_connection,
+                                                        discover_local=discover_local, local_only=local_only):
+            app.state.mcp_access = mcp_access.install(app, port=port, state_dir=state_dir, store=store, engine=engine,
+                                                      network=network, scheduled_runs=scheduled_runs,
+                                                      principal=principal, terminal_scope=terminal_scope)
     if kind=='data-terminal' and os.environ.get('ATTAS_AGENT_VIEW_CONFIGURATION'):
         from phemacast.agent_view.container import mount_container
+        from .local_resources import not_answering
         mount_container(app,principal=principal,network=network,config_path=os.environ['ATTAS_AGENT_VIEW_CONFIGURATION'],
-            state_dir=state_dir,window_context=window_context)
+            state_dir=state_dir,window_context=window_context,missing_local=lambda publisher:not_answering(network,publisher))
     if kind == "data-terminal" and os.environ.get("ATTAS_NATIVE_OPERATION_FORMS") == "1":
         # Native operation forms resolve owner contracts through Plaza: a Terminal without Plaza has none to open.
         if not local_only:
@@ -503,12 +526,18 @@ def create_app(kind='data-terminal', agent_id='data-terminal', port=28400, *, st
         except (ValueError, TypeError):
             return JSONResponse({'detail': 'Invalid request value.'}, status_code=422)
         response.headers['Cache-Control'] = 'no-store' if request.url.path.startswith('/api') else 'no-cache'
+        # The signed-in account's available Plaza points, as Plaza reported them for this request's session check
+        # (principal), and when: the window's top bar shows them without asking Plaza again.
+        reported = getattr(request.state, 'plaza_points', None)
+        if reported:
+            response.headers['X-Plaza-Points'] = str(reported[0])
+            response.headers['X-Plaza-Points-At'] = f'{reported[1]:.3f}'
         response.headers['X-Content-Type-Options'] = 'nosniff'
         response.headers['Referrer-Policy'] = 'same-origin'
         # Delegated sign-in frames are restricted to the configured Plaza.
         auth_origin=urlsplit(os.environ.get('ATTAS_PLAZA_AUTH_ORIGIN') or plaza_url)
         auth_origin=auth_origin.scheme+'://'+auth_origin.netloc
-        response.headers.setdefault('Content-Security-Policy',"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; media-src 'self' blob: https:; connect-src 'self' https: http:; frame-src 'self' https://www.youtube-nocookie.com "+auth_origin+"; font-src 'self' data:; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'")
+        response.headers.setdefault('Content-Security-Policy',"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; media-src 'self' blob: https:; connect-src 'self' https: http:; frame-src 'self' https: "+auth_origin+"; font-src 'self' data:; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'")
         response.headers['X-Frame-Options']='SAMEORIGIN'
         response.headers['Permissions-Policy']='camera=(), microphone=(), geolocation=(), payment=(), usb=()'
         # Public static JS is code, never account data; opaque extension frames
@@ -850,6 +879,12 @@ def create_app(kind='data-terminal', agent_id='data-terminal', port=28400, *, st
     # Phemas kept in this Terminal (saved from the catalog, or bundled starters), opened without the App Consultant.
     from .phema_library import install_phema_library_routes
     install_phema_library_routes(app, store, principal, network=network)
+    # The latest value each group of linked panels holds (link groups, phemacast/core/ports.py).
+    from .link_groups import install_link_group_routes
+    install_link_group_routes(app, store, principal)
+    # The agents a viewer may choose for a pulse ($agents in a Phema's controls).
+    from .agent_choices import install_agent_choice_routes
+    install_agent_choice_routes(app, principal, network)
 
     @app.get('/api/workspace-state')
     async def workspace_state(request: Request):
@@ -906,8 +941,36 @@ def create_app(kind='data-terminal', agent_id='data-terminal', port=28400, *, st
 
     @app.get('/api/workspace-state/revisions')
     async def workspace_revisions(request: Request):
+        user = await principal(request); key = state_key(user)
+        from .workspace_history import REVISION, SHOT
+        # Names and times only: a window's history can hold many large versions.
+        pictures = {revision for _, revision, _ in store.revision_times(user['id'], SHOT, key)}
+        try:current = store.get(user['id'], 'workspace-state', key)
+        except HTTPException:current = None
+        return {'records':[{'id':record_id,'revision':revision,'updatedAt':stamp,'picture':revision in pictures}
+                           for record_id, revision, stamp in store.revision_times(user['id'], REVISION, key)],
+                'current':{'revision':current['revision'],'updatedAt':current['updatedAt'],'picture':current['revision'] in pictures} if current else None}
+
+    @app.put('/api/workspace-state/pictures/{revision}')
+    async def save_workspace_picture(revision: int, request: Request):
+        # A picture of what the window showed at this saved version, taken by the page just after it saved.
+        user = await principal(request); key = state_key(user); body = await request.json()
+        from .workspace_history import SHOT, picture
+        try:current = store.get(user['id'], 'workspace-state', key)['revision']
+        except HTTPException:current = None
+        if revision != current:
+            raise HTTPException(409, 'The workspace has been saved again; take a new picture.')
+        image = picture(body.get('image') if isinstance(body, dict) else None)
+        store.put(user['id'], SHOT, f'{key}:{revision}', {'secret': store.encrypt({**image, 'capturedAt': time.time()})})
+        return {'revision': revision, 'width': image['width'], 'height': image['height']}
+
+    @app.get('/api/workspace-state/pictures/{revision}')
+    async def workspace_picture(revision: int, request: Request):
         user = await principal(request)
-        return {'records':[{k:r[k] for k in ('id','revision','updatedAt')} for r in store.list(user['id'],'workspace-revision') if r['id'].startswith(state_key(user)+':')]}
+        from .workspace_history import SHOT
+        record = store.get(user['id'], SHOT, f'{state_key(user)}:{revision}')
+        value = store.decrypt(record['secret'])
+        return JSONResponse({k: value[k] for k in ('image', 'width', 'height', 'capturedAt')}, headers={'Cache-Control': 'private, no-store'})
 
     @app.post('/api/workspace-state/rollback')
     async def workspace_rollback(request: Request):
@@ -972,12 +1035,29 @@ def create_app(kind='data-terminal', agent_id='data-terminal', port=28400, *, st
     async def settings(request: Request):
         user = await principal(request)
         preferences = {k:v for k,v in window_preferences(store,user).items()
-            if k in {'uiLanguage','displayTimezone','specifiedTimezone','marketAppearance','theme','customTheme','sessionName','displayFormat'}}
+            if k in {'uiLanguage','displayTimezone','specifiedTimezone','marketAppearance','theme','customTheme','sessionName','displayFormat','phemaChooser','phemaWindows','aiPointsPerDay','workspaceHistory'}}
         from .billing import history
         billing = history(store, user['id'])
         # Settings shows the latest few; the whole history opens on request.
         return {'preferences': preferences, 'connections': [], 'usage': store.usage(user['id']), 'billing': billing[:10],
                 'billingTotal': len(billing), 'billingToReconcile': sum(1 for row in billing if row['canReconcile'])}
+
+    # Who may see, open and change this account's Phemas: Plaza's lists, read and set through the window's session.
+    @app.get('/api/phema-permissions')
+    async def phema_permissions(request: Request):
+        from .phema_permissions import lists
+        user = await principal(request)
+        return JSONResponse(await lists(network, user), headers={'Cache-Control': 'private, no-store'})
+
+    @app.put('/api/phema-permissions')
+    async def save_phema_permissions(request: Request):
+        from .phema_permissions import save
+        user = await principal(request)
+        try:
+            value = await request.json()
+        except ValueError:
+            raise HTTPException(422, 'Send a JSON object.') from None
+        return JSONResponse(await save(network, user, value), headers={'Cache-Control': 'private, no-store'})
 
     @app.get('/api/agent-trust/overview')
     async def agent_trust_overview(request: Request):
@@ -1011,6 +1091,47 @@ def create_app(kind='data-terminal', agent_id='data-terminal', port=28400, *, st
         user = await principal(request)
         result = await account_transactions(network, user)
         return JSONResponse(result, headers={'Cache-Control': 'private, no-store'})
+
+    @app.get('/api/account/balance')
+    async def account_balance(request: Request):
+        """The window's account's available Plaza points, for the top bar. Plaza keeps the points; this passes on the
+        number Plaza reports for the window's own session and prices nothing. It reads Plaza's account profile, the
+        same read as a session check, and keeps the answer as the session check: a check Plaza answered for this very
+        request is used as it is (a kept one may be from before a charge), and a fresh one saves the next request's check."""
+        user = await principal(request)
+        if user.get('authentication'):
+            raise HTTPException(409, 'This window has no Plaza account.')
+        digest = hashlib.sha256(user['token'].encode()).hexdigest()
+        checked, reported = session_checks.get(digest), getattr(request.state, 'plaza_points', None)
+        if checked and reported and reported[2] and reported[1] == checked[2]:
+            response, reported_at = checked[1], checked[2]
+        else:
+            try:
+                response = await client.get(plaza_url + '/api/ui_auth/me', headers={'Authorization': 'Bearer ' + user['token']})
+            except httpx.RequestError:
+                raise HTTPException(502, 'Plaza is not answering. Try again in a moment.') from None
+            if response.status_code in (401, 403):
+                raise HTTPException(401, 'Plaza session expired. Sign in again.')
+            if not response.is_success:
+                raise HTTPException(502, 'Plaza is not answering. Try again in a moment.')
+            reported_at = time.time()
+        try:
+            body = response.json() or {}
+        except ValueError:
+            body = {}
+        profile = body.get('user') or body.get('profile') or body.get('session', {}).get('user') or {}
+        if str(profile.get('id') or profile.get('user_id') or '') != user['id']:
+            raise HTTPException(502, 'Plaza returned a different account. Its points were not shown.')
+        points = profile.get('credit_points')
+        if type(points) is not int:
+            # A Plaza that keeps no points for the account: the top bar shows none and does not ask again.
+            raise HTTPException(409, 'This Plaza does not report the account balance.')
+        if checked is None or checked[1] is not response:
+            if len(session_checks) >= 1024:
+                session_checks.clear()
+            session_checks[digest] = (time.monotonic() + 30, response, reported_at)
+        request.state.plaza_points = (points, reported_at, True)
+        return JSONResponse({'balance': points, 'at': reported_at}, headers={'Cache-Control': 'private, no-store'})
 
     async def plaza_newsletter(request, method, body=None):
         """This window's Plaza account's newsletter choice: whether it receives the newsletter and in which language.
@@ -1052,6 +1173,27 @@ def create_app(kind='data-terminal', agent_id='data-terminal', port=28400, *, st
             raise HTTPException(409, 'This Plaza does not keep newsletter choices yet.')
         return JSONResponse(choice, headers={'Cache-Control': 'private, no-store'})
 
+    @app.post('/api/feedback')
+    async def send_feedback(request: Request):
+        """Send feedback: the window's Plaza account sends one message to its site's `support` receiver, which that
+        Plaza delivers (feedback.py). The Terminal keeps nothing and names no route, provider or mailbox."""
+        from .feedback import answer, checked, notification
+        if local_only:raise HTTPException(409, 'Connect this Terminal to a Plaza to send feedback.')
+        user = await principal(request)
+        if user.get('authentication'):raise HTTPException(409, 'Sign in to a Plaza account to send feedback.')
+        try:value = checked(await request.json())
+        except ValueError as exc:raise HTTPException(422, str(exc)) from None
+        try:
+            response = await client.post(plaza_url + '/notifications', headers={'Authorization': 'Bearer ' + user['token']},
+                                         json=notification(value), timeout=30)
+        except httpx.RequestError:
+            raise HTTPException(502, 'Plaza is not answering. Try again in a moment.') from None
+        try:payload = response.json()
+        except ValueError:payload = None
+        status, body = answer(response.status_code, payload, reply_to=value['reply_to'] or user.get('email') or '')
+        if status != 200:raise HTTPException(status, body['detail'])
+        return JSONResponse(body, headers={'Cache-Control': 'private, no-store'})
+
     @app.post('/api/billing/{id}/reconcile')
     async def reconcile_billing(id: str, request: Request):
         from .billing import reconcile
@@ -1066,7 +1208,7 @@ def create_app(kind='data-terminal', agent_id='data-terminal', port=28400, *, st
     async def update_settings(request: Request):
         user = await configuration_owner(request)
         body = await request.json()
-        allowed = {'uiLanguage','displayTimezone','specifiedTimezone','marketAppearance','theme','customTheme','sessionName','displayFormat'}
+        allowed = {'uiLanguage','displayTimezone','specifiedTimezone','marketAppearance','theme','customTheme','sessionName','displayFormat','phemaChooser','phemaWindows','aiPointsPerDay','workspaceHistory'}
         if not isinstance(body, dict) or set(body) - allowed:
             raise HTTPException(422, 'Application settings belong to the owning agent workspace.')
         from .market_appearance import validate_market_appearance, validate_display_timezone
@@ -1084,11 +1226,31 @@ def create_app(kind='data-terminal', agent_id='data-terminal', port=28400, *, st
         from .window_appearance import validate_custom_theme, session_name
         if 'customTheme' in body: validate_custom_theme(body['customTheme'])
         if 'sessionName' in body: body['sessionName'] = session_name(body['sessionName'])
+        if 'phemaChooser' in body:
+            from .phema_library import chooser_preference
+            body['phemaChooser'] = chooser_preference(body['phemaChooser'])
+        if 'phemaWindows' in body:
+            from .window_appearance import phema_windows
+            body['phemaWindows'] = phema_windows(body['phemaWindows'])
+        if 'workspaceHistory' in body:
+            # How many ten-minute, daily, weekly and monthly versions this window's workspace history keeps.
+            from .workspace_history import validate
+            body['workspaceHistory'] = validate(body['workspaceHistory'])
+        if 'aiPointsPerDay' in body:
+            # The points AI apps that control this window may spend per day (mcp_access.py); 0 means free actions only.
+            value = body['aiPointsPerDay']
+            if type(value) is not int or not 0 <= value <= 1_000_000:
+                raise HTTPException(422, 'Points AI apps may spend per day must be a whole number from 0 to 1,000,000.')
         old = window_preferences(store, user)
         # Retain legacy application settings byte-for-byte until their additive
         # migration; the container cannot interpret or update those fields.
-        return store.put(user['id'], 'settings', state_key(user) if user.get('terminalWindow') else 'preferences',
+        saved = store.put(user['id'], 'settings', state_key(user) if user.get('terminalWindow') else 'preferences',
             {k:v for k,v in {**old,**body}.items() if k not in ('id','revision','updatedAt')})
+        if 'workspaceHistory' in body:
+            # New counts apply at once, not only at the next save.
+            from .workspace_state import trim_history
+            trim_history(store, user['id'], state_key(user))
+        return saved
 
 
 

@@ -24,6 +24,32 @@ import uuid
 import traceback
 
 TRACE = contextvars.ContextVar('prompits_observation_trace', default=None)
+
+# Requests agents, Terminals and pages send every few seconds to stay signed in and connected. A successful, fast one
+# is not a unit of work: it leaves no live job, span, event or log row, because each of those is a disk write at the
+# agent and again at its Plaza (one Terminal's sign-in check alone was ~400 stored events a minute). A failed or slow
+# one is still recorded. Agents use this one list for their request log, their work list and their telemetry.
+ROUTINE_PATHS = frozenset({
+    '/heartbeat',
+    '/health',
+    '/readiness',
+    '/api/readiness',
+    '/authenticate',
+    '/api/ui_auth/me',
+    '/api/plazas_status',
+    '/api/agent/status',
+    '/_agent/api/status',
+    '/api/agent-trust/status',
+    '/api/owner-records/verify',
+    '/api/call-grants',
+    '/api/call-grants/consume',
+})
+ROUTINE_SLOW_MS = 1000.0
+
+
+def is_routine_path(path):
+    """Whether a request path (no query) is one of ROUTINE_PATHS."""
+    return str(path or '').split('?', 1)[0].rstrip('/') in ROUTINE_PATHS
 TRACE_TIMING = contextvars.ContextVar('prompits_observation_timing', default=None)
 SECRET_KEY = re.compile(r'password|secret|token|authorization|cookie|api[_-]?key|credential', re.I)
 SECRET_VALUE = re.compile(r'(?i)(Bearer\s+)\S+|((?:password|secret|token|api[_-]?key|cookie)\s*[=:]\s*)[^\s,;]+')
@@ -67,7 +93,15 @@ class ObservationStore:
         # heartbeat bursts otherwise race for the writer and exhaust busy_timeout.
         self._connection_lock = threading.RLock()
         self.path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+        self._last_vacuum = 0.0
+        # agent -> (instance, sequence, started_at, received, report JSON): the newest accepted report whose snapshot
+        # row has not been rewritten yet (see SNAPSHOT_REFRESH_SEC). Ordering checks and readers use it; only the
+        # disk write waits. Guarded by _connection_lock, which every connect() holds.
+        self._pending = {}
         with self.connect() as db:
+            # A new file frees its unused pages as it goes (an existing one changes only through a VACUUM, which
+            # scripts/compact_sqlite_stores.py runs while its agent is stopped).
+            db.execute('PRAGMA auto_vacuum=INCREMENTAL')
             db.execute('PRAGMA journal_mode=WAL')
             db.executescript('''
                 CREATE TABLE IF NOT EXISTS snapshots(agent TEXT PRIMARY KEY, instance TEXT, seq INTEGER,
@@ -233,17 +267,25 @@ class ObservationStore:
     def _store_report(self, db, agent, report, now):
         """Store one checked report inside the caller's transaction; False when it is older than the kept one."""
         instance, seq = str(report.get('instance_id', '')), int(report.get('sequence', 0))
+        started = float(report.get('started_at', 0))
         previous = db.execute('SELECT * FROM snapshots WHERE agent=?', (agent,)).fetchone()
+        old = json.loads(previous['payload']) if previous else None
         if previous:
-            old = json.loads(previous['payload'])
-            if instance == previous['instance'] and seq <= previous['seq']:
+            pending = self._pending.get(agent)
+            last_instance, last_seq, last_started = (pending[:3] if pending else
+                                                     (previous['instance'], previous['seq'], float(old.get('started_at', 0))))
+            if instance == last_instance and seq <= last_seq:
                 return False
-            if instance != previous['instance'] and float(report.get('started_at', 0)) <= float(old.get('started_at', 0)):
+            if instance != last_instance and started <= last_started:
                 return False
         events = report.pop('events', [])
         report.pop('logs', None)
-        db.execute('INSERT OR REPLACE INTO snapshots VALUES(?,?,?,?,?)',
-                   (agent, instance, seq, now, json.dumps(report)))
+        deferred = None
+        if previous and self._same_snapshot(old, report) and now - float(previous['received'] or 0) < self.SNAPSHOT_REFRESH_SEC:
+            deferred = (instance, seq, started, now, json.dumps(report))
+        else:
+            db.execute('INSERT OR REPLACE INTO snapshots VALUES(?,?,?,?,?)',
+                       (agent, instance, seq, now, json.dumps(report)))
         for event in events[:200]:
             if not isinstance(event, dict) or not event.get('id'):
                 continue
@@ -254,7 +296,32 @@ class ObservationStore:
             self._record_interaction(db, identity, agent, event, now)
         self._prune_interactions(db, agent)
         self.job_history.ingest(db, agent, instance, report.get('jobs', []), events[:200], now)
+        if deferred:
+            self._pending[agent] = deferred
+        else:
+            self._pending.pop(agent, None)
         return True
+
+    # An agent sends its report with every heartbeat, every few seconds, and rewriting its snapshot row each time was
+    # most of what a busy Plaza wrote to disk. A report that changes nothing but its counters and clocks is stored at
+    # most this often; any other change is stored at once. It stays well under the 45 s after which telemetry reads
+    # as stale (observability_routes.with_telemetry), and Plaza's own last-heard time still marks the agent online.
+    SNAPSHOT_REFRESH_SEC = 25.0
+    SNAPSHOT_VOLATILE = frozenset({'sequence', 'observed_at', 'uptime_sec', 'metrics', 'events', 'logs'})
+
+    @classmethod
+    def _same_snapshot(cls, old, report):
+        """Whether a report says nothing new beyond counters and clocks compared with the stored one."""
+        keep = lambda value: {k: v for k, v in value.items() if k not in cls.SNAPSHOT_VOLATILE}
+        return keep(old) == keep(report)
+
+    def _release_free_pages(self, db, now):
+        """At most every 10 minutes, give a file with incremental auto-vacuum back a bounded batch of free pages."""
+        if now - self._last_vacuum < 600:
+            return
+        self._last_vacuum = now
+        if db.execute('PRAGMA auto_vacuum').fetchone()[0] == 2:
+            db.execute('PRAGMA incremental_vacuum(2048)').fetchall()
 
     def _trim(self, db, now):
         """The store-wide limits, run once per write: old and surplus events, expired diagnostics, old cached logs."""
@@ -262,6 +329,7 @@ class ObservationStore:
         db.execute('DELETE FROM events WHERE id IN (SELECT id FROM events ORDER BY at DESC LIMIT -1 OFFSET 20000)')
         db.execute('DELETE FROM diagnostics WHERE expires<?', (now,))
         db.execute('DELETE FROM log_cache WHERE at<?', (now - 7 * 86400,))
+        self._release_free_pages(db, now)
 
     def ingest(self, agent, report):
         report = self.checked_report(report)
@@ -327,9 +395,16 @@ class ObservationStore:
             query, args = query + ' WHERE agent IN (' + ','.join('?' for _ in agents) + ')', list(agents)
         with self.connect() as db:
             rows = db.execute(query, args).fetchall()
+            pending = dict(self._pending)
         wanted = None if agents is None else set(agents)
-        return {r['agent']: {**json.loads(r['payload']), 'received_at': r['received']}
-                for r in rows if wanted is None or r['agent'] in wanted}
+        result = {}
+        for r in rows:
+            if wanted is not None and r['agent'] not in wanted:
+                continue
+            newer = pending.get(r['agent'])  # accepted since the row was written; only its disk write is deferred
+            result[r['agent']] = ({**json.loads(newer[4]), 'received_at': newer[3]} if newer else
+                                  {**json.loads(r['payload']), 'received_at': r['received']})
+        return result
 
     def events(self, agents, trace=None, limit=500):
         if not agents:

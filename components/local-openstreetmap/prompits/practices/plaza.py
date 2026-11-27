@@ -126,6 +126,8 @@ class PlazaNotificationRequest(BaseModel):
     message: Optional[str] = None
     message_style: Optional[str] = None
     render_mode: Optional[str] = None
+    # One address the sender asks replies to go to; only a route whose `reply_to` is "sender" uses it.
+    reply_to: Optional[str] = None
     attachments: Optional[List[Dict[str, Any]]] = None
     subject_prefix: Optional[str] = None
     summary: Optional[str] = None
@@ -139,6 +141,12 @@ class PlazaNotificationRequest(BaseModel):
     metadata: Optional[Dict[str, Any]] = None
     force: bool = False
     allow_during_no_bother: bool = False
+
+
+# A caller makes these delivery choices only from an agent Plaza verifies as the Plaza owner's: where the notification
+# goes, whether it skips throttling or quiet hours, and the files it carries. Everyone else, signed-in accounts of any
+# role included, reaches only the routes the receiving agent's card declares.
+CALLER_NOTIFICATION_DELIVERY_CHOICES = ("routes", "providers", "force", "allow_during_no_bother", "attachments")
 
 class HeartbeatRequest(BaseModel):
     """Request body for `/heartbeat` used to mark an agent as active."""
@@ -3782,7 +3790,7 @@ class PlazaAuthenticatePractice(PlazaEndpointPractice):
         router = APIRouter()
 
         @router.post("/authenticate")
-        @coordination_job(self.state, 'Authenticate agent')
+        @coordination_job(self.state, 'Authenticate agent', quiet=True)
         async def authenticate(request: Request, creds: Optional[HTTPAuthorizationCredentials] = Depends(optional_security)):
             """Route handler for POST /authenticate."""
             if self.state.is_starting:
@@ -3888,7 +3896,7 @@ class PlazaHeartbeatPractice(PlazaEndpointPractice):
         router = APIRouter()
 
         @router.post("/heartbeat")
-        @coordination_job(self.state, 'Process agent heartbeat')
+        @coordination_job(self.state, 'Process agent heartbeat', quiet=True)
         def heartbeat(req: HeartbeatRequest, auth: Dict[str, Any] = Depends(self.state.verify_token)):
             """Route handler for POST /heartbeat."""
             # Registration and directory updates hold a threading lock. FastAPI
@@ -3944,6 +3952,13 @@ class PlazaHeartbeatPractice(PlazaEndpointPractice):
                     extras = service.heartbeat_extras(requested_agent_id)
                 except Exception:  # monitoring must never fail a heartbeat
                     logging.getLogger(__name__).warning("Observer details unavailable for this heartbeat", exc_info=True)
+            pipeline = getattr(self.state, "pipeline_service", None)
+            if pipeline is not None:
+                try:
+                    # Pipeline nodes get Plaza's keys and revocations; outbound-only agents also nodes and tickets.
+                    extras = {**extras, **pipeline.heartbeat_extras(requested_agent_id)}
+                except Exception:  # Pipeline must never fail a heartbeat
+                    logging.getLogger(__name__).warning("Pipeline details unavailable for this heartbeat", exc_info=True)
             return {
                 "status": "ok",
                 "site_settings": self.state.site_settings,
@@ -4106,8 +4121,14 @@ class PlazaNotificationPractice(PlazaEndpointPractice):
                 "receiver": {"type": "string", "description": "Target agent id or name."},
                 "event_type": {"type": "string", "description": "Notification event type."},
                 "exchange_id": {"type": "string", "description": "Plaza exchange identifier to fetch."},
-                "providers": {"type": "array", "description": "Optional provider IDs or route objects."},
-                "force": {"type": "boolean", "description": "Bypass summary throttling for this event."},
+                "providers": {
+                    "type": "array",
+                    "description": "Optional provider IDs or route objects; the Plaza owner's agents only.",
+                },
+                "force": {
+                    "type": "boolean",
+                    "description": "Bypass summary throttling for this event; the Plaza owner's agents only.",
+                },
             },
         )
 
@@ -4132,6 +4153,26 @@ class PlazaNotificationPractice(PlazaEndpointPractice):
             if receiver_id not in self.state.registry and receiver_id not in self.state.agent_cards:
                 raise HTTPException(status_code=404, detail="Receiver not found")
             return receiver_id, dict(self.state.agent_cards.get(receiver_id, {}) or {})
+
+        def _is_plaza_owner_agent(agent_id: Any) -> bool:
+            """Whether Plaza's registration evidence, not the card, shows this agent belongs to the Plaza owner."""
+            identity = str(agent_id or "").strip()
+            if not identity:
+                return False
+            try:
+                from prompits.core.approved_access import approval_owner
+                from prompits.core.registered_owners import verified_owner
+
+                owner = approval_owner(self.agent)
+                if not owner:
+                    return False
+                card = dict(self.state.agent_cards.get(identity) or {})
+                return verified_owner(self.agent, {"agent_id": identity, "card": card}) == owner
+            except Exception as exc:  # An unreadable decision never widens delivery.
+                logging.getLogger(__name__).warning(
+                    "Plaza could not verify the owner of agent %s for notification delivery: %s", identity, exc
+                )
+                return False
 
         def _resolve_notification_auth(
             request: Request,
@@ -4191,7 +4232,29 @@ class PlazaNotificationPractice(PlazaEndpointPractice):
                 raise HTTPException(status_code=503, detail="Starting")
 
             auth = _resolve_notification_auth(request, creds)
-            receiver_id, receiver_card = _resolve_receiver(req.receiver)
+            # A site receiver (Plaza's own config, such as `support`) is looked up before the agent directory, so no
+            # account can register an agent by that name and receive its messages.
+            site = self.state.notification_dispatcher.site_receiver(req.receiver)
+            if site:
+                receiver_id, receiver_card = "site:" + site["name"], {}
+                if site["events"] and str(req.event_type or "") not in site["events"]:
+                    raise HTTPException(status_code=403, detail=f"{site['name']} takes only {', '.join(site['events'])}.")
+                if site["senders"] == "accounts" and auth.get("subject_type") != "user":
+                    raise HTTPException(status_code=403, detail=f"Only signed-in Plaza accounts may write to {site['name']}.")
+            else:
+                receiver_id, receiver_card = _resolve_receiver(req.receiver)
+            chosen = [name for name in CALLER_NOTIFICATION_DELIVERY_CHOICES if getattr(req, name, None)]
+            if chosen and not (
+                auth.get("subject_type") == "agent"
+                and await run_in_threadpool(_is_plaza_owner_agent, auth.get("agent_id"))
+            ):
+                raise HTTPException(
+                    status_code=403,
+                    detail=(
+                        f"Only the Plaza owner's agents may choose how a notification is delivered ({', '.join(chosen)}). "
+                        "A notification goes only where the receiving agent's card says."
+                    ),
+                )
             payload = _request_dict(req)
             for key in ("providers", "routes", "force", "allow_during_no_bother"):
                 payload.pop(key, None)
@@ -4205,6 +4268,8 @@ class PlazaNotificationPractice(PlazaEndpointPractice):
             payload.setdefault("sender", sender)
             payload.setdefault("sender_id", auth.get("agent_id") or auth.get("user_id"))
             payload.setdefault("sender_type", auth.get("subject_type"))
+            # The sender's email as Plaza verified it, never as the caller says; a route may reply to it.
+            payload["sender_email"] = str(auth.get("email") or "") if auth.get("subject_type") == "user" else ""
             if receiver_id:
                 payload.setdefault("receiver_id", receiver_id)
             if req.receiver:
@@ -4226,6 +4291,9 @@ class PlazaNotificationPractice(PlazaEndpointPractice):
                 or "",
             )
 
+            if site:
+                # The site receiver's routes come from Plaza's own config, so they keep their targets.
+                return await self.state.notification_dispatcher.submit(payload, routes=site["routes"])
             result = await self.state.notification_dispatcher.submit(
                 payload,
                 receiver_card=receiver_card,
@@ -4233,6 +4301,8 @@ class PlazaNotificationPractice(PlazaEndpointPractice):
                 requested_providers=req.providers,
                 force=req.force,
                 allow_during_no_bother=req.allow_during_no_bother,
+                # Cards are self-declared: only the Plaza owner's agents choose their own recipients and senders.
+                card_route_targets=bool(receiver_id) and await run_in_threadpool(_is_plaza_owner_agent, receiver_id),
             )
             return result
 
@@ -4241,6 +4311,12 @@ class PlazaNotificationPractice(PlazaEndpointPractice):
             """Route handler for POST /notifications/flush."""
             if self.state.is_starting:
                 raise HTTPException(status_code=503, detail="Starting")
+            # Sending every held summary now skips every receiver's throttle and quiet hours, as `force` does.
+            if not await run_in_threadpool(_is_plaza_owner_agent, auth.get("agent_id")):
+                raise HTTPException(
+                    status_code=403,
+                    detail="Only the Plaza owner's agents may send held notification summaries early.",
+                )
             return await self.state.notification_dispatcher.flush_due_summaries(force=True)
 
         app.include_router(router)

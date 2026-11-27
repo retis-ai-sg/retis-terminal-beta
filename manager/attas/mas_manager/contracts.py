@@ -47,6 +47,9 @@ _OPERATIONS = {
                           ['component']),
     # A problem report: records, recent events and every log's end, without credentials, saved on this computer.
     'mas_report': record({}),
+    # The settings an installed component declares, as the page's form gives them (field id -> value); a running
+    # component restarts to read them. The manager checks each value against the component's own declaration.
+    'mas_settings': record({'component': COMPONENT, 'values': {'type': 'object', 'maxProperties': 16}}, ['component', 'values']),
 }
 # The page may name this computer as the host; no manager answers for another computer.
 SCHEMAS = {name: {**schema, 'properties': {**schema['properties'], 'host': HOST}} for name, schema in _OPERATIONS.items()}

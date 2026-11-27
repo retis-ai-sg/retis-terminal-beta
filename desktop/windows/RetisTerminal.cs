@@ -167,7 +167,9 @@ namespace Retis
             ToolStripMenuItem open = new ToolStripMenuItem(Words.T("開啟", "打开", "Open"), null, (s, e) => OpenTerminal());
             open.Font = new Font(open.Font, FontStyle.Bold);
             menu.Items.Add(open);
-            // A launcher only: everything else (problem reports, components and their updates) is a Phema in the Terminal.
+            // A launcher, plus a check for a new Retis Terminal now rather than at the daily check. Everything else
+            // (problem reports, components and their updates) is a Phema in the Terminal.
+            menu.Items.Add(new ToolStripMenuItem(Words.T("檢查更新", "检查更新", "Check for Updates"), null, (s, e) => CheckUpdate(true)));
             menu.Items.Add(new ToolStripSeparator());
             menu.Items.Add(new ToolStripMenuItem(Words.T("結束", "退出", "Quit"), null, (s, e) => Quit()));
             string iconPath = Path.Combine(controller.AppFolder, "RetisTerminal.ico");
@@ -317,7 +319,14 @@ namespace Retis
             Background(force ? new[] { "check-update", "--force" } : new[] { "check-update" }, result =>
             {
                 string error = Text(result, "error");
-                if (error != null) { if (force) Show(error, MessageBoxIcon.Warning); return; }
+                if (error != null)
+                {
+                    // The controller's reason is in English and already in its log: say it in the app's language.
+                    if (force) Show(Words.T("現在無法檢查更新。請確認網路連線，稍後再試一次。",
+                                            "现在无法检查更新。请确认网络连接，稍后再试一次。",
+                                            "Can't check for updates right now. Check your network and try again later."), MessageBoxIcon.Warning);
+                    return;
+                }
                 string latest = Text(result, "latest");
                 if (!Flag(result, "updateAvailable") || latest == null)
                 {

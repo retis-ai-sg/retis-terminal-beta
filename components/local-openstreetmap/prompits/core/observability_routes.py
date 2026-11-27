@@ -1,5 +1,6 @@
 """Authenticated observability APIs, delegated federation and NAT-safe diagnostics."""
 import asyncio
+import collections
 import json
 import hashlib
 import logging
@@ -58,6 +59,22 @@ def plaza_url(value):
     return parts.scheme + '://' + netloc + path
 
 
+def own_addresses(plaza):
+    """Every address this Plaza answers to, in plaza_url form: what it advertises, its loopback port and the public
+    address its site gives it (PLAZA_UI_PUBLIC_URL, e.g. the gateway's HTTPS origin), so none is taken for another Plaza."""
+    values = [plaza.agent_card.get('address'), plaza._resolve_advertised_address(), f'http://127.0.0.1:{plaza.port}']
+    public = getattr(plaza, '_get_public_ui_url', None)
+    if callable(public):
+        values.append(public())
+    addresses = set()
+    for value in values:
+        try:
+            addresses.add(plaza_url(value))
+        except ValueError:
+            continue
+    return addresses
+
+
 def merge_relationship(links, key, endpoints, observation):
     link = links.setdefault(key, {**endpoints, 'calls': 0, 'errors': 0,
                                  'total_duration_ms': 0, 'duration_samples': 0})
@@ -80,6 +97,12 @@ def relationship_links(links):
         if count:
             link['mean_duration_ms'] = round(total / count, 2)
     return list(links.values())
+
+
+def owner_only_metric(metric):
+    """A number its agent marks for its owner and administrators only (labels `{"visibility": "owner"}`)."""
+    labels = metric.get('labels') if isinstance(metric, dict) else None
+    return isinstance(labels, dict) and labels.get('visibility') == 'owner'
 
 
 def with_telemetry(rows, snapshots, *, now, stale_after, offline_after):
@@ -105,12 +128,14 @@ def with_telemetry(rows, snapshots, *, now, stale_after, offline_after):
         connectivity = 'unknown' if age is None else 'online' if age <= stale else 'stale' if age <= offline else 'offline'
         details_allowed = bool(row.get('logs_allowed'))
         observed = dict(telemetry or {})
-        # Keep private labels and job metadata behind ownership permission.
+        # Keep private labels, job metadata and numbers marked for the owner behind ownership permission.
         if not details_allowed:
             observed['jobs'] = [{'id': j.get('id'), 'status': j.get('status'), 'kind': j.get('kind', 'job')}
                                 for j in observed.get('jobs', [])]
             observed.pop('status_message', None)
             observed.pop('display_name', None)
+            if isinstance(observed.get('metrics'), list):
+                observed['metrics'] = [m for m in observed['metrics'] if not owner_only_metric(m)]
         result.append({'id': agent_id, 'name': row.get('name'), 'type': row.get('type'),
                        'owner_id': row.get('owner_id'), 'trusted': row.get('trusted'),
                        'monitoring_authorized': row.get('monitoring_authorized', True), 'connectivity': connectivity,
@@ -166,17 +191,66 @@ def local_view(store, agents, *, self_ids, name, address, address_aliases, call_
             'call_window_sec': call_window_sec, 'calls_since': since, 'calls_until': until}
 
 
+ROUTE_LIMIT = 50
+ROUTE_SAMPLES = 256
+
+
+class RouteStats:
+    """Each route's request count, server errors and 90th-percentile time, kept as the agent's own numbers.
+
+    Routes are counted by their pattern (`/agents/{agent_id}/jobs`), never by the address a caller typed, so the
+    numbers stay bounded: after ROUTE_LIMIT patterns, further ones count together as `(other)`. The percentile is
+    over each route's last ROUTE_SAMPLES requests. Every request counts, including the routine ones agents send every
+    few seconds, which leave no other record.
+    """
+
+    def __init__(self, observations):
+        self.observations = observations
+        self.lock = threading.Lock()
+        self.samples = {}
+
+    def record(self, method, route, status, elapsed_ms):
+        key = (str(method), str(route))
+        with self.lock:
+            if key not in self.samples and len(self.samples) >= ROUTE_LIMIT:
+                key = (key[0], '(other)')
+            samples = self.samples.get(key)
+            if samples is None:
+                samples = self.samples[key] = collections.deque(maxlen=ROUTE_SAMPLES)
+            samples.append(float(elapsed_ms))
+            ordered = sorted(samples)
+            p90 = ordered[max(0, math.ceil(0.9 * len(ordered)) - 1)]
+        labels = {'method': key[0], 'route': key[1]}
+        self.observations.metric('http_route_requests_total', 1, kind='counter', labels=labels)
+        if status >= 500:
+            self.observations.metric('http_route_errors_total', 1, kind='counter', labels=labels)
+        self.observations.metric('http_route_p90_ms', round(p90, 1), unit='ms', labels=labels)
+
+
 def install_agent_observability(agent):
+    routes = agent._route_stats = RouteStats(agent.observations)
+
     @agent.app.middleware('http')
     async def observe_request(request: Request, call_next):
-        if request.url.path.startswith(('/api/observability', '/observability')) or not agent._should_track_request_work(request):
-            return await call_next(request)
-        with agent.observations.span(request.method + ' ' + request.url.path, kind='http',
-                                     traceparent=request.headers.get('traceparent')):
-            response = await call_next(request)
-            if response.status_code >= 400:
-                agent.observations.metric('http_errors_total', 1, kind='counter')
-            return response
+        started, status = time.monotonic(), 500
+        try:
+            if request.url.path.startswith(('/api/observability', '/observability')) or not agent._should_track_request_work(request):
+                response = await call_next(request)
+                status = response.status_code
+                return response
+            with agent.observations.span(request.method + ' ' + request.url.path, kind='http',
+                                         traceparent=request.headers.get('traceparent')):
+                response = await call_next(request)
+                status = response.status_code
+                if response.status_code >= 400:
+                    agent.observations.metric('http_errors_total', 1, kind='counter')
+                return response
+        finally:
+            try:
+                route = getattr(request.scope.get('route'), 'path', None) or '(unmatched)'
+                routes.record(request.method, route, status, (time.monotonic() - started) * 1000)
+            except Exception:
+                pass  # monitoring never fails a request
 
     @agent.app.get('/api/agent/diagnostics/logs')
     async def owner_logs(request: Request):
@@ -264,9 +338,9 @@ class PlazaObservability:
         name = value.get('name', '')
         if not isinstance(name, str) or len(name) > 80 or re.search(r'[\x00-\x1f\x7f]', name):
             raise ValueError('Use a Plaza name of at most 80 characters.')
+        if url in own_addresses(self.plaza):
+            raise HTTPException(409, 'This Plaza is already in your list.')
         existing = [source.get('url') for source in self.sources_for(user).values() if not source['local']]
-        existing.append(self.plaza.agent_card.get('address') or self.plaza._resolve_advertised_address())
-        existing.append('http://127.0.0.1:' + str(self.plaza.port))
         for endpoint in existing:
             try:
                 if plaza_url(endpoint) == url:
@@ -358,6 +432,14 @@ class PlazaObservability:
                 {'name':'plaza_registered_agents','value':len(state.agent_cards),'unit':'count','kind':'gauge','labels':{}},
                 {'name':'plaza_active_agents','value':sum(time.time()-state.last_active.get(identity, 0) < self.offline_after for identity in state.agent_cards),'unit':'count','kind':'gauge','labels':{}}
             ])
+        usage = getattr(self.plaza, '_plaza_usage', None)
+        if callable(usage):
+            try:  # Plaza's usage, counts only, for its owner and administrators (labels visibility=owner)
+                from .plaza_usage import live_terminal_sessions
+                snapshot['metrics'].extend(usage().metrics(
+                    terminal_sessions=live_terminal_sessions(self.plaza._client_sessions())))
+            except Exception:
+                pass
         if self._link is not None:
             stats = self._link.stats()
             snapshot['metrics'].extend(
@@ -454,6 +536,36 @@ class PlazaObservability:
                     'call_window_sec': call_window_sec,
                     'calls_since': until - call_window_sec if call_window_sec is not None else None,
                     'calls_until': until, 'error': 'Monitoring numbers are unavailable right now.'}
+
+    def history(self, user, since=None, until=None):
+        """Hourly history (`prompits.observer-history/1`) of the agents this account may see, from the observer.
+
+        Plaza decides the rows and re-applies its decision to the answer: only the reader's agents, lines only from
+        agents whose logs the reader may see and to peers it may see (others stay one-way references), and numbers
+        marked for the owner only where logs are allowed. A Plaza naming no observer keeps no history (409).
+        """
+        from .observer_link import ObserverRefused, ObserverUnavailable, owner_metrics_hidden
+        if not self.current_observer():
+            raise HTTPException(409, 'This Plaza keeps no hourly history: it names no observer.')
+        rows = self.directory_rows(user)
+        options = {'address_aliases': self.address_aliases,
+                   **{key: value for key, value in (('since', since), ('until', until)) if value is not None}}
+        try:
+            answer = self.link().read('/api/observer/history', {'agents': rows, 'options': options})
+        except ObserverRefused as exc:
+            raise HTTPException(409 if exc.status == 409 else 422, exc.detail) from None
+        except ObserverUnavailable:
+            raise HTTPException(503, 'Monitoring numbers are unavailable right now. Try again shortly.') from None
+        visible = {row['id']: row for row in rows}
+        permitted = {row['id'] for row in rows if row['logs_allowed']}
+        agents = [{**agent, 'hours': [owner_metrics_hidden(hour) if agent['id'] not in permitted else hour
+                                      for hour in agent.get('hours') or [] if isinstance(hour, dict)]}
+                  for agent in answer.get('agents') or [] if isinstance(agent, dict) and agent.get('id') in visible]
+        lines = [line for line in answer.get('lines') or [] if isinstance(line, dict)
+                 and line.get('source') in permitted and (not line.get('target') or line.get('target') in visible)]
+        return {'schema': answer.get('schema'), 'id': 'local', 'name': self.sources['local']['name'],
+                'hour_sec': answer.get('hour_sec'), 'since': answer.get('since'), 'until': answer.get('until'),
+                'generated_at': answer.get('generated_at'), 'agents': agents, 'lines': lines}
 
     def observer_jobs(self, user, agent_id, query):
         """The jobs route's answer for one agent whose logs this account may see, read from the observer."""
@@ -997,6 +1109,25 @@ def install_plaza_observability(plaza):
             raise HTTPException(409, str(exc)) from None
         value.update({'telemetry_supported': agent['telemetry_supported'], 'telemetry_stale': agent['telemetry_stale']})
         return NativeJSONResponse(value, headers={'Cache-Control': 'no-store'})
+
+    async def history_read(source_id, request, since, until):
+        actor = await user(request)
+        if any(value is not None and not math.isfinite(value) for value in (since, until)):
+            raise HTTPException(422, 'Invalid history time range.')
+        if source_id != 'local':
+            return await service.remote(actor, source_id, '/api/observability/plazas/local/history?'
+                                        + urlencode(dict(request.query_params)))
+        value = await run_in_threadpool(service.history, actor, since, until)
+        return NativeJSONResponse(value, headers={'Cache-Control': 'no-store'})
+
+    @plaza.app.get('/api/observability/history')
+    async def history(request: Request, since: float = Query(None, ge=0), until: float = Query(None, ge=0)):
+        return await history_read('local', request, since, until)
+
+    @plaza.app.get('/api/observability/plazas/{source_id}/history')
+    async def plaza_history(source_id: str, request: Request, since: float = Query(None, ge=0),
+                            until: float = Query(None, ge=0)):
+        return await history_read(source_id, request, since, until)
 
     @plaza.app.post('/api/observability/plazas/{source_id}/agents/{agent_id:path}/logs')
     async def request_logs(source_id: str, agent_id: str, request: Request):

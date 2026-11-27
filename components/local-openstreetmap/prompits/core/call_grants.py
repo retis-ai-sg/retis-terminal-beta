@@ -20,6 +20,10 @@ from anyio import CapacityLimiter
 from anyio.to_thread import run_sync
 
 from .approved_access import BASIS as APPROVED, PUBLISHED, call_basis, card_owner, is_approved_operation, published_practice
+from .access_roles import DENIED as ACCESS_DENIED, decide as access_decision, decide_all as access_decision_all, recorded_owner
+
+# A role the target agent's owner attached to a permission group listing the operation (access_roles.py).
+ACCESS_ROLE = 'access_role'
 
 LOG = logging.getLogger(__name__)
 PREFIX = 'pc-call-'
@@ -57,6 +61,16 @@ def operation_binding(method, path, body=None, query=''):
         sort_keys=True,separators=(',', ':'),allow_nan=False).encode()).hexdigest()
 
 
+def reported_operations(agent,path,body):
+    """What this agent will run for a practice call, for Plaza to check against permission groups when it redeems the
+    grant: the pulse it resolves, for an agent that dispatches by pulse, or else the practice its route names."""
+    if not path.startswith('/use_practice/'): return []
+    practice=path[len('/use_practice/'):].strip('/')
+    hook=getattr(agent,'resolved_pulse_operations',None)
+    named=hook(practice,body.get('content') if isinstance(body,dict) else None) if callable(hook) else None
+    return [str(name)[:200] for name in named][:8] if named else ([practice] if practice else [])
+
+
 def request_operation(path,body):
     if path.startswith('/use_practice/') and isinstance(body,dict):
         content=body.get('content')
@@ -67,13 +81,22 @@ def request_operation(path,body):
 class CallGrants:
     def __init__(self, path):
         self.path = Path(path); self.path.parent.mkdir(parents=True, exist_ok=True)
+        self._last_vacuum = 0.0
         with self.connect() as db:
+            # A new file frees its unused pages as it goes (an existing one changes only through a VACUUM, which
+            # scripts/compact_sqlite_stores.py runs while its Plaza is stopped).
+            db.execute('PRAGMA auto_vacuum=INCREMENTAL')
             db.execute('PRAGMA journal_mode=WAL')
             db.execute('CREATE TABLE IF NOT EXISTS call_grants(id TEXT PRIMARY KEY, token_hash TEXT UNIQUE, payload TEXT, expires REAL, consumed INTEGER DEFAULT 0, revoked INTEGER DEFAULT 0)')
-            if 'root' not in {r[1] for r in db.execute('PRAGMA table_info(call_grants)')}:
+            columns = {r[1] for r in db.execute('PRAGMA table_info(call_grants)')}
+            if 'root' not in columns:
                 db.execute('ALTER TABLE call_grants ADD COLUMN root TEXT')
+            if 'keep_until' not in columns:
+                db.execute('ALTER TABLE call_grants ADD COLUMN keep_until REAL')
             db.execute('CREATE INDEX IF NOT EXISTS call_grant_roots ON call_grants(root)')
             db.execute('CREATE INDEX IF NOT EXISTS call_grant_expiry ON call_grants(expires)')
+            db.execute('CREATE INDEX IF NOT EXISTS call_grant_keep ON call_grants(keep_until)')
+            self._backfill_keep_until(db)
             db.execute('CREATE TABLE IF NOT EXISTS call_grant_usage(id TEXT PRIMARY KEY, calls INTEGER NOT NULL)')
             # Each person's own connection history: which agent was called, for what, why it was allowed.
             # Grants themselves are deleted a day after expiry; these short rows stay for HISTORY_DAYS.
@@ -82,8 +105,62 @@ class CallGrants:
                        'used INTEGER DEFAULT 0, revoked INTEGER DEFAULT 0)')
             db.execute('CREATE INDEX IF NOT EXISTS call_grant_history_account ON call_grant_history(account, issued)')
         self.path.chmod(0o600)
+        # Held open for the store's life. Every call below opens its own connection and closes it when done; when that
+        # close was the file's last open connection, SQLite checkpointed the WAL into the database, synced it and
+        # deleted the WAL, on every grant issued and used. With this connection open, a close leaves the WAL in place
+        # and SQLite checkpoints it in the background of later commits. It counts as open only once it has read (the
+        # read maps the WAL index and takes the shared lock a close-time checkpoint checks); it holds no transaction.
+        self._keep_open = sqlite3.connect(self.path, check_same_thread=False)
+        self._keep_open.execute('SELECT 1 FROM sqlite_master').fetchall()
 
     def connect(self): return sqlite3.connect(self.path, timeout=10)
+
+    # A grant is kept after it expires only as long as something can still use it. A grant that carries a user can be
+    # renewed from its expired receipt (renew), so it stays a day as before. A grant without a user can never be
+    # renewed; it stays only until its call chain's root expires, so the chain's invocation limit still counts it.
+    # Keeping every grant a day held ~340k rows for a busy Plaza and made each call rewrite large index pages.
+    RENEWAL_KEEP_SEC = 86400
+
+    def _keep_until(self, db, value):
+        if value.get('user'):
+            return value['expires'] + self.RENEWAL_KEEP_SEC
+        root = value.get('root')
+        if root and root != value.get('id'):
+            row = db.execute('SELECT expires FROM call_grants WHERE id=?', (root,)).fetchone()
+            if row and row[0] is not None:
+                return max(float(row[0]), value['expires'])
+        return value['expires']
+
+    def _backfill_keep_until(self, db):
+        """Give grants stored before keep_until existed their keep time; drop the userless ones already past it."""
+        if not db.execute('SELECT 1 FROM call_grants WHERE keep_until IS NULL LIMIT 1').fetchone():
+            return
+        db.execute('''UPDATE call_grants SET keep_until = CASE
+                WHEN json_extract(payload, '$.user') IS NOT NULL THEN expires + ?
+                ELSE max(expires, coalesce((SELECT r.expires FROM call_grants r WHERE r.id = call_grants.root), expires))
+            END WHERE keep_until IS NULL''', (self.RENEWAL_KEEP_SEC,))
+        db.execute('DELETE FROM call_grants WHERE keep_until < ?', (time.time(),))
+
+    def _prune(self, db):
+        """Delete a bounded batch of grants nothing can use any more (inside the caller's transaction)."""
+        now = time.time()
+        # A row without keep_until (written by an older version since this one opened the file) keeps the old day.
+        db.execute('DELETE FROM call_grants WHERE id IN (SELECT id FROM call_grants WHERE keep_until<? '
+                   'UNION ALL SELECT id FROM call_grants WHERE keep_until IS NULL AND expires<? LIMIT 128)',
+                   (now, now - self.RENEWAL_KEEP_SEC))
+
+    def _release_free_pages(self):
+        """At most every 10 minutes, give a file with incremental auto-vacuum back its free pages, a bounded batch."""
+        now = time.time()
+        if now - self._last_vacuum < 600:
+            return
+        self._last_vacuum = now
+        try:
+            with self.connect() as db:
+                if db.execute('PRAGMA auto_vacuum').fetchone()[0] == 2:
+                    db.execute('PRAGMA incremental_vacuum(2048)').fetchall()
+        except sqlite3.Error:
+            pass
 
     def issue(self, *, actor, audience, user=None, request_hash, delegates=(), ttl=300, parent=None, operation='', actor_name='', authority=None, basis=None):
         if not actor or not audience or len(request_hash) != 64 or not 1 <= ttl <= 300:
@@ -120,15 +197,17 @@ class CallGrants:
             # Keep issuance bounded even when a long-running deployment has
             # accumulated large scope payloads. Expired credentials are already
             # rejected by read(); cleanup is storage maintenance only.
-            db.execute('DELETE FROM call_grants WHERE id IN (SELECT id FROM call_grants WHERE expires<? ORDER BY expires LIMIT 128)', (time.time()-86400,))
-            db.execute('INSERT INTO call_grants(id,token_hash,payload,expires,root) VALUES(?,?,?,?,?)',
-                (id,hashlib.sha256(token.encode()).hexdigest(),json.dumps(value),value['expires'],value['root']))
+            self._prune(db)
+            db.execute('INSERT INTO call_grants(id,token_hash,payload,expires,root,keep_until) VALUES(?,?,?,?,?,?)',
+                (id,hashlib.sha256(token.encode()).hexdigest(),json.dumps(value),value['expires'],value['root'],
+                 self._keep_until(db, value)))
             account=(user or {}).get('id') if isinstance(user,dict) else None
             if account:
                 db.execute('DELETE FROM call_grant_history WHERE id IN (SELECT id FROM call_grant_history WHERE issued<? ORDER BY issued LIMIT 128)',
                     (time.time()-HISTORY_DAYS*86400,))
                 db.execute('INSERT INTO call_grant_history(id,account,issued,actor,actor_name,audience,operation,basis,depth,root) VALUES(?,?,?,?,?,?,?,?,?,?)',
                     (id,str(account),time.time(),actor,actor_name,audience,operation,value.get('basis'),value['depth'],value['root']))
+        self._release_free_pages()
         return {'token':token,'id':id,'expiresAt':value['expires']}
 
     def by_id(self, id):
@@ -155,8 +234,9 @@ class CallGrants:
             if not root or root[0]:raise PermissionError('Grant root revoked.')
             if db.execute('SELECT count(*) FROM call_grants WHERE root=?',(old['root'],)).fetchone()[0]>=33:
                 raise PermissionError('Continuation exceeds the invocation limit.')
-            db.execute('INSERT INTO call_grants(id,token_hash,payload,expires,root) VALUES(?,?,?,?,?)',
-                (new_id,hashlib.sha256(token.encode()).hexdigest(),json.dumps(value),value['expires'],value['root']))
+            db.execute('INSERT INTO call_grants(id,token_hash,payload,expires,root,keep_until) VALUES(?,?,?,?,?,?)',
+                (new_id,hashlib.sha256(token.encode()).hexdigest(),json.dumps(value),value['expires'],value['root'],
+                 self._keep_until(db, value)))
         return {'token':token,'id':new_id,'expiresAt':value['expires'],'continuationOf':id}
 
     def read(self, token, *, include_consumed=False):
@@ -247,16 +327,26 @@ def install_plaza_call_grants(plaza):
             actor_card=state.agent_cards.get(actor['agent_id'],{})
             audience_card=state.agent_cards.get(data.get('audience'),{})
             owner=actor_card.get('owner_user_id') or actor_card.get('meta',{}).get('owner_user_id')
+            # An operation in one of the audience's permission groups is role-only: its owner and members of a role
+            # its owner attached may call it, nobody else, whatever the other rules say.
+            role=await run_in_threadpool(lambda:access_decision(plaza,(user or {}).get('id'),data.get('audience'),data.get('operation',''),actor=actor['agent_id']))
+            if role is False:raise HTTPException(403,ACCESS_DENIED)
             # Plaza decides who may call whom: the same owner, an agent the Plaza owner approved,
             # or any registered agent calling a practice its provider published (paid or public).
             basis=await run_in_threadpool(call_basis,plaza,actor_card,audience_card,user)
             # The paying user may differ from the dispatching agent's owner for a published practice.
             if not basis and published_practice(audience_card,data.get('operation','')):
                 basis=PUBLISHED
+            if not basis and role:
+                # A role admits an account through its own agent, such as its Terminal.
+                if not user or await run_in_threadpool(recorded_owner,plaza,actor['agent_id'])!=str(user.get('id') or ''):
+                    raise HTTPException(403,'A role admits its members through agents they own.')
+                basis=ACCESS_ROLE
             if not basis:raise HTTPException(403,'Plaza has not approved this agent to call that agent.')
-            if basis in (APPROVED,PUBLISHED):
+            if basis in (APPROVED,PUBLISHED,ACCESS_ROLE):
                 # Approval covers practices and API calls only; UI and configuration stay with the owner.
-                if not is_approved_operation(data.get('operation','')):
+                # A role covers exactly the operations its owner put in the group, whatever they are.
+                if basis!=ACCESS_ROLE and not is_approved_operation(data.get('operation','')):
                     raise HTTPException(403,'An owner-approved agent may call practices and APIs only.')
                 audience_owner=card_owner(audience_card)
                 for delegate in delegates:
@@ -279,8 +369,10 @@ def install_plaza_call_grants(plaza):
             actor_owner=actor_card.get('owner_user_id') or actor_card.get('meta',{}).get('owner_user_id')
             recipient_owner=recipient.get('owner_user_id') or recipient.get('meta',{}).get('owner_user_id')
             # An owner-approved caller's request may continue to the same owner's agents, as practices only.
-            approved=parent_row.get('basis') in (APPROVED,PUBLISHED)
+            approved=parent_row.get('basis') in (APPROVED,PUBLISHED,ACCESS_ROLE)
             original=(parent_row.get('user') or {}).get('id',actor_owner)
+            if await run_in_threadpool(lambda:access_decision(plaza,(parent_row.get('user') or {}).get('id'),data.get('audience'),data.get('operation',''),actor=actor['agent_id']))is False:
+                raise HTTPException(403,ACCESS_DENIED)
             if not actor_owner or recipient_owner!=actor_owner or (original!=actor_owner and not approved):
                 raise HTTPException(403,'Downstream delegation requires the same current verified owner and original user.')
             if approved and not is_approved_operation(data.get('operation','')):
@@ -304,6 +396,16 @@ def install_plaza_call_grants(plaza):
                 if not callable(validator):raise PermissionError('Operation authority verifier is unavailable.')
                 validator(value)
             request_hash=data.get('exact_binding',data['binding']) if value.get('authority') else data['binding']
+            # Roles are checked again on use, so a role change takes effect on the next call, not when grants expire.
+            # The receiving agent also names what it will run (the practice in its route and, for a pulse call, the
+            # pulse it resolved), and an operation grant names its route: each is checked, so no other name for the
+            # same work gets past a permission group.
+            reported=data.get('operations')
+            reported=[str(o)[:200] for o in reported[:8]] if isinstance(reported,list) else []
+            path=(value.get('authority') or {}).get('path')
+            if access_decision_all(plaza,(value.get('user') or {}).get('id'),value.get('audience'),
+                                   [value.get('operation',''),*reported,*([path] if path else [])],actor=value.get('actor')) is False:
+                raise PermissionError('The account is no longer in a role allowed for this operation.')
             return grants.consume(data['token'],actor['agent_id'],request_hash,data.get('operation'))
         # Reserve the entire authority check, including its storage and service
         # authentication, away from unrelated blocking UI callbacks. Splitting
@@ -323,6 +425,10 @@ def install_plaza_call_grants(plaza):
             if value['audience']!=actor['agent_id']:raise PermissionError('Wrong audience.')
             if value.get('authority'):
                 plaza.validate_operation_grant(value)
+            path=(value.get('authority') or {}).get('path')
+            if access_decision_all(plaza,(value.get('user') or {}).get('id'),value.get('audience'),
+                                   [value.get('operation',''),*([path] if path else [])],actor=value.get('actor')) is False:
+                raise PermissionError('The account is no longer in a role allowed for this operation.')
             return {'active':True,'expiresAt':value['expires'],'user':value.get('user') or {}}
         try:return await run_sync(check_status,limiter=authority_workers)
         except (KeyError,PermissionError):raise HTTPException(403,'Call grant expired or revoked.') from None
@@ -373,9 +479,11 @@ def install_agent_call_grants(agent):
             try: body=await request.json()
             except ValueError: return JSONResponse({'detail':'Call grants require JSON.'},status_code=403)
         try:
+            operations=reported_operations(agent,request.url.path,body)
             response=await agent._plaza_request_async('post','/api/call-grants/consume',
                 headers=agent._ensure_token_valid(),json={'token':token,'binding':binding(request.method,request.url.path,body,request.url.query),
-                    'exact_binding':operation_binding(request.method,request.url.path,body,request.url.query),'operation':request_operation(request.url.path,body)},timeout=timeout,retries=0)
+                    'exact_binding':operation_binding(request.method,request.url.path,body,request.url.query),'operation':request_operation(request.url.path,body),
+                    'operations':operations},timeout=timeout,retries=0)
             if response.status_code!=200: raise HTTPException(403,'Call grant rejected.')
             verified=response.json()
             agent_id=agent.agent_id() if callable(agent.agent_id) else agent.agent_id

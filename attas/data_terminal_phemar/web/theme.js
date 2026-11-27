@@ -76,7 +76,8 @@ function applyTheme() {
 function saveTheme(body) {
   if (!runtime.user) return;
   api('/api/settings').then(current => {
-    const {id,revision,updatedAt,...settings} = current.preferences;
+    // Window places change while the viewer works; resending the copy read here could put back an older one.
+    const {id,revision,updatedAt,phemaWindows,...settings} = current.preferences;
     return api('/api/settings',{method:'PUT',body:{...settings,...body}});
   }).catch(() => { storageError = 'Theme applies locally; shared settings unavailable.'; syncControls(); });
 }

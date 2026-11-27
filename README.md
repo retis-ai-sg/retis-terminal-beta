@@ -55,7 +55,7 @@ Retis Terminal is an investment research app that runs on your own computer. Ins
 
 **Requirements:** macOS 12 or later (Apple silicon or Intel), or Windows 10 or 11 (64-bit). Download the installers only from this repository's [Releases](https://github.com/retis-ai-sg/retis-terminal-beta/releases).
 
-The Retis Terminal icon in the menu bar (Mac) or system tray (Windows) offers **Open** and **Quit**; when a new version is out, its menu also shows **New version … → Download**. When something goes wrong, open Retis MAS Manager in Retis Terminal, choose **Problem report** and attach the file it saves to a [new issue](https://github.com/retis-ai-sg/retis-terminal-beta/issues/new/choose); the report contains no passwords or keys. See [Report a problem](docs/en/report-a-problem.md).
+The Retis Terminal icon in the menu bar (Mac) or system tray (Windows) offers **Open**, **Check for Updates** and **Quit**; when a new version is out, its menu also shows **New version … → Download**. When something goes wrong, open Retis MAS Manager in Retis Terminal, choose **Problem report** and attach the file it saves to a [new issue](https://github.com/retis-ai-sg/retis-terminal-beta/issues/new/choose); the report contains no passwords or keys. See [Report a problem](docs/en/report-a-problem.md).
 
 ## Open source
 

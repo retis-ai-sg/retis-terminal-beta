@@ -4,7 +4,7 @@ import math
 from jsonschema import Draft202012Validator
 from .composition_contracts import MEDIA_SCHEMAS, CUSTOM_SCHEMAS
 
-MEDIA = {'text', 'image', 'audio', 'video', 'scene', 'interactive'}
+MEDIA = {'text', 'image', 'audio', 'video', 'scene', 'interactive', 'viewer'}
 
 
 def media_url(value):
@@ -19,6 +19,14 @@ def validate_media(value, kind):
     if not isinstance(value, dict) or kind not in MEDIA: raise ValueError('Invalid media value.')
     errors = list(Draft202012Validator(MEDIA_SCHEMAS[kind]).iter_errors(value))
     if errors: raise ValueError('Invalid '+kind+' media: '+errors[0].message)
+    if kind == 'viewer':
+        from .composition_contracts import VIEWER_VALUE
+        bound = value.get('value')
+        if isinstance(bound, dict) and set(bound) != {'$param'}:  # an unbound page holds the setting's pointer
+            problems = list(Draft202012Validator(VIEWER_VALUE).iter_errors(bound))
+            if problems: raise ValueError('Invalid viewer setting: ' + problems[0].message)
+            if bound.get('url'): media_url(bound['url'])
+        return
     if kind == 'interactive':
         from .composition import schema_check
         schema_check(value['inputSchema'])
@@ -64,4 +72,6 @@ def validate_custom(value, capability):
     from jsonschema.exceptions import ValidationError
     try:validate(schema, value)
     except ValidationError as exc:raise ValueError('Renderer input does not match its contract.') from exc
+    from .controls import kind_of, validate_control
+    if kind_of(capability.get('id')):validate_control(value, kind_of(capability.get('id')))
     return value

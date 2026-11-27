@@ -130,6 +130,8 @@
 
 .layout-fetch-status{margin-left:auto;color:var(--muted);font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:40%}
 .layout-fetch-status[data-busy="true"]{color:var(--accent)}
+.layout-approve{all:unset;cursor:pointer;color:var(--accent);text-decoration:underline;text-underline-offset:2px}
+.layout-approve:focus-visible{outline:1px solid var(--accent);outline-offset:1px}
 .layout-tabs{display:flex;flex-direction:column;min-height:0;min-width:0;overflow:hidden}
 .layout-tabs>nav,.composer-view-tabs{display:flex;gap:2px;border-bottom:1px solid var(--line);flex-shrink:0}
 .layout-tabs [role="tab"],.composer-view-tabs button{padding:5px 12px;font-size:11px;color:var(--muted);border-radius:0;border-bottom:2px solid transparent}
@@ -146,7 +148,11 @@
 
 .block-settings{width:min(620px,90vw)}.block-settings fieldset{border:1px solid var(--line);padding:10px;margin:10px 0}.block-settings label{display:flex;gap:8px;align-items:center;margin:6px 0}.block-settings select,.block-settings input[type=number]{background:var(--surface);color:var(--text);border:1px solid var(--line);padding:5px}.block-settings footer{display:flex;justify-content:flex-end;gap:8px}.block-settings [role=alert]{color:var(--red)}
 
-.block-refresh-button{display:inline-flex;align-items:center;justify-content:center;flex:0 0 22px;width:22px;height:22px;padding:3px;border:0;border-radius:3px;background:transparent;color:var(--text);cursor:pointer}.block-refresh-button svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}.block-refresh-button:hover,.block-refresh-button:focus-visible{background:var(--surface);outline:1px solid var(--line)}.block-refresh-button:disabled{opacity:.4;cursor:wait}
+.block-refresh-button{display:inline-flex;align-items:center;justify-content:center;flex:0 0 22px;width:22px;height:22px;padding:3px;border:0;border-radius:3px;background:transparent;color:var(--text);cursor:pointer}
+/* A data panel's own source menu, beside its ↻ (phema-browser.js sourceMenu). */
+.panel-source{display:inline-flex;align-items:center;gap:4px;flex:0 1 auto;min-width:0;font-size:11px;color:var(--muted,inherit)}
+.panel-source select{max-width:160px;min-width:0;height:22px;padding:0 4px;font:inherit;font-size:11px;color:var(--text,inherit);background:var(--surface,transparent);border:1px solid var(--line,#888);border-radius:3px}
+.block-refresh-button svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}.block-refresh-button:hover,.block-refresh-button:focus-visible{background:var(--surface);outline:1px solid var(--line)}.block-refresh-button:disabled{opacity:.4;cursor:wait}
 
 :root{--market-up:#f07178;--market-down:#4ec99b}html:not([data-market-colors="false"]) [data-direction="up"],html:not([data-market-colors="false"]) .positive{color:var(--market-up)}html:not([data-market-colors="false"]) [data-direction="down"],html:not([data-market-colors="false"]) .negative{color:var(--market-down)}.ohlcv-chart .candle-up{fill:var(--market-up);stroke:var(--market-up)}.ohlcv-chart .candle-down{fill:var(--market-down);stroke:var(--market-down)}.market-color-fields{display:flex;gap:18px;flex-wrap:wrap}.market-color-fields label{flex:1;min-width:130px}.market-color-fields input[type="color"]{width:64px;height:32px;padding:2px;cursor:pointer}.market-color-fields input[type="number"]{max-width:150px}
 
@@ -289,6 +295,7 @@ dialog.reopen-tabs::backdrop {background:#050a10a6;}
 .points-table button {margin-left:4px;padding:2px 6px;font-size:11px;}
 .points-warning {margin:6px 0 0;color:var(--accent,#e0b577);font-size:12px;}
 .points-note {margin:6px 0;color:var(--muted,#83909d);font-size:12px;}
+.points-count-note {margin:4px 0 6px;color:var(--muted,#83909d);font-size:11px;}
 dialog.points-history {width:min(860px,calc(100vw - 32px));max-height:calc(100dvh - 40px);padding:0;overflow:hidden;border:1px solid var(--line,#344150);border-radius:8px;background:var(--surface,#121820);color:var(--text,#dce3ec);}
 dialog.points-history[open] {display:flex;flex-direction:column;}
 dialog.points-history::backdrop {background:#050a10a6;}
@@ -341,3 +348,50 @@ dialog.points-history::backdrop {background:#050a10a6;}
 .plaza-access [hidden]{display:none!important}
 /* Plaza refused this window's sign-in or signed it out: its reason leads the panel. */
 .plaza-access.is-refused [data-access-title]{color:var(--red,#e5534b)}
+/* Send feedback: compact, with the controls side by side where width allows. */
+.feedback-dialog{width:min(560px,calc(100vw - 32px))}
+.feedback-dialog h2{margin:0 0 8px}
+.feedback-dialog label{display:flex;flex-direction:column;gap:3px;font-size:12px}
+.feedback-dialog select,.feedback-dialog input[type=email],.feedback-dialog textarea{font:inherit;font-size:13px}
+.feedback-row{display:flex;gap:8px;flex-wrap:wrap}.feedback-category{flex:0 0 140px}.feedback-reply{flex:1 1 220px}
+.feedback-message{margin-top:8px}.feedback-message textarea{resize:vertical;min-height:96px}
+.feedback-count{display:block;text-align:right;font-size:11px;opacity:.7}
+.feedback-details{margin:6px 0 0;padding:6px 8px;border:1px solid var(--line,#2a3340);border-radius:4px}
+.feedback-dialog .feedback-check{flex-direction:row;align-items:center;gap:6px}
+.feedback-details dl{display:grid;grid-template-columns:max-content 1fr;gap:2px 12px;margin:4px 0 0;font-size:12px}
+.feedback-details dt{opacity:.7}.feedback-details dd{margin:0;overflow-wrap:anywhere}
+.feedback-details dl[data-off]{opacity:.45;text-decoration:line-through}
+.feedback-note{margin:6px 0 0;font-size:11px;opacity:.7}
+.feedback-actions{display:flex;align-items:center;gap:8px;margin-top:8px}
+.feedback-actions [role=status]{flex:1;margin:0;font-size:12px}
+.feedback-actions [data-kind=error]{color:var(--red)}.feedback-actions [data-kind=done]{color:var(--green)}
+/* A picture field: the chosen picture sits beside the file, its name and its remove button, so the form keeps its height. */
+/* Specific enough to outrank `.composition-content form label`, which lays a panel form's labels out in one row. */
+:is(.composition-content form,form) label.phema-image-field{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:10px;row-gap:4px;align-items:start}
+label.phema-image-field>*{grid-column:1}
+label.phema-image-field>button{justify-self:start}
+label.phema-image-field>[data-image-preview]{grid-column:2;grid-row:1 / span 8;max-height:110px;max-width:180px;object-fit:contain;border:1px solid var(--line,rgba(127,127,127,.35));border-radius:4px}
+label.phema-image-field>[hidden]{display:none}
+/* A viewer panel: its bar (web page or picture, the address or the picture's controls) above the page or the picture. */
+.composition-viewer{display:flex;flex-direction:column;gap:6px;height:100%;min-height:0}
+.composition-viewer-bar{display:flex;flex-wrap:wrap;align-items:center;gap:6px;flex:none}
+.composition-viewer-bar input[type=url]{flex:1 1 180px;min-width:0;font:inherit}
+.composition-viewer-bar a{font-size:12px}
+.composition-viewer-pages{display:inline-flex;align-items:center;gap:4px}.composition-viewer-pages button{min-width:24px;padding:2px 6px}.composition-viewer-pages small{font-variant-numeric:tabular-nums}
+.composition-viewer-pdf{max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted)}
+.composition-viewer-body{flex:1;min-height:0;display:flex;flex-direction:column;gap:4px;overflow:auto}
+.composition-viewer-page{flex:1;min-height:240px;width:100%;border:1px solid var(--line,rgba(127,127,127,.35));border-radius:4px;background:#fff}
+.composition-viewer-note{margin:0;font-size:11px;opacity:.7}
+.composition-viewer-image{max-width:100%;height:auto;object-fit:contain;border:1px solid var(--line,rgba(127,127,127,.35));border-radius:4px;align-self:flex-start}
+.composition-viewer-blocks{position:relative;flex:none;width:100%;border:1px solid var(--line,rgba(127,127,127,.35));border-radius:4px}
+.composition-viewer-block{position:absolute;box-sizing:border-box;padding:2px;display:flex}
+.composition-viewer-block span{flex:1;min-width:0;border:1px solid color-mix(in srgb,var(--accent,#3b82f6) 55%,transparent);background:color-mix(in srgb,var(--accent,#3b82f6) 12%,transparent);border-radius:3px;padding:3px 5px;font-size:11px;line-height:1.25;overflow:hidden;text-overflow:ellipsis}
+.composition-viewer [hidden]{display:none}
+/* Link group chip on each Browser's title bar (link-groups.js): a coloured dot, or a ring when not linked. */
+.link-chip .link-dot{display:inline-block;width:10px;height:10px;border-radius:50%;border:1.5px solid var(--muted);box-sizing:border-box;vertical-align:middle}
+.link-chip .link-dot[data-link="red"]{background:#e5484d;border-color:#e5484d}
+.link-chip .link-dot[data-link="amber"]{background:#f5a524;border-color:#f5a524}
+.link-chip .link-dot[data-link="green"]{background:#30a46c;border-color:#30a46c}
+.link-chip .link-dot[data-link="teal"]{background:#12a594;border-color:#12a594}
+.link-chip .link-dot[data-link="blue"]{background:#3e63dd;border-color:#3e63dd}
+.link-chip .link-dot[data-link="purple"]{background:#8e4ec6;border-color:#8e4ec6}

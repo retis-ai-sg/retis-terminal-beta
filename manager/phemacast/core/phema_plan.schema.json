@@ -26,6 +26,27 @@
       "type": "string",
       "pattern": "^[a-z]{2,3}(-[A-Za-z0-9]{2,8})*$"
     },
+    "translations": {
+      "description": "The page's titles in other languages, for viewers whose Terminal uses one of them: each title as written in this plan, with its text in each other language ({\"<title>\": {\"<language>\": \"<text>\"}}).",
+      "type": "object",
+      "maxProperties": 120,
+      "propertyNames": {
+        "minLength": 1,
+        "maxLength": 200
+      },
+      "additionalProperties": {
+        "type": "object",
+        "maxProperties": 6,
+        "propertyNames": {
+          "pattern": "^[a-z]{2,3}(-[A-Za-z0-9]{2,8})*$"
+        },
+        "additionalProperties": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        }
+      }
+    },
     "provider": {
       "description": "The one data source every model need must come from, when the person requires one (a source id from the menu, such as fugle). Each panel and chart dataset binds only to that source, on every refresh; a need it cannot serve is unavailable, never answered by another source.",
       "type": "string",
@@ -48,6 +69,44 @@
       "maxItems": 12,
       "items": {
         "$ref": "#/$defs/panel"
+      }
+    },
+    "tabs": {
+      "description": "One tabbed view on the page: a group of tabs, each showing the panels whose \"tab\" names it. The group sits in reading order where its first panel is, as wide and tall as width and height; the panels in a tab are laid out inside it, from its top.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "tabs"],
+      "properties": {
+        "id": {"$ref": "#/$defs/name"},
+        "tabs": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 12,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "title"],
+            "properties": {"id": {"$ref": "#/$defs/name"}, "title": {"$ref": "#/$defs/label"}}
+          }
+        },
+        "width": {"enum": ["third", "half", "two-thirds", "full"]},
+        "height": {"enum": ["short", "medium", "tall"]}
+      }
+    },
+    "links": {
+      "description": "Page values this page shares with other open pages the viewer links (a link group): it sends a value when it changes, receives one from a linked page, or both. type says what the value is.",
+      "type": "array",
+      "maxItems": 8,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["parameter", "type"],
+        "properties": {
+          "parameter": {"$ref": "#/$defs/name"},
+          "type": {"enum": ["instrument", "instruments", "date", "interval", "text", "number", "boolean"]},
+          "send": {"type": "boolean"},
+          "receive": {"type": "boolean"}
+        }
       }
     }
   },
@@ -271,8 +330,12 @@
         "id": {
           "$ref": "#/$defs/name"
         },
+        "tab": {
+          "description": "The tab of the page's tabbed view (\"tabs\") this panel is shown in; without it the panel is on the page itself.",
+          "$ref": "#/$defs/name"
+        },
         "kind": {
-          "description": "table and key-values show a model; chart draws series of model rows over time; view mounts a published view; action is a form that calls an operation; chat is a conversation with an operation; text is a short note.",
+          "description": "table and key-values show a model; chart draws series of model rows over time; view mounts a published view; action is a form that calls an operation; chat is a conversation with an operation; text is a short note; form is a set of controls (text boxes, choices, buttons) the Terminal draws.",
           "enum": [
             "table",
             "key-values",
@@ -280,8 +343,26 @@
             "view",
             "action",
             "chat",
-            "text"
+            "text",
+            "form"
           ]
+        },
+        "controls": {
+          "description": "A form panel's controls, after Windows Forms: label, textBox, numericUpDown, comboBox, listBox, checkBox, radioButton, dateTimePicker, trackBar, button, linkLabel, groupBox, panel, tabControl, table. Each is {\"type\", \"name\", properties…, \"dataBindings\", \"events\"}; page values are {\"$param\": name}.",
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 16,
+          "items": {"type": "object"}
+        },
+        "select": {
+          "description": "A table whose row click sets a page value: the parameter to set and the field of the clicked row.",
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["parameter", "field"],
+          "properties": {
+            "parameter": {"$ref": "#/$defs/name"},
+            "field": {"$ref": "#/$defs/field"}
+          }
         },
         "title": {
           "$ref": "#/$defs/label"
@@ -337,10 +418,10 @@
           "$ref": "#/$defs/chart"
         },
         "data": {
-          "description": "The rows a chart draws, named for the series: a model need and its inputs, or a page setting another Phemar on the page keeps (its rows), such as a Strategy Monitor's backtest series.",
+          "description": "The rows a chart draws, named for the series: a model need and its inputs, or a page setting another Phemar on the page keeps (its rows), such as a Strategy Monitor's backtest series, or rows a published calculation computes from another entry.",
           "type": "object",
           "minProperties": 1,
-          "maxProperties": 6,
+          "maxProperties": 12,
           "propertyNames": {
             "$ref": "#/$defs/field"
           },
@@ -384,8 +465,147 @@
                     "$ref": "#/$defs/field"
                   }
                 }
+              },
+              {
+                "description": "Rows computed from another of this chart's data entries by a published calculation (for example a moving average or an oscillator): `of` names that entry, `inputs` maps each input role the calculation takes to one of its fields, and `parameters` sets the calculation's own parameters. The rows carry the calculation's output columns, `timestamp` and the instrument field of the entry they came from.",
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "calculation",
+                  "of"
+                ],
+                "properties": {
+                  "calculation": {
+                    "type": "string",
+                    "pattern": "^[a-z][a-z0-9_]{0,63}$"
+                  },
+                  "of": {
+                    "$ref": "#/$defs/field"
+                  },
+                  "inputs": {
+                    "type": "object",
+                    "maxProperties": 8,
+                    "propertyNames": {
+                      "$ref": "#/$defs/field"
+                    },
+                    "additionalProperties": {
+                      "$ref": "#/$defs/field"
+                    }
+                  },
+                  "parameters": {
+                    "description": "The calculation's own parameters, as its published parameter schema gives them. A list holds a formula's steps: each names a published calculation and maps its input roles to the inputs or earlier steps.",
+                    "type": "object",
+                    "maxProperties": 16,
+                    "propertyNames": {
+                      "$ref": "#/$defs/field"
+                    },
+                    "additionalProperties": {
+                      "anyOf": [
+                        {
+                          "type": [
+                            "number",
+                            "integer",
+                            "string",
+                            "boolean"
+                          ]
+                        },
+                        {
+                          "type": "array",
+                          "maxItems": 6,
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "id",
+                              "calculation",
+                              "inputs"
+                            ],
+                            "properties": {
+                              "id": {
+                                "$ref": "#/$defs/field"
+                              },
+                              "calculation": {
+                                "type": "string",
+                                "pattern": "^[a-z][a-z0-9_]{0,63}$"
+                              },
+                              "inputs": {
+                                "type": "object",
+                                "minProperties": 1,
+                                "maxProperties": 8,
+                                "propertyNames": {
+                                  "$ref": "#/$defs/field"
+                                },
+                                "additionalProperties": {
+                                  "$ref": "#/$defs/field"
+                                }
+                              },
+                              "parameters": {
+                                "type": "object",
+                                "maxProperties": 16,
+                                "propertyNames": {
+                                  "$ref": "#/$defs/field"
+                                },
+                                "additionalProperties": {
+                                  "type": [
+                                    "number",
+                                    "integer",
+                                    "string",
+                                    "boolean"
+                                  ]
+                                }
+                              }
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  }
+                }
               }
             ]
+          }
+        },
+        "sources": {
+          "description": "Default data sources for this panel: per model, source ids in order of preference (never agent ids); the viewer may still choose another.",
+          "type": "object",
+          "maxProperties": 8,
+          "propertyNames": {
+            "pattern": "^[a-z][a-z0-9_.-]{1,80}$"
+          },
+          "additionalProperties": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 5,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_-]{0,63}$"
+            }
+          }
+        },
+        "theme": {
+          "description": "Default presentation for this panel: an accent and series colors over the Terminal's theme, and density.",
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "accent": {
+              "type": "string",
+              "pattern": "^#[0-9a-fA-F]{6}$"
+            },
+            "series": {
+              "type": "array",
+              "maxItems": 8,
+              "items": {
+                "type": "string",
+                "pattern": "^#[0-9a-fA-F]{6}$"
+              }
+            },
+            "density": {
+              "enum": [
+                "compact",
+                "comfortable"
+              ]
+            }
           }
         }
       },

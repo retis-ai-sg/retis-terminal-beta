@@ -92,15 +92,22 @@ PRODUCT = 'Retis Terminal'
 BUNDLE_ID = 'ai.retis.terminal'
 MAC_MINIMUM = '12.0'
 # The libraries the Terminal imports (checked against its modules in check_imports), with what they need on any OS.
+# The lock is resolved for every platform (uv pip compile --universal): a library one OS alone needs carries an
+# environment marker, which pip honours where the lock is installed and lock_for where an app is built.
 # The full lock it is cut from also carries what Retis's other agents use (boto3, paramiko, supabase, playwright,
 # psycopg, pandas, yfinance, pytest, ...); none of it is imported by the Terminal, so the app leaves it out.
-DESKTOP_PACKAGES = ('annotated-doc', 'annotated-types', 'anyio', 'attrs', 'certifi', 'cffi', 'charset-normalizer',
+# MCP_PACKAGES serve AI apps that control the Terminal (attas/data_terminal_phemar/mcp_access.py): the MCP SDK and what
+# it needs beyond the rest, pywin32 on Windows only (its lock line carries sys_platform == 'win32').
+MCP_PACKAGES = ('httpcore2', 'httpx2', 'mcp', 'mcp-types', 'opentelemetry-api', 'pyjwt', 'python-multipart', 'pywin32',
+                'sse-starlette', 'truststore')
+DESKTOP_PACKAGES = tuple(sorted(('annotated-doc', 'annotated-types', 'anyio', 'attrs', 'certifi', 'cffi', 'charset-normalizer',
                     'click', 'cryptography', 'fastapi', 'h11', 'httpcore', 'httpx', 'idna', 'ifaddr', 'jsonschema',
                     'jsonschema-specifications', 'pillow', 'psutil', 'pycparser', 'pydantic', 'pydantic-core',
                     'referencing', 'requests', 'rpds-py', 'sniffio', 'starlette', 'typing-extensions',
-                    'typing-inspection', 'urllib3', 'uvicorn', 'websockets', 'zeroconf')
+                    'typing-inspection', 'urllib3', 'uvicorn', 'websockets', 'zeroconf') + MCP_PACKAGES))
 # Import names that differ from their distribution's name.
 IMPORT_NAMES = {'PIL': 'pillow', 'pydantic_core': 'pydantic-core', 'typing_extensions': 'typing-extensions',
+                'jwt': 'pyjwt', 'multipart': 'python-multipart', 'opentelemetry': 'opentelemetry-api',
                 'jsonschema_specifications': 'jsonschema-specifications', 'rpds': 'rpds-py',
                 'charset_normalizer': 'charset-normalizer', 'typing_inspection': 'typing-inspection',
                 'annotated_types': 'annotated-types', 'annotated_doc': 'annotated-doc'}
@@ -108,6 +115,14 @@ IMPORT_NAMES = {'PIL': 'pillow', 'pydantic_core': 'pydantic-core', 'typing_exten
 STDLIB_UNUSED = ('idlelib', 'tkinter', 'turtledemo', 'turtle.py', 'test', 'ensurepip', 'pydoc_data', 'lib2to3')
 MACHO = {b'\xfe\xed\xfa\xce', b'\xfe\xed\xfa\xcf', b'\xce\xfa\xed\xfe', b'\xcf\xfa\xed\xfe', b'\xca\xfe\xba\xbe'}
 WHEEL_PLATFORMS = {'mac-arm64': ['macosx_12_0_arm64'], 'mac-x86_64': ['macosx_12_0_x86_64'], 'windows-x86_64': ['win_amd64']}
+# Each platform a lock is installed on, as environment markers (PEP 508) see it there.
+MARKER_PLATFORMS = {
+    'mac-arm64': {'os_name': 'posix', 'sys_platform': 'darwin', 'platform_system': 'Darwin', 'platform_machine': 'arm64'},
+    'mac-x86_64': {'os_name': 'posix', 'sys_platform': 'darwin', 'platform_system': 'Darwin', 'platform_machine': 'x86_64'},
+    'windows-x86_64': {'os_name': 'nt', 'sys_platform': 'win32', 'platform_system': 'Windows', 'platform_machine': 'AMD64'},
+    'linux-x86_64': {'os_name': 'posix', 'sys_platform': 'linux', 'platform_system': 'Linux', 'platform_machine': 'x86_64'},
+    'linux-arm64': {'os_name': 'posix', 'sys_platform': 'linux', 'platform_system': 'Linux', 'platform_machine': 'aarch64'},
+}
 
 
 def run(*argv, **kwargs):
@@ -162,18 +177,58 @@ def check_imports():
 
 
 def lock_blocks(path):
-    """Each requirement of a hashed lock file, with its hash lines, by normalized name."""
+    """Each requirement of a hashed lock file, with its hash lines, by normalized name. A requirement's first line may
+    carry an environment marker (`pywin32==312 ; sys_platform == 'win32' \\`); a library pinned twice, as a resolver
+    fork would, stops the build rather than lose one of its pins."""
     blocks, current = {}, None
     for line in path.read_text(encoding='utf-8').splitlines():
         match = re.match(r'^([A-Za-z0-9_.-]+)==\S+', line)
         if match:
             current = normalized(match.group(1))
+            if current in blocks:
+                raise SystemExit(f'{path.name} pins {current} more than once; give it one pin for every platform.')
             blocks[current] = [line]
         elif current and line.startswith((' ', '\t')):
             blocks[current].append(line)
         else:
             current = None
     return blocks
+
+
+def requirement_marker(block):
+    """(`name==version`, its environment marker or '') of a lock block's first line."""
+    pin, _, marker = block[0].rstrip(' \\').partition(';')
+    return pin.strip(), marker.strip()
+
+
+def _marker(text):
+    try:
+        from packaging.markers import Marker
+    except ImportError:  # a building Python without packaging: pip, which every build runs, carries it
+        from pip._vendor.packaging.markers import Marker
+    return Marker(text)
+
+
+def lock_for(lock, key, target):
+    """`lock` as pip installs it on `key` (MARKER_PLATFORMS), written to `target`: each requirement whose marker holds
+    there, without its marker, hashes kept.
+
+    pip evaluates markers for the computer it runs on, even with --platform, so a build that installs wheels for
+    another platform (a Windows app staged on a Mac, the notices' wheels of every platform) resolves them here: a
+    Windows app gets pywin32 wherever it is built, and a Mac app never does."""
+    version = json.loads(PYTHON_SPEC.read_text(encoding='utf-8'))['version']
+    environment = {'implementation_name': 'cpython', 'platform_python_implementation': 'CPython', 'platform_release': '',
+                   'platform_version': '', 'python_version': '.'.join(version.split('.')[:2]),
+                   'python_full_version': version, 'implementation_version': version, **MARKER_PLATFORMS[key]}
+    text = [f'# {Path(lock).name} for {key} (build_desktop_app.lock_for).']
+    for block in lock_blocks(Path(lock)).values():
+        pin, marker = requirement_marker(block)
+        if marker and not _marker(marker).evaluate(environment):
+            continue
+        hashes = [line.rstrip(' \\') for line in block[1:]]
+        text += [pin + (' \\' if hashes else '')] + [line + ' \\' for line in hashes[:-1]] + hashes[-1:]
+    Path(target).write_text('\n'.join(text) + '\n', encoding='utf-8', newline='\n')
+    return Path(target)
 
 
 def desktop_lock(target, overrides=None, names=DESKTOP_PACKAGES):
@@ -219,14 +274,20 @@ def build_payload(kit, *, tag, version, site, feed, tools=None, cache=None):
     return details
 
 
-# Components the app ships for the MAS Manager to install (D3, D9): their code only, versioned as the app.
-INCLUDED_COMPONENTS = ('local-yfinance', 'local-openstreetmap')
+# Components the app ships for the MAS Manager to install (D3, D9): their code only, versioned as the app, each with the
+# notices of the libraries Install downloads. Local AssetStorage, Local RSS with its RSS Viewer, Local LLM and Local
+# Analyst joined Local yfinance and Local OpenStreetMap on 2026-11-27 (Alvin).
+INCLUDED_COMPONENTS = ('local-yfinance', 'local-openstreetmap', 'local-asset-storage', 'local-rss', 'local-llm',
+                       'local-analyst')
+# The other kit ships the same components (Alvin, 2026-11-27). This file is published with the app, so it names no
+# audience.
+TESTER_COMPONENTS = INCLUDED_COMPONENTS
 
 
-def add_manager(kit, version):
+def add_manager(kit, version, included=INCLUDED_COMPONENTS):
     """The MAS Manager beside the Terminal (kit/manager), as its own package: the Terminal's files stay its own. The
-    components it may install without a parts list go in kit/components, each its own package (build_components.include).
-    Returns each group's summary."""
+    components it may install without a parts list (`included`) go in kit/components, each its own package
+    (build_components.include). Returns each group's summary."""
     import build_components as components
     import build_user_terminal_package as builder
     target = kit / 'manager'
@@ -237,7 +298,7 @@ def add_manager(kit, version):
         shutil.copyfile(path, destination)
     shipped = {'masManager': builder.summary(components.modules_of('masManager'))}
     remove(kit / 'components')
-    for component in INCLUDED_COMPONENTS:
+    for component in included:
         components.include(component, kit / 'components', version)
         group = components.COMPONENTS[component]['group']
         shipped[group] = builder.summary(components.modules_of(group))
@@ -387,17 +448,22 @@ def python_tree(key, target, lock, cache, pure=None):
             shutil.rmtree(path)
     for name in ('_tkinter.pyd', 'tcl86t.dll', 'tk86t.dll'):
         (target / 'DLLs' / name).unlink(missing_ok=True)
-    # Wheels for this platform, by the lock's hashes, whatever platform builds the app. --no-compile: the building
-    # Python's bytecode is for its own version; compile_bytecode writes the app's.
+    # Wheels for this platform, by the lock's hashes, whatever platform builds the app, with the lock's markers resolved
+    # for this platform (lock_for). --no-compile: the building Python's bytecode is for its own version;
+    # compile_bytecode writes the app's.
     platforms = [arg for p in WHEEL_PLATFORMS[key] for arg in ('--platform', p)]
-    run(sys.executable, '-m', 'pip', 'install', '--quiet', '--disable-pip-version-check', '--isolated', '--no-deps', '--no-compile',
-        '--require-hashes', '--only-binary=:all:', '--python-version', '3.13', '--implementation', 'cp', '--abi', 'cp313',
-        *platforms, '--index-url', 'https://pypi.org/simple', '--target', site_packages(target, key), '-r', lock)
     packages = site_packages(target, key)
-    if pure:
+    with tempfile.TemporaryDirectory() as scratch:
         run(sys.executable, '-m', 'pip', 'install', '--quiet', '--disable-pip-version-check', '--isolated', '--no-deps', '--no-compile',
             '--require-hashes', '--only-binary=:all:', '--python-version', '3.13', '--implementation', 'cp', '--abi', 'cp313',
-            '--platform', WHEEL_PLATFORMS['mac-arm64'][0], '--index-url', 'https://pypi.org/simple', '--target', packages, '-r', pure)
+            *platforms, '--index-url', 'https://pypi.org/simple', '--target', packages,
+            '-r', lock_for(lock, key, Path(scratch) / 'requirements.lock'))
+        if pure:
+            run(sys.executable, '-m', 'pip', 'install', '--quiet', '--disable-pip-version-check', '--isolated', '--no-deps', '--no-compile',
+                '--require-hashes', '--only-binary=:all:', '--python-version', '3.13', '--implementation', 'cp', '--abi', 'cp313',
+                '--platform', WHEEL_PLATFORMS['mac-arm64'][0], '--index-url', 'https://pypi.org/simple', '--target', packages,
+                '-r', lock_for(pure, key, Path(scratch) / 'pure.lock'))
+    if pure:
         for name in MAC_PURE_PYTHON:
             for module in (packages / name).rglob('*.so'):
                 if module.with_name(module.name.split('.')[0] + '.py').is_file():

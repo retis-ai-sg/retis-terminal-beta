@@ -18,7 +18,12 @@ from .transport import LocalPublisherTransport,PinnedPublisherTransport
 from .trust import trusted_interface_approval
 
 
-def mount_container(app,*,principal,network,config_path,state_dir,window_context):
+MISSING_LOCAL='The program on this computer that shows this view is not answering.'
+
+
+def mount_container(app,*,principal,network,config_path,state_dir,window_context,missing_local=None):
+    """`missing_local(publisher_agent_id)`, from the host, says what to do when a program on this computer that shows a
+    view is not answering; without it the container says only that."""
     hosts=HostReleases(config_path)
     current={};records={}
     advertisement={'schema':'capability-advertisement/1','capabilities':[CONFINED_CAPABILITY]}
@@ -51,6 +56,9 @@ def mount_container(app,*,principal,network,config_path,state_dir,window_context
         runtime=hosts.runtime(value.get('hostRelease'))
         configured=json.loads(Path(config_path).read_text(encoding='utf-8')).get('views',[])
         peers=await network.directory(context['user']['token'],force=True);peer=next((row for row in peers if row['id']==value['publisherAgentId']),None)
+        if not peer and str(value['publisherAgentId']).startswith('local-'):
+            # A program on this computer that discovery does not list now: Plaza never lists one, so say what to do.
+            raise PermissionError(missing_local(value['publisherAgentId']) if missing_local else MISSING_LOCAL)
         if not peer:raise PermissionError('Current publisher registration is unavailable.')
         await network.require_trusted(peer, context['user']['token'])
         declared=peer.get('meta',{}).get('phemacast_agent_views',{}).get('views',[])

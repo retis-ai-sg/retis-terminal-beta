@@ -3,7 +3,7 @@ import threading
 import time
 import uuid
 from functools import wraps
-from .observability import RuntimeObservations, trace_headers
+from .observability import ROUTINE_SLOW_MS, RuntimeObservations, is_routine_path, trace_headers
 
 
 class ASGIObservability:
@@ -71,6 +71,8 @@ class ASGIObservability:
             if request.url.port is not None:
                 origin += ':' + str(request.url.port)
             label = request.method + ' ' + request.url.path
+            if is_routine_path(request.url.path):
+                return await self._send_routine(send, request, args, kwargs, label, origin)
             work_id = uuid.uuid4().hex
             with self.lock:
                 self.jobs[work_id] = {'id':work_id, 'label':label, 'kind':'outbound_http',
@@ -109,12 +111,43 @@ class ASGIObservability:
         client._prompits_observer = self
         return client
 
+    async def _send_routine(self, send, request, args, kwargs, label, origin):
+        """Send a routine call (observability.ROUTINE_PATHS) without a job, span or log rows; record it only when it fails
+        or is slow, as one interaction event. Its counters still count it."""
+        started, outcome, status_code = time.monotonic(), 'failed', None
+        try:
+            response = await send(request, *args, **kwargs)
+            status_code = response.status_code
+            outcome = 'failed' if status_code >= 400 else 'succeeded'
+            return response
+        except BaseException as exc:
+            if type(exc).__name__ == 'CancelledError':
+                outcome = 'cancelled'
+            raise
+        finally:
+            duration = round((time.monotonic() - started) * 1000, 2)
+            if outcome != 'succeeded' or duration >= ROUTINE_SLOW_MS:
+                self.observations.event('interaction', direction='outbound', phase='result',
+                    operation=label, peer_origin=origin, status=outcome,
+                    status_code=status_code, duration_ms=duration)
+            self.observations.metric('agent_calls_total', 1, kind='counter',
+                labels={'peer':origin, 'status':outcome})
+
     def install(self, app):
         from fastapi import Request
         @app.middleware('http')
         async def observe(request: Request, call_next):
             if not request.url.path.startswith(('/api/', '/use_practice/')) or request.url.path.startswith('/api/agent/'):
                 return await call_next(request)
+            if is_routine_path(request.url.path):
+                started = time.monotonic()
+                response = await call_next(request)
+                duration = round((time.monotonic() - started) * 1000, 2)
+                if response.status_code >= 400 or duration >= ROUTINE_SLOW_MS:
+                    self.observations.event('interaction', direction='inbound', phase='result',
+                        operation=request.method + ' ' + request.url.path, status_code=response.status_code,
+                        status='failed' if response.status_code >= 400 else 'succeeded', duration_ms=duration)
+                return response
             work_id = uuid.uuid4().hex
             label = request.method+' '+request.url.path
             with self.lock:

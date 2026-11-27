@@ -34,7 +34,28 @@ from .history import history_parameters, history_observations
 # 14.0.0: a comment reworded for the public repository's scan changed the fingerprint (2026-11-18); the local
 # site's start-up then refused 13.0.0 ("Published content and audience are immutable"). tests/
 # test_mapping_fingerprint.py records each version's fingerprint, so an edit without a new version fails a test.
-MAPPING_VERSION = '14.0.0'
+# 15.0.0: the RSS Data Source answers research.news.v1 from rss.stock_news, as other sources answer news (2026-11-22).
+# 16.0.0: research.news_feed.v1, the newest items across a source's feeds for no listing in particular; RSS answers it
+# from rss.news_list (2026-11-24, for analysts who tag every news item).
+# 17.0.0: TWSE and TPEx answer company.esg.v1, company.revenue-monthly.v1, company.announcements.v1, company.earnings.v1
+# (EPS, cumulative for the year) and company.margin.v1 from their keyless open data, and company.profile.v1 adds the
+# company's names, industry, country, website and market cap; a model may read several whole-market tables, each once
+# per ten minutes; market.rankings.v1 can keep common stocks only (universe 'stocks'); TPEx answers company.institutional.v1
+# per investor in shares, and its index is the month table's latest close (2026-11-25).
+# 17.1.0: company.income-statement.v1, company.balance-sheet.v1 and company.cash-flow.v1, each line item as the issuer
+# reports it, with itemName; FinMind answers them through Terminal projections (2026-11-26).
+# 18.0.0: a Fugle quote's volume is in shares for TWSE and TPEx listings: Fugle counts a TWSE listing's in lots
+# (2026-11-26).
+# 19.0.0: Fugle counts a TPEx listing's quote volume in lots too (6488: tradeValue / tradeVolume is 1,000 times the
+# average price), so it becomes shares as well; 18.0.0 marked it shares without converting it (2026-11-26).
+# 20.0.0: company.shareholding-distribution.v1 (holders and shares by holding band) and company.insider-holdings.v1
+# (directors' and managers' holdings and pledges); Fugle answers them, company.institutional.v1 and fund.holdings.v1
+# through Terminal projections with the viewer's own key (2026-11-26).
+MAPPING_VERSION = '20.0.0'
+# Models whose rows belong to no listing: a request names no instruments, only how many items and, optionally, which
+# of the source's feed tags to read.
+FEED_MODELS = ('research.news_feed.v1',)
+FEED_TAG = r'[A-Za-z][A-Za-z-]{0,30}'
 
 # Closed per-instrument notes a table may show beside its rows; upstream error
 # text never becomes a note.
@@ -129,6 +150,8 @@ def operations(source_id, schema, fields, span='1M'):
         return {'market.history.v1':['TIME_SERIES_INTRADAY' if span in ('1D','1W') else 'TIME_SERIES_DAILY'],
                 'market.quotes.v1':['GLOBAL_QUOTE'],'company.profile.v1':['OVERVIEW'],'company.peers.v1':['OVERVIEW'],
                 'research.news.v1':['NEWS_SENTIMENT']}.get(schema, [])
+    if source_id == 'rss':
+        return {'research.news.v1':['rss.stock_news'],'research.news_feed.v1':['rss.news_list']}.get(schema, [])
     if source_id == 'fugle':
         return {'market.history.v1':['fugle.stock.historical.candles.by_symbol'],
                 'market.quotes.v1':['fugle.stock.intraday.quote.by_symbol'],
@@ -138,10 +161,41 @@ def operations(source_id, schema, fields, span='1M'):
     return []
 
 
+def feed_plan(source, schema, model, query, request):
+    """A model of no listing: one step per source operation, asking for the newest `limit` items, optionally only from
+    the source's feeds with every one of `tags`."""
+    if set(query) - {'fields', 'limit', 'tags'}:
+        raise ValueError('A news feed request names fields, limit and tags only.')
+    fields = query.get('fields', list(model.get('fields', {})))
+    if not isinstance(fields, list) or not fields or len(fields)>100 or any(f not in model.get('fields', {}) for f in fields):
+        raise ValueError('Requested fields must belong to the declared model.')
+    limit = query.get('limit', 50)
+    if type(limit) is not int or not 1 <= limit <= 100:
+        raise ValueError('Ask for 1 to 100 news items.')
+    tags = query.get('tags', [])
+    if not isinstance(tags, list) or len(tags) > 8 or any(not isinstance(t, str) or not re.fullmatch(FEED_TAG, t) for t in tags):
+        raise ValueError('Feed tags are up to 8 words of letters and dashes.')
+    mapping = mapping_resource(source.vendor_id, schema)
+    if not mapping: raise ValueError('No installed source mapping for this model.')
+    if request.get('mapping_ref') and request['mapping_ref'] != reference(mapping):
+        raise ValueError('Requested mapping is not the installed immutable version.')
+    steps = []
+    endpoints = list(source.spec_snapshot.endpoints) if source.spec_snapshot else []
+    for operation in operations(source.vendor_id, schema, set(fields), None):
+        endpoint = next((e for e in endpoints if e.endpoint_id==operation), None)
+        if endpoint is None or not source.is_endpoint_executable(endpoint):
+            raise ValueError('Required source operation is unavailable: '+operation)
+        steps.append({'ticker':'','endpoint':endpoint,'parameters':{'limit':limit,**({'tags':tags} if tags else {})},'operation':operation})
+    if not steps: raise ValueError('No source execution plan is available.')
+    return {'schema':schema,'model':model,'mapping':mapping,'query':query,'fields':fields,'steps':steps,'range':None,'invalid':[]}
+
+
 def model_plan(source, request):
     schema, model = resolve_target(request.get('target_model'))
     query = request.get('model_request') or {}
     if not isinstance(query, dict): raise ValueError('Model request must be an object.')
+    if schema in FEED_MODELS:
+        return feed_plan(source, schema, model, query, request)
     tickers = query.get('instruments', [])
     if not isinstance(tickers, list) or not 1 <= len(tickers) <= 12 or any(not isinstance(t, str) or not t for t in tickers):
         raise ValueError('Provide one to twelve valid listing tickers.')
@@ -212,6 +266,9 @@ def model_plan(source, request):
                 params.pop('symbol',None);params.update(tickers=symbols.get(ticker,ticker),sort='LATEST',limit=50)
             if operation == 'Search.all':
                 params={'query':params['symbol']}
+            if operation == 'rss.stock_news':
+                # Taiwan news names a stock by its code without the listing suffix (台積電(2330)).
+                params={'keyword':symbols.get(ticker) or re.sub(r'\.(TW|TWO)$','',ticker),'limit':20}
             steps.append({'ticker':ticker,'endpoint':endpoint,'parameters':params,'operation':operation})
     # Only codes that cannot be listings: nothing to ask the vendor; the answer is their notes.
     if not steps and not (invalid and not tickers): raise ValueError('No source execution plan is available.')
@@ -224,6 +281,16 @@ def _epoch(value):
         divisor=1_000_000 if raw>10_000_000_000_000 else 1000 if raw>10_000_000_000 else 1
         return datetime.fromtimestamp(raw/divisor,timezone.utc).isoformat()
     except (ValueError,TypeError,OverflowError,OSError): return None
+
+
+def fugle_quote_volume(payload):
+    """A Fugle quote's session volume in shares, and its unit. Fugle counts a TWSE or TPEx listing's quote in lots; an
+    index or another market keeps Fugle's figure. The Data Consultant's quote mapping says the same."""
+    total=payload.get('total') or {}
+    volume=number(total.get('tradeVolume'))
+    if str(payload.get('type','')).upper()=='INDEX': return volume,'provider-unspecified'
+    if str(payload.get('market','')).upper() in ('TSE','OTC'): return (None if volume is None else volume*1000),'shares'
+    return volume,'provider-unspecified'
 
 
 def search_news(payload, step):
@@ -269,11 +336,12 @@ def converted_rows(source_id, payload, step, plan):
     rows = normalize(payload,ticker,requirement)
     if source_id == 'fugle':
         if schema == 'market.quotes.v1':
-            total=payload.get('total') or {};trial=payload.get('isTrial') is True
+            trial=payload.get('isTrial') is True
+            volume,unit=fugle_quote_volume(payload)
             rows=[{**clean(payload),'ticker':ticker,'last':payload.get('lastPrice',payload.get('closePrice')),
                    'priceKind':'trial' if trial else 'close' if payload.get('isClose') else 'trade',
                    'change':payload.get('change'),'changePercent':payload.get('changePercent'),
-                   'volume':total.get('tradeVolume',payload.get('volume')),'volumeUnit':'provider-unspecified',
+                   'volume':volume,'volumeUnit':unit,
                    'volumeScope':'session-cumulative','currency':'TWD',
                    'observedAt':_epoch(((payload.get('lastTrial') if trial else payload.get('lastTrade')) or {}).get('time')),
                    'sourceUpdatedAt':_epoch(payload.get('lastUpdated')),
@@ -315,6 +383,14 @@ def converted_rows(source_id, payload, step, plan):
                'publisher':row.get('source'),'url':row.get('url'),'summary':row.get('summary')} for row in payload.get('feed',[])]
     if operation == 'Search.all':
         rows=search_news(payload,step)
+    if operation == 'rss.stock_news':
+        rows=[{**clean(row),'ticker':ticker,'headline':row.get('title'),'publishedAt':row.get('published_at'),
+               'publisher':row.get('publisher'),'url':row.get('url'),'summary':row.get('summary')} for row in payload.get('items',[])]
+    if operation == 'rss.news_list':
+        # Items of no listing: no ticker; the feed and its declared tags travel with each item.
+        rows=[{**clean(row),'headline':row.get('title'),'publishedAt':row.get('published_at'),'publisher':row.get('publisher'),
+               'url':row.get('url'),'summary':row.get('summary'),'feed':row.get('feed'),
+               'feedTags':[t for t in row.get('tags') or [] if isinstance(t,str)]} for row in payload.get('items',[])]
     if operation == 'TIME_SERIES_DAILY' and plan.get('range'):
         rows=history_window(rows,plan['range'])
     for row in rows:
@@ -456,8 +532,9 @@ def _run_plan(source, request, auth_context, plan):
                 if str(info.get('quoteType','')).upper() in ('EQUITY','ETF'): row['volumeUnit']='shares'
                 if info.get('currency'): row['currency']=info['currency']
     # An empty news search still answers the request: no news is tagged with the listing.
-    answered=plan['schema']=='research.news.v1' and not failures
-    if answered:
+    # A feed with no new items answers too: an empty list, not a failure.
+    answered=plan['schema'] in ('research.news.v1',*FEED_MODELS) and not failures
+    if answered and plan['schema']=='research.news.v1':
         found={row.get('ticker') for row in rows}
         failures=[{'endpointId':plan['steps'][0]['endpoint'].endpoint_id,'ticker':ticker,'status':'no-news','reason':NO_TAGGED_NEWS}
                   for ticker in dict.fromkeys(step['ticker'] for step in plan['steps']) if ticker not in found]

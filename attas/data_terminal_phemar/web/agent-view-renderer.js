@@ -2,6 +2,7 @@
 import {installAgentViewRenderer} from './agent-view-renderer-adapter.js';
 import {registerRenderer} from './composition-renderers.js';
 import {api,runtime,compositionViewInstance,setCompositionViewParameters} from './connected.js';
+import {otherPanelsFor} from './link-groups.js';
 import {currentDisplayFormat} from './display-format.js';
 import {resolvedLocale} from './i18n.js';
 const PALETTE=['accent','background','surface','text'];
@@ -10,7 +11,10 @@ function hostColors(){const values=(document.documentElement.dataset.themePalett
 function timezone(){const selected=runtime.settings?.preferences?.displayTimezone;try{if(typeof selected==='string'){new Intl.DateTimeFormat('en',{timeZone:selected});return selected;}}catch{}return Intl.DateTimeFormat().resolvedOptions().timeZone;}
 installAgentViewRenderer({register:registerRenderer,request:(path,body)=>api(path,{method:'POST',headers:{'X-Phemacast-View-Request':'1'},body}),
  compositionContext:(root,reference)=>({request:api,prefix:compositionViewInstance(root).prefix,instance:()=>compositionViewInstance(root).instance,
-  parameters:values=>setCompositionViewParameters(root,values)}),
+  parameters:values=>setCompositionViewParameters(root,values),
+  // The other open Phemas, once the viewer allows this Phema to see them (its permission review, ♧).
+  panels:{...otherPanelsFor(root.closest('[data-browser]')?.dataset.browser||''),
+   access:async()=>{const id=compositionViewInstance(root).instance?.remoteId;if(!id)throw Error('This view is not open in a Browser.');return (await api('/api/instances/'+encodeURIComponent(id)+'/permissions'))?.panelAccess||{declared:null,allowed:false};}}}),
  presentation:(root,context)=>({locale:root.isConnected?resolvedLocale(root):context.locale||resolvedLocale(root),timezone:timezone(),theme:document.documentElement.dataset.theme||'dark',colors:hostColors(),density:'compact',format:currentDisplayFormat()})});
 // Open agent views follow the Terminal's theme and language, and a browser's own language, without reopening; the
 // generic host listens for this event and asks `presentation` again. Views get the base (dark or light) and the main

@@ -6,9 +6,12 @@
 import time
 import secrets
 import asyncio
+import logging
 from datetime import datetime, timezone
 import httpx
 from fastapi import HTTPException
+
+LOG = logging.getLogger(__name__)
 
 # A provider that leaves payment to the escrow holds its result until Plaza confirms the delivery. Until then it answers
 # 503 (or 409 while the same scope is still running) with Retry-After: the same scope is sent again, a few times and
@@ -63,6 +66,12 @@ def pending_wait(error):
     return min(max(seconds, 0.0), PENDING_WAIT_CAP)
 
 
+def too_few_points(error):
+    """Plaza's answer that the account has too few points for the reservation. Plaza answers an earlier reservation
+    under the same request before it checks the balance, so after this answer none exists: nothing is held."""
+    return isinstance(error, httpx.HTTPStatusError) and error.response.status_code == 402
+
+
 def result_lost(error):
     """The provider's definite answer: the scope's work already ran, its result is lost, and it will not run again."""
     return (isinstance(error, httpx.HTTPStatusError) and error.response.status_code == 409
@@ -111,6 +120,21 @@ class PricedRequest(HTTPException):
     """A free-advertised operation quoted a positive price for this exact request."""
     def __init__(self):
         super().__init__(409, 'This request is priced; it runs only through the paid execution path.')
+
+
+# The points AI apps that control a window may spend per day (mcp_access.py): a step an AI app caused also reserves
+# here, under the window's `aiPointsPerDay` plus what the person allowed in the window for that one action.
+AI_SCOPE = 'ai:plaza:point'
+AI_OVER = ('This would pass the points AI apps may spend today in this Terminal window. Raise it in Settings → AI apps, '
+           'or ask again with more points, which the person allows in the window.')
+
+
+def ai_limit(user):
+    """Today's AI points limit for a step an AI app caused, or None when no AI app caused it."""
+    if not user.get('_aiApproval'):
+        return None
+    budget, allowance = user.get('_aiPointsPerDay'), user.get('_aiAllowance')
+    return (budget if type(budget) is int and budget >= 0 else 0) + (allowance if type(allowance) is int and allowance > 0 else 0)
 
 
 def budget_ceiling(preferences):
@@ -162,9 +186,24 @@ async def execute(network, store, user, agent, pulse_name, parameters, ceiling=0
         result=await network.pulse(agent, pulse_name, parameters, user['token'])
         billing={'points':0,'state':'owner-use' if quote.get('ownerUse') else 'free'}
         return {**result,'_billing':billing} if isinstance(result,dict) else {'result':result,'_billing':billing}
-    local = store.reserve(user['id'], 'plaza:point', points, ceiling)
+    limit = ai_limit(user)
+    ai_local = None
+    if limit is not None:
+        try:ai_local = store.reserve(user['id'], AI_SCOPE, points, limit)
+        except HTTPException:raise HTTPException(403, AI_OVER) from None
+    try:local = store.reserve(user['id'], 'plaza:point', points, ceiling)
+    except BaseException:
+        if ai_local:store.settle(user['id'], ai_local, 'released')
+        raise
+    def settle(status):
+        store.settle(user['id'], local, status)
+        if ai_local:store.settle(user['id'], ai_local, status)
+    def settle_part(amount):
+        store.settle_part(user['id'], local, amount)
+        if ai_local:store.settle_part(user['id'], ai_local, amount)
     id = secrets.token_hex(16)
-    record = {'requestId':'terminal:'+id, 'state':'reserving','points':points,'agentId':agent['id'],'pulse':pulse_name,'localReservation':local,'recipient':'registered owner of '+agent['id']}
+    record = {'requestId':'terminal:'+id, 'state':'reserving','points':points,'agentId':agent['id'],'pulse':pulse_name,'localReservation':local,'recipient':'registered owner of '+agent['id'],
+              **({'aiReservation':ai_local,'aiApproval':user['_aiApproval']} if ai_local else {})}
     def save():
         store.put(user['id'],'billing',id,{'state':record['state'],'points':points,'agentId':agent['id'],'private':store.encrypt(record)})
     async def post(path, body, authenticated=False):
@@ -185,16 +224,16 @@ async def execute(network, store, user, agent, pulse_name, parameters, ceiling=0
             answer = await post('/api/report-escrows/'+record['escrowId']+'/'+action, {'reservation_token':record['reservationToken'],'request_id':record['requestId']+':'+action,'metadata':{'execution_id':id}}, True)
         except BaseException:
             record['failedAt'] = record['state']
-            record['state'] = 'uncertain';save();store.settle(user['id'],local,'uncertain')
+            record['state'] = 'uncertain';save();settle('uncertain')
             raise ExecutionUncertain(id) from None
         if action == 'capture':
             charged = captured_points(answer, points)
             record.update(state='settled', settledPoints=charged);save()
-            store.settle_part(user['id'],local,charged)
+            settle_part(charged)
             return charged
         settled = delivered_points(answer, record.get('scopeId'), points)
         record.update(state='refunded', settledPoints=settled);save()
-        store.settle_part(user['id'],local,settled)
+        settle_part(settled)
         return settled
     async def call_provider():
         """Send the step under its one scope; while the provider waits on Plaza's delivery record, send the same scope again."""
@@ -261,11 +300,16 @@ async def execute(network, store, user, agent, pulse_name, parameters, ceiling=0
         captured = await post('/api/report-escrows/'+record['escrowId']+'/capture', {'reservation_token':record['reservationToken'],'request_id':record['requestId']+':capture','metadata':{'execution_id':id}}, True)
         # Record what Plaza charged, not the quote: a capture that paid no provider returns the reservation.
         charged = captured_points(captured, points)
-        record.update(state='settled', settledPoints=charged);save();store.settle_part(user['id'],local,charged)
+        record.update(state='settled', settledPoints=charged);save();settle_part(charged)
         return {**result,'_billing':{'points':charged,'state':'settled','executionId':id}} if isinstance(result,dict) else {'result':result,'_billing':{'points':charged,'state':'settled','executionId':id}}
     except BaseException as error:
         if record['state'] in ('settled','refunded','uncertain'):
             raise  # Settled with Plaza just now (what was delivered was paid, the rest refunded), or left for reconciliation.
+        if record['state'] == 'reserving' and too_few_points(error):
+            # Plaza reserved nothing, so there is nothing to reconcile: no record is kept, and the step says why.
+            store.delete(user['id'],'billing',id);store.settle(user['id'],local,'released')
+            LOG.warning('Plaza refused to reserve %s points for %s %s: %s',points,agent['id'],pulse_name,record.get('failureReason',''))
+            raise HTTPException(402, record.get('failureReason') or f'Insufficient Plaza points: {points} required.') from None
         if run is not None and record.get('escrowId') and record['state'] in ('reserved', 'executing'):
             # As the report generator does, a run that does not finish is refunded when it ends (less work Plaza
             # recorded as delivered, which the refund pays and finish() counts as spent). That includes a step cut off
@@ -281,7 +325,7 @@ async def execute(network, store, user, agent, pulse_name, parameters, ceiling=0
         # Keep the same reservation and execution identity after interruption.
         # A provider may already have charged; automatic fetch retries are unsafe.
         record['failedAt'] = record['state']
-        record['state']='uncertain';save();store.settle(user['id'],local,'uncertain')
+        record['state']='uncertain';save();settle('uncertain')
         if isinstance(error, asyncio.CancelledError):
             raise
         raise ExecutionUncertain(id) from None
@@ -320,7 +364,17 @@ async def reconcile(network, store, user, id):
     if not record.get('escrowId'):
         if not record.get('reserveBody'):
             raise HTTPException(409, 'Reservation evidence is incomplete; inspect the Plaza ledger.')
-        result=await post('/api/ui_auth/report-generation/reserve',record['reserveBody'],True)
+        try:
+            result=await post('/api/ui_auth/report-generation/reserve',record['reserveBody'],True)
+        except httpx.HTTPStatusError as error:
+            if not too_few_points(error):
+                raise
+            # Plaza would have answered a reservation it made for this request, so it never made one: nothing was held.
+            store.delete(user['id'],'billing',id)
+            with store.connect() as db:
+                db.execute('UPDATE budgets SET status=? WHERE id=? AND owner=?',('released',record['localReservation'],user['id']))
+            LOG.info('Reconciled %s: Plaza never reserved points for it.',id)
+            return {'id':id,'status':'not-reserved'}
         escrow=result.get('escrow') or result
         record.update(escrowId=escrow['id'],reservationToken=escrow['reservation_token'])
     action='capture' if stage=='capturing' else 'refund'
@@ -332,9 +386,11 @@ async def reconcile(network, store, user, id):
     record['settledPoints']=settled
     store.put(user['id'],'billing',id,{'state':record['state'],'points':record['points'],'agentId':record['agentId'],'private':store.encrypt(record)})
     # The uncertainty reservation can now be resolved with confirmed evidence; a partly paid refund is split.
-    if 0<settled<record['points']:
-        store.settle_part(user['id'],record['localReservation'],settled)
-    else:
-        with store.connect() as db:
-            db.execute('UPDATE budgets SET status=? WHERE id=? AND owner=?',('settled' if settled else 'released',record['localReservation'],user['id']))
+    reservations=[record['localReservation'],*([record['aiReservation']] if record.get('aiReservation') else [])]
+    for reservation in reservations:
+        if 0<settled<record['points']:
+            store.settle_part(user['id'],reservation,settled)
+        else:
+            with store.connect() as db:
+                db.execute('UPDATE budgets SET status=? WHERE id=? AND owner=?',('settled' if settled else 'released',reservation,user['id']))
     return {'id':id,'status':record['state'],**({'settledPoints':settled} if action=='refund' else {})}

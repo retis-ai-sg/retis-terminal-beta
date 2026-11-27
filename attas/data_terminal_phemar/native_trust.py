@@ -61,6 +61,24 @@ def local_agents(network):
     return {'local-'+row['id'] for row in clients.discovery.resources()} if clients else set()
 
 
+# The agent id of every program on this computer: 'local-' and the id it announces (phemacast/network/configure.py).
+LOCAL_RESOURCE='local-resource-'
+
+
+def stopped_local(network,agents):
+    """{agent id: what to do} for the programs on this computer among `agents` that discovery does not list now.
+
+    Plaza never lists a program on this computer, so one that stopped is not Plaza's to retry or refuse: its panels say
+    it is not answering, by the name this Terminal last saw (local_resources.not_answering), until it runs again. A
+    Terminal that uses no local resources leaves such an id to Plaza, as before.
+    """
+    if not getattr(network,'local_clients',None):return {}
+    from .local_resources import not_answering
+    running=local_agents(network)
+    return {agent:not_answering(network,agent) for agent in sorted(agents)
+            if isinstance(agent,str) and agent.startswith(LOCAL_RESOURCE) and agent not in running}
+
+
 def behaviour(phema):
     """What a Phema shows and calls: its identity, inputs and composition, without envelope fields.
 
@@ -91,13 +109,19 @@ async def bundled(network,user,phema):
     return False
 
 
-async def shipped(network,phema,agents):
-    """The Phema is exactly one that a local resource it calls ships (its descriptor's Phemas), as that resource
-    serves it now. A component's own page, such as Retis MAS Manager's, counts as the viewer's own: it comes from a
-    program the viewer runs on this computer. Any change makes it an ordinary Phema again."""
+async def component_pages(network,phema,agents):
+    """(exact, newer): what the local resources in `agents` ship now (their descriptors' Phemas), as they serve them.
+
+    `exact` is True when one ships this Phema exactly. A component's own page, such as Retis MAS Manager's, counts as
+    the viewer's own: it comes from a program the viewer runs on this computer. Any change makes it an ordinary Phema
+    again. Otherwise `newer` names the component that ships another revision of the same page (the same Phema id),
+    for the viewer to take: {'name', 'key' (its key in this Terminal's Phema library), 'revision'}. A window keeps its
+    copy of a page when the component updates, so an older copy is no longer the component's page.
+    """
     clients=getattr(network,'local_clients',None)
-    if not clients:return False
-    target=behaviour(phema)
+    if not clients:return False,None
+    target,newer=behaviour(phema),None
+    names={row['id']:row.get('name') for row in clients.discovery.resources()}
     for agent in sorted(agents):
         local_id=agent.removeprefix('local-')
         try:described=await clients.describe(local_id)
@@ -105,8 +129,18 @@ async def shipped(network,phema,agents):
         for item in described.get('phemas') or []:
             try:value=(await clients.phema(local_id,item['id']))['phema']
             except Exception:continue
-            if behaviour(value)==target:return True
-    return False
+            if behaviour(value)==target:return True,None
+            if newer is None and isinstance(phema.get('id'),str) and value.get('id')==phema['id'] and isinstance(item.get('id'),str):
+                try:revision=max(1,int(item.get('revision') or 1))
+                except (TypeError,ValueError):revision=1
+                name=names.get(local_id)
+                newer={'name':name.strip()[:80] if isinstance(name,str) else '','key':'local:'+item['id'],'revision':revision}
+    return False,newer
+
+
+async def shipped(network,phema,agents):
+    """The Phema is exactly one that a local resource it calls ships, as that resource serves it now."""
+    return (await component_pages(network,phema,agents))[0]
 
 
 class NativeTrust:
@@ -117,6 +151,10 @@ class NativeTrust:
         # When Plaza first could not confirm an agent of a Phema, per viewer, window and Phema.
         self.waiting={}
         self.logged={}
+        # The refusal last written to terminal.log for each viewer, window and Phema: written once until it changes.
+        self.said={}
+        # A newer copy of a refused page that a component on this computer ships, kept as long as the refusal.
+        self.newer={}
 
     @staticmethod
     def unconfirmed(user):
@@ -124,9 +162,14 @@ class NativeTrust:
         user['_nativeTrustUnconfirmed']=True
         return user
 
-    def decline(self,key,user):
-        if len(self.declined)>=256:self.declined={k:v for k,v in self.declined.items() if v>time.time()}
+    def decline(self,key,user,newer=None):
+        if len(self.declined)>=256:
+            self.declined={k:v for k,v in self.declined.items() if v>time.time()}
+            self.newer={k:v for k,v in self.newer.items() if k in self.declined}
         self.declined[key]=time.time()+10
+        user['_nativeTrustNewer']=newer or None
+        if newer:self.newer[key]=newer
+        else:self.newer.pop(key,None)
         return user
 
     def pending(self,key,user):
@@ -144,9 +187,17 @@ class NativeTrust:
         return None if now-first>=UNCONFIRMED_GRACE else self.unconfirmed(user)
 
     def log(self,key,phema,outcome,detail):
-        """One terminal.log line per outcome a minute for each viewer, window and Phema, so a report shows it."""
+        """One terminal.log line per outcome a minute for each viewer, window and Phema, so a report shows it.
+
+        A refusal is written once until the answer changes: an approved layout whose agents Plaza
+        does not trust is checked on every request, and its refusal said nothing new each minute."""
         now=time.time()
-        if now-self.logged.get((key,outcome),0)<60:return
+        if outcome=='declined':
+            if self.said.get(key)==detail:return
+            if len(self.said)>=512:self.said={}
+            self.said[key]=detail
+        elif outcome in ('unlisted','unanswered','not-answering'):self.said.pop(key,None)
+        if outcome!='declined' and now-self.logged.get((key,outcome),0)<60:return
         if len(self.logged)>=512:self.logged={k:v for k,v in self.logged.items() if now-v<60}
         self.logged[(key,outcome)]=now
         name=str((phema or {}).get('name') or (phema or {}).get('id') or 'layout')[:120]
@@ -173,16 +224,32 @@ class NativeTrust:
         if not force and phema and proof.get('actor')==user['id'] and proof.get('window')==user.get('terminalWindow','') and proof.get('fingerprint')==fingerprint(phema) and proof.get('expires',0)>time.time():return user
         user['_nativeTrust']=None
         user.pop('_nativeTrustUnconfirmed',None)
+        # Set, never removed: a browser process merges each call's viewer into the one it keeps.
+        user['_nativeTrustNewer']=None
+        # The same: the programs on this computer the Phema calls that are not answering (stopped_local).
+        user['_nativeTrustNotAnswering']=None
         if not phema:return user
         key=(user['id'],user.get('terminalWindow',''),fingerprint(phema))
-        if not force and self.declined.get(key,0)>time.time():return user
+        if not force and self.declined.get(key,0)>time.time():
+            if self.newer.get(key):user['_nativeTrustNewer']=self.newer[key]
+            return user
         refs=[]
         for _,current in walk_compositions(phema):
             node=composition(current)
             if node.get('presentation',{}).get('document',{}).get('design',{}).get('dataRequirements'):return user
             refs.extend(reference_paths(current).values())
+        # A panel calling a program on this computer that stopped says so, also in a layout the viewer approved.
+        stopped=stopped_local(self.network,{a for r in refs if isinstance(a:=r['target'].get('agentId'),str)})
+        if stopped:user['_nativeTrustNotAnswering']=stopped
         # Plaza's current decision covers every pulse call, operation-bound or ordinary.
         if not refs or any(r.get('kind')!='pulse' for r in refs):return user
+        if stopped:
+            # Not Plaza's to decide, so Plaza is not asked, and not a 'no': nothing is remembered, and the first check
+            # after the program answers again decides as usual.
+            self.declined.pop(key,None);self.waiting.pop(key,None);self.newer.pop(key,None)
+            self.log(key,phema,'not-answering','the program on this computer it calls is not answering ('+', '.join(stopped)
+                     +'); its panels say to start it again in Retis MAS Manager. Plaza is not asked: it never lists programs on this computer.')
+            return user
         from prompits.core.plaza_directory_trust import PlazaDirectoryTrust
         # The Terminal's shared lookup reuses each account's Plaza answer for 10 seconds.
         authority=getattr(self.network,'plaza_trust',None) or PlazaDirectoryTrust(self.network.plaza,self.network.client)
@@ -202,7 +269,8 @@ class NativeTrust:
                 return self.decline(key,user)
         # A local resource on this computer is trusted by being here; Plaza decides every other agent.
         local=local_agents(self.network)
-        agents=sorted({r['target']['agentId'] for r in refs}-local)
+        # An agent the viewer chooses ({"$param": …}) is checked when the reference runs (require_trusted).
+        agents=sorted({a for r in refs if isinstance(a:=r['target'].get('agentId'),str)}-local)
         # Only an older owner stamp (version 1) is proved by an agent Plaza lists.
         stamped=(composition(phema).get('extensions',{}).get(OWNER) or {}).get('version')==1
         began=time.monotonic()
@@ -227,11 +295,17 @@ class NativeTrust:
                 self.waiting.pop(key,None)
                 self.log(key,phema,'declined','Plaza does not trust agent '+pub+' for this account; it asks for approval.')
                 return self.decline(key,user)
-        if (not recorded and not owner_trusted(phema,rows,user['id']) and not await bundled(self.network,user,phema)
-                and not await shipped(self.network,phema,local&{r['target']['agentId'] for r in refs})):
-            self.log(key,phema,'declined','Plaza does not trust its owner for this account; it asks for approval.')
-            return self.decline(key,user)
-        self.declined.pop(key,None);self.waiting.pop(key,None)
+        if not recorded and not owner_trusted(phema,rows,user['id']) and not await bundled(self.network,user,phema):
+            # The pages of the local resources it calls; a link whose agent the viewer chooses may reach any of them.
+            named={a for r in refs if isinstance(a:=r['target'].get('agentId'),str)}
+            chosen=any(not isinstance(r['target'].get('agentId'),str) for r in refs)
+            exact,newer=await component_pages(self.network,phema,local&named|(local if chosen else set()))
+            if not exact:
+                self.log(key,phema,'declined','an earlier version of the page '+(newer['name'] or 'a program on this computer')
+                         +' ships now; it asks for approval or an update.' if newer else
+                         'Plaza does not trust its owner for this account; it asks for approval.')
+                return self.decline(key,user,newer)
+        self.declined.pop(key,None);self.waiting.pop(key,None);self.said.pop(key,None);self.newer.pop(key,None)
         user['_nativeTrust']={'actor':user['id'],'window':user.get('terminalWindow',''),
                               'fingerprint':fingerprint(phema),'expires':time.time()+15}
         return user

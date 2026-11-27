@@ -27,6 +27,8 @@ CHECK_EVERY_SECONDS = 86400.0
 PARTS_LIST_LIMIT = 2 * 1024 * 1024
 # Operations that change what runs; they take turns with the supervisor's own checks.
 RUN_OPERATIONS = {'mas_start', 'mas_stop', 'mas_restart', 'mas_rollback', 'mas_remove'}
+# A row's background jobs (its status says Install · Pending or Update · Pending), as a refusal of another one names them.
+JOB_DONE = {'install': 'installed', 'update': 'updated'}
 # A view takes at most 300,000 characters of JSON in one value and one drawing request (phemacast/agent_view/confined),
 # and Local yfinance's notices are about 650 KB, so they go to the page in parts of at most this many JSON characters.
 NOTICES_PAGE = 100_000
@@ -100,6 +102,7 @@ class MasManager(Pulser):
         self.included = offer_included(self.manager, config.get('included_components'))
         self.lock = threading.RLock()
         self.jobs: dict[str, dict] = {}
+        self.jobs_lock = threading.Lock()   # one request at a time decides whether a component's job starts
         # Start, stop, restart, remove and roll back answer when they are done, which can take a while (a program
         # gets time to stop; removing deletes its libraries): until then its row says what is happening.
         self.operations: dict[str, dict] = {}
@@ -157,9 +160,15 @@ class MasManager(Pulser):
 
     def _job(self, component_id: str, kind: str, work):
         """Downloads run beside everything else; only the switch takes the run lock."""
-        if (self.jobs.get(component_id) or {}).get('state') == 'running':
-            return {'error': f'{component_id} is already being {kind}ed.'}
-        job = self.jobs[component_id] = {'kind': kind, 'state': 'running', 'started_at': time.time(), 'error': ''}
+        with self.jobs_lock:
+            running = self.jobs.get(component_id) or {}
+            if running.get('state') == 'running':
+                if running['kind'] == kind:
+                    # Asked again while it runs (a second press, another page): nothing to do, and not an error.
+                    # The answer names the job that runs; this request started nothing.
+                    return {'accepted': True, 'already_running': True, 'component': component_id, 'job': dict(running)}
+                return {'error': f"{component_id} is already being {JOB_DONE[running['kind']]}."}
+            job = self.jobs[component_id] = {'kind': kind, 'state': 'running', 'started_at': time.time(), 'error': ''}
 
         def run():
             try:
@@ -168,6 +177,9 @@ class MasManager(Pulser):
             except Exception as error:
                 job.update(state='failed', error=str(error)[:300])
             job['ended_at'] = time.time()
+            # Recorded too, so a problem report shows when the row stopped saying Pending (install_done, update_failed).
+            detail = {'seconds': round(job['ended_at'] - job['started_at'], 1), **({'error': job['error']} if job['error'] else {})}
+            self.manager.state.record_event(f"{kind}_{job['state']}", component_id, **detail)
         threading.Thread(target=run, name=f'mas-{kind}-{component_id}', daemon=True).start()
         return {'accepted': True, 'component': component_id, 'job': dict(job)}
 
@@ -235,6 +247,16 @@ class MasManager(Pulser):
                 with self.lock:
                     self.manager.update(component, restart=parameters.get('restart', True), accept_terms=terms)
             return self._job(component, 'update', update)
+        if operation == 'mas_settings':
+            # Saving restarts a running component, which the page shows as a restart.
+            if component in self.operations:
+                raise ManagerError(f'{component} is already being changed.')
+            self.operations[component] = {'kind': 'restart', 'started_at': time.time()}
+            try:
+                with self.lock:
+                    return self.manager.configure(component, parameters['values'])
+            finally:
+                self.operations.pop(component, None)
         if operation in RUN_OPERATIONS:
             kind = operation.removeprefix('mas_')
             if component in self.operations:

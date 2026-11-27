@@ -77,8 +77,20 @@ async def resolve_reference(network, store, user, ref, inputs):
         result = await local_sources.call(network, user, local, target['pulse'], inputs)
         provenance = {**provenance, 'agentId': local['id'], 'connection': 'local'}
     elif agent.get('localId'):
-        result = await local_sources.call(network, user, agent, target['pulse'], inputs)
-        provenance = {**provenance, 'connection': 'local'}
+        # A program on this computer that only computes asks for its data the same way an agent on Plaza does: this
+        # Terminal supplies it and calls the program again. Its own calls are free; the paid steps it asks for are one
+        # payment outcome, as below.
+        from .data_requests import run as supply_data
+        from . import run_escrow
+
+        async def again(params):
+            return await local_sources.call(network, user, agent, target['pulse'], params)
+
+        async def work():
+            return await supply_data(network, store, user, agent, target['pulse'], inputs, await again(inputs), call=again)
+        drawn = []
+        result = await run_escrow.run(user, work, drawn)
+        provenance = {**provenance, 'connection': 'local', **({'drawnFrom': drawn} if drawn else {})}
     else:
         # A processor never fetches data: this Terminal supplies what it asks for, then calls it again. The whole run
         # is one payment outcome: its paid steps are captured only when it returns a result, else all refunded.
@@ -88,7 +100,10 @@ async def resolve_reference(network, store, user, ref, inputs):
         async def work():
             first = await network.execute(agent, target['pulse'], inputs, user, store)
             return await supply_data(network, store, user, agent, target['pulse'], inputs, first)
-        result = await run_escrow.run(user, work)
+        drawn = []
+        result = await run_escrow.run(user, work, drawn)
+        if drawn:  # the sources it drew from, so a reader can honour their terms (data_requests via run_escrow)
+            provenance = {**provenance, 'drawnFrom': drawn}
     if not isinstance(result, dict) or result.get('status') in {'failed','error','unavailable','auth_required','credential_required'}:
         raise HTTPException(502, 'Registered source did not provide the requested content.')
     value = result.get('data', result.get('result', result.get('output', result)))

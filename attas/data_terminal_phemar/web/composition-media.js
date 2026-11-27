@@ -5,13 +5,14 @@ import {interactionResultHTML} from './interaction-result.js';
 import {structuredFields} from './structured-operation-fields.js';
 /** Generic, declarative media renderers. No markup, scripts or plugin code from Phema. */
 const escape=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-export const MEDIA_TYPES=['text','image','audio','video','scene','interactive'];
+export const MEDIA_TYPES=['text','image','audio','video','scene','interactive','viewer'];
 export function safeMediaURL(value){try{const u=new URL(value);return u.protocol==='https:'&&!u.username&&!u.password?u.href:null;}catch{return null;}}
 export function mediaHTML(kind,value,{fallback='Media unavailable',label=x=>x,uiLabel=null,uiAttribute=null,resolveURL=x=>x,resourcePolicy=null,authenticatedLocal=false}={}){
  const text=uiLabel||((key)=>escape(label(key))),attr=uiAttribute||((name,key)=>`${name}="${escape(label(key))}"`);
  if(!value||typeof value!=='object')return `<p class="panel-note">${text(fallback)}</p>`;
  if(kind==='text')return `<div class="composition-text">${authoredText(value.text??value.title??'',text)}${safeMediaURL(value.url)?`<p><a href="${escape(safeMediaURL(value.url))}" target="_blank" rel="noopener noreferrer">${value.title?escape(value.title):text('Open source')}</a></p>`:''}</div>`;
  if(kind==='interactive')return interactiveHTML(value,text,label,attr);
+ if(kind==='viewer')return viewerHTML(value,text,attr);
  if(kind==='scene'&&value.asset&&!permittedResource(value.asset.url,resourcePolicy))return `<p class="panel-note">${text('Phema permission review required')}</p>`;
  if(kind==='scene')return `<div class="composition-scene" data-scene="${escape(JSON.stringify(value))}"><canvas ${value.description?`aria-label="${escape(value.description)}"`:attr('aria-label','3D scene')}></canvas><button type="button" data-scene-play ${attr('title','Play / pause')}>▶</button><input data-scene-time type="range" min="0" max="${Number(value.timeline?.duration)||60}" step="0.01" value="0" ${attr('aria-label','Timeline')}><span data-scene-status>${escape(value.description||'')}</span></div>`;
  const url=permittedResource(value.url,resourcePolicy);
@@ -62,6 +63,191 @@ export function mountScenes(root=document){
 
 // A Phema's own text is shown through its UI catalog when the catalog has it, so a help note reads in the viewer's
 // language; text that cannot be a catalog key (too long, or with {0}-style slots) shows as it is.
+// A web page or a picture the person chooses to look at. Both live in one page setting, which the Phema's owner reads.
+// The page runs in a sandbox with no access to the Terminal, and leaves no referrer behind. A site that refuses to be
+// shown inside another page stays blank, so the panel offers to open it in a new tab.
+const VIEWER_PARAMETER=/^[A-Za-z][A-Za-z0-9_]{0,63}$/,VIEWER_IMAGE=/^image\/(jpeg|png|webp)$/;
+const viewerImage=value=>value&&typeof value==='object'&&VIEWER_IMAGE.test(value.type||'')&&typeof value.data==='string'&&/^[A-Za-z0-9+/=]{1,280000}$/.test(value.data)?
+ {data:value.data,type:value.type,...(Number.isInteger(value.width)?{width:value.width}:{}),...(Number.isInteger(value.height)?{height:value.height}:{})}:null;
+// A Phema to copy: its name, the key and storage it is listed by, its panels' places, and the picture the person's
+// Terminal last saved of it. Only what fits is kept, so a bad value never reaches the Phema's owner.
+const viewerText=(value,limit)=>typeof value==='string'&&value.trim()?value.trim().slice(0,limit):'';
+const viewerCell=value=>typeof value==='number'&&Number.isFinite(value)&&value>=0&&value<=128?value:null;
+function viewerPhemaValue(value){
+ if(!value||typeof value!=='object'||Array.isArray(value))return null;
+ const name=viewerText(value.name,200),key=viewerText(value.key,300);if(!name||!key)return null;
+ const panels=(Array.isArray(value.panels)?value.panels:[]).slice(0,64).filter(panel=>panel&&typeof panel==='object').map(panel=>{
+  const kept={label:viewerText(panel.label,200)};
+  for(const field of ['column','row','columnSpan','rowSpan']){const cell=viewerCell(panel[field]);if(cell!==null)kept[field]=cell;}
+  return kept;});
+ const image=viewerImage(value.image),storage=viewerText(value.storage,300),phemaId=viewerText(value.phemaId,300);
+ return {name,key,...(storage?{storage}:{}),...(phemaId?{phemaId}:{}),...(Number.isInteger(value.columns)&&value.columns>=1&&value.columns<=24?{columns:value.columns}:{}),panels,...(image?{image}:{})};
+}
+export function viewerSetting(value){
+ const current=value&&typeof value==='object'&&!Array.isArray(value)?value:{};
+ const image=viewerImage(current.image);
+ const pdf=image&&current.pdf&&typeof current.pdf==='object'&&typeof current.pdf.name==='string'&&Number.isInteger(current.pdf.page)&&Number.isInteger(current.pdf.pages)&&current.pdf.page>=1&&current.pdf.page<=current.pdf.pages&&current.pdf.pages<=5000?
+  {name:current.pdf.name.slice(0,120),page:current.pdf.page,pages:current.pdf.pages,...(Number.isInteger(current.pdf.size)?{size:current.pdf.size}:{})}:null;
+ const phema=viewerPhemaValue(current.phema);
+ return {mode:['image','phema'].includes(current.mode)?current.mode:'web',...(safeMediaURL(current.url)?{url:safeMediaURL(current.url)}:{}),...(image?{image}:{}),...(pdf?{pdf}:{}),...(phema?{phema}:{})};
+}
+// A Phema's panels as blocks on its grid: each where the Phema puts it, named by its title.
+function viewerBlocks(phema,text){
+ const columns=phema.columns||12,panels=phema.panels||[];
+ const rows=Math.max(1,...panels.map(p=>(p.row||1)+(p.rowSpan||1)-1));
+ const blocks=panels.map((p,index)=>{
+  const column=Math.min(columns,Math.max(1,p.column||1)),span=Math.min(columns-column+1,Math.max(.5,p.columnSpan||columns));
+  const style=`left:${(column-1)/columns*100}%;width:${span/columns*100}%;top:${((p.row||1)-1)/rows*100}%;height:${(p.rowSpan||1)/rows*100}%`;
+  return `<div class="composition-viewer-block" style="${style}"><span>${escape(p.label||String(index+1))}</span></div>`;}).join('');
+ return `<p class="composition-viewer-note">${text('Blocks')} · ${panels.length}</p><div class="composition-viewer-blocks" style="height:${Math.min(640,Math.max(160,rows*56))}px" ${attr('aria-label','Blocks')}>${blocks}</div>`;
+ function attr(name,label){return `${name}="${escape(text(label))}"`;}
+}
+function viewerHTML(value,text,attr){
+ const name=VIEWER_PARAMETER.test(value.parameter||'')?value.parameter:'';
+ const current=viewerSetting(value.value),{mode,url,image,pdf,phema}=current;
+ // A PDF's page is the picture; ‹ › turn its pages while the PDF is open in this window.
+ const pages=pdf?`<span class="composition-viewer-pages"><button type="button" data-viewer-page="-1" ${attr('aria-label','Previous page')} ${pdf.page<=1?'disabled':''}>‹</button><small>${escape(pdf.page+' / '+pdf.pages)}</small><button type="button" data-viewer-page="1" ${attr('aria-label','Next page')} ${pdf.page>=pdf.pages?'disabled':''}>›</button></span><small class="composition-viewer-pdf" title="${escape(pdf.name)}">${escape(pdf.name)}</small>`:'';
+ const option=(choice,label)=>`<option value="${choice}"${mode===choice?' selected':''}>${text(label)}</option>`;
+ // A Phema: the Terminal's own chooser picks it, and the panel shows its last saved picture and its blocks.
+ const bar=mode==='phema'
+  ?`<button type="button" data-viewer-phema>${text(phema?'Choose another Phema':'Choose a Phema')}</button>${phema?`<small class="composition-viewer-pdf" title="${escape(phema.name)}">${escape(phema.name)}</small><button type="button" data-viewer-clear>${text('Remove')}</button>`:''}<small data-viewer-message hidden></small>`
+  :mode==='web'
+  ?`<input type="url" data-viewer-url value="${escape(url||'')}" ${attr('placeholder','https://…')} ${attr('aria-label','Web address')}><button type="button" data-viewer-go>${text('Go')}</button>${url?`<a href="${escape(url)}" target="_blank" rel="noopener noreferrer">${text('Open in a new tab')}</a>`:''}`
+  :`<button type="button" data-viewer-pick>${text('Choose a picture or PDF')}</button><input type="file" accept="image/png,image/jpeg,image/webp,application/pdf,.pdf" data-viewer-file hidden>${pages}${image?`${pdf?'':`<small>${image.width&&image.height?escape(image.width+'×'+image.height):''}</small>`}<button type="button" data-viewer-clear>${text('Remove')}</button>`:''}<small data-viewer-message hidden></small>`;
+ const body=mode==='phema'
+  ?(phema?`${phema.image?`<img class="composition-viewer-image" src="data:${escape(phema.image.type)};base64,${escape(phema.image.data)}" alt="">`:''}${viewerBlocks(phema,text)}`:`<p class="panel-note">${text('Choose a Phema to copy its blocks.')}</p>`)
+  :mode==='web'
+  ?(url?`<iframe class="composition-viewer-page" src="${escape(url)}" sandbox="allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox" referrerpolicy="no-referrer" loading="lazy" ${attr('title','Web page')}></iframe><p class="composition-viewer-note">${text('If the page stays blank, it does not allow being shown here: open it in a new tab.')}</p>`:`<p class="panel-note">${text('Enter a web address to see the page here.')}</p>`)
+  :(image?`<img class="composition-viewer-image" src="data:${escape(image.type)};base64,${escape(image.data)}" alt="">`:`<p class="panel-note">${text('Choose a picture or a PDF to see it here.')}</p>`);
+ return `<div class="composition-viewer" data-viewer data-viewer-parameter="${escape(name)}" data-viewer-value="${escape(JSON.stringify(current))}"><div class="composition-viewer-bar"><select data-viewer-mode ${attr('aria-label','Show')}>${option('web','Web page')}${option('image','Picture')}${option('phema','Phema')}</select>${bar}</div><div class="composition-viewer-body">${body}</div></div>`;
+}
+// The person's choice goes to the host as `phemacast:viewer-change` {parameter, value}; the host keeps it as the page setting.
+const VIEWER_EDGE=1024,VIEWER_CHARS=200000;
+// A PDF opens in pdf.js (phemacast/web/vendor/pdfjs, loaded only when one is chosen) and its page is drawn as the
+// picture, so the Phema's owner and its model calls get a picture as before. The PDF itself stays in this window's
+// memory, never in the page setting: a reload keeps the picture of the page and asks for the PDF again to turn pages.
+const VIEWER_PDF_BYTES=30*1024*1024,VIEWER_PDF_EDGE=1600,openPdfs=new Map();
+const isPdf=file=>file.type==='application/pdf'||/\.pdf$/i.test(file.name||'');
+const pdfKey=(parameter,pdf)=>parameter+'|'+pdf.name+'|'+(pdf.size??'');
+let pdfjs=null;
+async function pdfLibrary(){
+ if(!pdfjs){
+  pdfjs=import('./composition-vendor/pdfjs/pdf.min.js').then(library=>{
+   library.GlobalWorkerOptions.workerSrc=new URL('./composition-vendor/pdfjs/pdf.worker.min.js',import.meta.url).href;return library;});
+  pdfjs.catch(()=>{pdfjs=null;});
+ }
+ return pdfjs;
+}
+async function viewerPdf(file){
+ if(file.size>VIEWER_PDF_BYTES)throw new Error('Choose a PDF up to 30 MB.');
+ const library=await pdfLibrary();
+ try{return await library.getDocument({data:new Uint8Array(await file.arrayBuffer()),enableXfa:false,useSystemFonts:true}).promise;}
+ catch(error){console.warn("pdf.js:",error?.name,error?.message);throw new Error('This PDF cannot be read.');}
+}
+async function pdfPicture(document_,number){
+ const page=await document_.getPage(number),base=page.getViewport({scale:1});
+ const viewport=page.getViewport({scale:Math.min(4,VIEWER_PDF_EDGE/Math.max(base.width,base.height))});
+ const canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.floor(viewport.width));canvas.height=Math.max(1,Math.floor(viewport.height));
+ await page.render({canvas,viewport,background:'#ffffff'}).promise;page.cleanup?.();
+ return canvasPicture(canvas);
+}
+// A drawn picture as a JPEG of at most VIEWER_EDGE px whose base64 fits VIEWER_CHARS.
+function canvasPicture(source){
+ let scale=Math.min(1,VIEWER_EDGE/Math.max(source.width,source.height));
+ for(let tries=0;tries<10;tries++){
+  const canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.round(source.width*scale));canvas.height=Math.max(1,Math.round(source.height*scale));
+  const context=canvas.getContext('2d');context.fillStyle='#fff';context.fillRect(0,0,canvas.width,canvas.height);context.drawImage(source,0,0,canvas.width,canvas.height);
+  for(const quality of [0.85,0.72,0.6]){const data=canvas.toDataURL('image/jpeg',quality).split(',')[1];if(data.length<=VIEWER_CHARS)return {data,type:'image/jpeg',width:canvas.width,height:canvas.height};}
+  scale*=0.8;
+ }
+ throw new Error('This picture is still too large after shrinking. Choose a simpler one.');
+}
+async function viewerPicture(file){
+ if(!VIEWER_IMAGE.test(file.type)||file.size>10*1024*1024)throw new Error('Choose a PNG, JPEG or WebP image up to 10 MB.');
+ const bitmap=await createImageBitmap(file);
+ try{
+  if(bitmap.width*bitmap.height>40000000)throw new Error('Choose an image up to 40 megapixels.');
+  let scale=Math.min(1,VIEWER_EDGE/Math.max(bitmap.width,bitmap.height));
+  for(let tries=0;tries<10;tries++){
+   const canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.round(bitmap.width*scale));canvas.height=Math.max(1,Math.round(bitmap.height*scale));
+   const context=canvas.getContext('2d');context.fillStyle='#fff';context.fillRect(0,0,canvas.width,canvas.height);context.drawImage(bitmap,0,0,canvas.width,canvas.height);
+   for(const quality of [0.85,0.72,0.6]){const data=canvas.toDataURL('image/jpeg',quality).split(',')[1];if(data.length<=VIEWER_CHARS)return {data,type:'image/jpeg',width:canvas.width,height:canvas.height};}
+   scale*=0.8;
+  }
+  throw new Error('This picture is still too large after shrinking. Choose a simpler one.');
+ }finally{bitmap.close?.();}
+}
+// The host's chosen Phema as the setting keeps it: its picture (a data: URL the Terminal saved) as a small JPEG.
+async function viewerPhema(choice){
+ const preview=choice?.preview&&typeof choice.preview==='object'?choice.preview:{};
+ const value=viewerPhemaValue({name:choice?.name,key:choice?.key,storage:choice?.storage,phemaId:choice?.phemaId,columns:Number(preview.columns)||undefined,
+  panels:(Array.isArray(preview.panels)?preview.panels:[]).map(p=>({label:p?.label,column:Number(p?.column),row:Number(p?.row),columnSpan:Number(p?.columnSpan),rowSpan:Number(p?.rowSpan)}))});
+ if(!value)throw new Error('That Phema cannot be copied here.');
+ const picture=typeof choice.picture==='string'&&/^data:image\/(png|jpeg|webp);base64,/.test(choice.picture)?choice.picture:'';
+ if(picture){
+  try{
+   const image=new Image();image.src=picture;await image.decode();
+   const canvas=document.createElement('canvas');canvas.width=image.naturalWidth;canvas.height=image.naturalHeight;canvas.getContext('2d').drawImage(image,0,0);
+   value.image=canvasPicture(canvas);
+  }catch{/* The blocks still show without the picture. */}
+ }
+ return value;
+}
+function mountViewers(root){
+ for(const viewer of root.querySelectorAll('[data-viewer]:not([data-viewer-mounted])')){
+  viewer.dataset.viewerMounted='true';
+  const parameter=viewer.dataset.viewerParameter;if(!parameter)continue;
+  let current;try{current=viewerSetting(JSON.parse(viewer.dataset.viewerValue||'{}'));}catch{current={mode:'web'};}
+  // Sending a choice ends the person's typing in the address box; until then a redraw keeps what they typed (#224).
+  const change=value=>{const box=viewer.querySelector('[data-viewer-url]');if(box)delete box.dataset.typing;
+   viewer.dispatchEvent(new CustomEvent('phemacast:viewer-change',{bubbles:true,detail:{parameter,value:viewerSetting(value)}}));};
+  const mode=viewer.querySelector('[data-viewer-mode]'),address=viewer.querySelector('[data-viewer-url]'),go=viewer.querySelector('[data-viewer-go]');
+  const pick=viewer.querySelector('[data-viewer-pick]'),file=viewer.querySelector('[data-viewer-file]'),clear=viewer.querySelector('[data-viewer-clear]');
+  // A note in the window's language: a fresh element named by its message key, which the host translates as it arrives.
+  let message=viewer.querySelector('[data-viewer-message]');
+  const say=key=>{if(!message?.isConnected)return;const next=message.cloneNode(false);next.dataset.uiKey=key;next.textContent=key;next.hidden=false;message.replaceWith(next);message=next;};
+  if(mode)mode.onchange=()=>change({...current,mode:mode.value});
+  // An emptied box clears the page, so nothing goes on being copied from the one shown before.
+  const visit=()=>{let value=(address?.value||'').trim();address?.setCustomValidity?.('');
+   if(!value){const {url,...rest}=current;change({...rest,mode:'web'});return;}
+   if(!/^https:\/\//i.test(value))value='https://'+value.replace(/^http:\/\//i,'');
+   if(!safeMediaURL(value)){address?.setCustomValidity?.('https://…');address?.reportValidity?.();return;}change({...current,mode:'web',url:value});};
+  if(go)go.onclick=visit;
+  if(address)address.onkeydown=event=>{if(event.key==='Enter'){event.preventDefault();visit();}};
+  // The person is typing an address they have not sent: panel-refresh.js keeps it when the panel is drawn anew.
+  if(address)address.oninput=()=>{address.dataset.typing='1';};
+  if(pick&&file){pick.onclick=()=>file.click();
+   file.onchange=async()=>{const chosen=file.files?.[0];if(!chosen)return;
+    try{
+     if(isPdf(chosen)){
+      say('Reading the PDF…');
+      const opened=await viewerPdf(chosen),pdf={name:chosen.name||'document.pdf',size:chosen.size,page:1,pages:opened.numPages};
+      const key=pdfKey(parameter,pdf);openPdfs.get(key)?.destroy?.();openPdfs.set(key,opened);
+      while(openPdfs.size>3){const [oldest,kept]=openPdfs.entries().next().value;kept.destroy?.();openPdfs.delete(oldest);}
+      change({...current,mode:'image',image:await pdfPicture(opened,1),pdf});
+     }else{const {pdf,...rest}=current;change({...rest,mode:'image',image:await viewerPicture(chosen)});}
+    }
+    catch(error){say(error.message);}};}
+  for(const turn of viewer.querySelectorAll('[data-viewer-page]'))turn.onclick=async()=>{
+   const pdf=current.pdf,opened=pdf&&openPdfs.get(pdfKey(parameter,pdf));if(!pdf)return;
+   if(!opened){say('Choose the PDF again to turn its pages.');return;}
+   const page=Math.min(pdf.pages,Math.max(1,pdf.page+Number(turn.dataset.viewerPage)));if(page===pdf.page)return;
+   try{change({...current,image:await pdfPicture(opened,page),pdf:{...pdf,page}});}
+   catch(error){say(error.message);}
+  };
+  if(clear)clear.onclick=()=>{if(current.mode==='phema'){const {phema,...rest}=current;change({...rest,mode:'phema'});return;}const {image,pdf,...rest}=current;change({...rest,mode:'image'});};
+  // The host opens its own Phema chooser and answers with the chosen Phema ({name, key, storage, phemaId, preview,
+  // picture}); a host without one leaves the event unanswered.
+  const choosePhema=viewer.querySelector('[data-viewer-phema]');
+  if(choosePhema)choosePhema.onclick=()=>{
+   const detail={parameter,handled:false,respond:async choice=>{
+    try{change({...current,mode:'phema',phema:await viewerPhema(choice)});}
+    catch(error){say(error.message);}}};
+   viewer.dispatchEvent(new CustomEvent('phemacast:viewer-choose-phema',{bubbles:true,detail}));
+   if(!detail.handled)say('This Terminal cannot choose a Phema here.');
+  };
+ }
+}
 function authoredText(value,text){
  const content=String(value??'');
  return content&&content.length<=2000&&!/\{\d+\}/.test(content)?text(content):escape(content);
@@ -87,6 +273,7 @@ export function timelineObject(object,timeline,elapsed){
 function sceneAsset(element){let scene;try{scene=JSON.parse(element.dataset.scene);}catch{return false;}if(!scene.asset)return false;import('./composition-scene-assets.js').then(m=>m.mountAssetScene(element,scene)).catch(()=>{element.querySelector('[data-scene-status]').textContent='Model renderer unavailable';});return true;}
 export function mountMedia(root){
  mountCompactComposition(root);
+ mountViewers(root);
  // The host opens the handed-over Phema; mount authorization still runs on its server.
  for(const button of root.querySelectorAll('[data-phema-result]:not([data-result-mounted])')){
   button.dataset.resultMounted='true';

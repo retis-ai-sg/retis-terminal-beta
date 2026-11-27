@@ -1,0 +1,353 @@
+{
+  "entry": "scripts/run_local_analyst.py",
+  "files": {
+    "THIRD_PARTY_NOTICES.txt": "2438176d810610a5e45b136c67620c16afaa122f37e425457739d33646a83f54",
+    "attas/data_agent_network/__init__.py": "405d0a9496105a87a6db7ebf507ebb390acbf903518a3a8fca1f9275595600cc",
+    "attas/data_agent_network/analyst/__init__.py": "9f5dd8865e3884cc52446a308f257678122123a5d3d6780f5d5053f01084c07c",
+    "attas/data_agent_network/analyst/contracts.py": "ff72962f9b0e862fc137a3cd67da44237c90b4cf22fc57712892b827a2bea9f6",
+    "attas/data_agent_network/analyst/local/__init__.py": "6043dada577868158d363e189c5793cab793ac072a05c49ba35d1206efc5fc86",
+    "attas/data_agent_network/analyst/local/agent.py": "b54bb9f4f5424d1d3b9e492ed9f594bd95d61cd7755d386e7929fe23ba23b11b",
+    "attas/data_agent_network/analyst/local/contracts.py": "5fad82fd0a1be72cf63993099f4e9a438f005e3b12658a9edade284428d5b435",
+    "attas/data_agent_network/analyst/local/index.py": "fabdd72b467e3f7cfd4838f499b8a018e4194e746cb1523112492803a706e5aa",
+    "attas/data_agent_network/analyst/local/lists.py": "98017a1ed250fdf3deb43c461e608d5b2a3c4bb1e8f953bcc18e999a11ed81f3",
+    "attas/data_agent_network/analyst/local/release.py": "2059a445dcb8ce61ba47471584438473175c1ff42fcced4877cd42fc04a9ff2c",
+    "attas/data_agent_network/analyst/local/run.py": "1eca2e0597d16bf70ab8a76ea109ccb363a7be4d8f0bad1701b271a773a1b010",
+    "attas/data_agent_network/analyst/local/scoring.py": "45ea267353d4a1defbff842a84b2300ca7b0793da7452c5624fba72d3fe051cd",
+    "attas/data_agent_network/analyst/local/source.py": "856cb56fee169263498f8b21b7dd2d770c3cbcaf19d31ce437b4c694e766faff",
+    "attas/data_agent_network/analyst/local/view/analyst.css": "337730758477d272f83e9d8aa074cc82153665fb957a5639840d6ec24c3014fa",
+    "attas/data_agent_network/analyst/local/view/analyst.js": "93634f5be590b74bcd0c03697b537870e9a1f24c4320904f11c3e66953710c94",
+    "phemacast/__init__.py": "332f01f4c28215f8b4f12ae810bdeace2c26bc134134d775e105f8c76867f575",
+    "phemacast/agent_view/__init__.py": "b97ede307a8fbbe2f8f42871050463eb3aa5d2af14223a3132008e4179e81e64",
+    "phemacast/agent_view/broker.py": "435aef165f89ffa02864909341287fa3155f19d3fbd6140d72a54192d3806ba8",
+    "phemacast/agent_view/contracts.py": "6540cf59d81f199c174a8ba3831bfa632ae5f9547f3668b140697bb851d68468",
+    "phemacast/agent_view/release.py": "62ea0e7dde78ef312829b8d8b26820f738c556a72b5ff946e9b7a56f041080e0",
+    "phemacast/agents/pulser.py": "642deb4abc482cb40e6f0482cb3ab66ab5eefcfe26bd9b8afd13870ca1931819",
+    "phemacast/agents/quote_cascade.py": "f23431b1176e8ee7f78af989d97714c3ee7eee2d575a9dd5634b44ec334b9b66",
+    "phemacast/core/composition.py": "45bea885911947fcbc6419d6079c14adf8b73973daa056023ce3720c6e0f3a57",
+    "phemacast/core/composition_contracts.py": "084cb9aa187ea04d5084e8555556b01de509122de2cfd0318ef59c70fccccee2",
+    "phemacast/core/composition_media.py": "4f291cc64cfd97a61a8ec3995d4d8bd2d50b37259106d37406e144581847d579",
+    "phemacast/core/composition_permissions.py": "33c925d7e62485cbc6dfe61ed1823a3c388f3076d70421070f8ed34d6365d684",
+    "phemacast/core/controls.py": "9154e746f03bd787f9ad208dd1e942d7dcffeb4f9bb14327bd5485d8f4aa1adb",
+    "phemacast/core/data_requests.py": "85bb972ea01135a7d224372ad2ebbd7be3e7775789ef4ad5d0eca9a2c86be196",
+    "phemacast/core/display_format.py": "df986cc0c9656415215877e5a9ac5fee9441c30cb61b346881973534f2352480",
+    "phemacast/core/layout.py": "8ccfbdf6b9529ff24c506ff6ca9431ca122003813b73a1e40938b5a7f0db9f7f",
+    "phemacast/core/llm_content.py": "a5f7dd53f9dd03442dee3e7d82413db072cbfafdd8d2511b7a38b8847937c0d2",
+    "phemacast/core/phema.py": "c828f156426cc76ab82fba8c6059128be08a0fcda732c6ff64b234cf7ab0bf82",
+    "phemacast/core/pulse_observability.py": "1571d7f104828ca66acb16b479e462088670e47868ce770d6c137582d6101c76",
+    "phemacast/core/pulse_runtime.py": "fe291b40b8789889720ea09b7a9cfef7560eb944dc1baa45a93f912e988ad609",
+    "phemacast/core/schema_security.py": "54369eb7c6dcdd1ded333c6079771a4c213452e14722a4a914ac1b7c98d00b83",
+    "phemacast/core/schema_worker.py": "e7d4ada190b3d30c28f11c6d520c103d66ce68b26fe1c1c592e59235c09e3055",
+    "phemacast/core/split_containers.py": "148a6f8fcdc9681112c17b6d6f3170769eb717abb40cee35f4e9a95b49ae9bdc",
+    "phemacast/core/ui_localization.py": "84e23a1596678541f411bd5ca58fe8736eb536761012040f780c9e7ea6bd3fee",
+    "phemacast/models.py": "a1c8ecbfd9ecf1b705777443fbbc544ca87e94385a524b0a665df5c0e3048e9c",
+    "phemacast/network/__init__.py": "43dade91df751986721d03d08a43e48bc6894f195e61442000b5749bc656813d",
+    "phemacast/network/configure.py": "b1c8072bb96ea98547f9417e0e01c843af1ab8684aa43ff2de402109552198e0",
+    "phemacast/network/discovery.py": "21096a68561e93ec43740810599268ad06019101655541804b5d7be78bdbb53e",
+    "phemacast/network/pulser.py": "a6a016f62fa7ce16498b1cacc1fda35fb870d7cc1c3e2458f8e43beacc9df6fa",
+    "phemacast/network/service.py": "824b7fddfbaa48f992b293205726caf0239b65bc3defccadde1cf77800e1bc21",
+    "phemacast/practices/__init__.py": "698aeb5539f1a0787c712666c00c5d8944a6544998a5b8b9be51a247384e9249",
+    "phemacast/practices/pulser.py": "90060691161b5e842165988ae82f3ca0ce1b330cb49781056b644410756f7559",
+    "phemacast/practices/quote.py": "fe47660a194957508805b7b390354e62a239ab6b3e945862c855a3d86c370efc",
+    "phemacast/schemas/phema/layout.schema.json": "8719bd3df422680244b25c08a489efde9aabf40f98651bff8e22181756c13c6a",
+    "phemacast/system.py": "d63e6313d9bc9d2a1564231b98fc51ddc0ac9377ad80d09852a67531dc38688a",
+    "prompits/__init__.py": "a743e32fd533d44c4802f4cff5db5416e3bd82523e7754858b07cddff5f9eb08",
+    "prompits/agents/base.py": "00db64b773e44131944460f3c885ce2e914cafe4ec77a1114c517cc266e47aff",
+    "prompits/agents/standby.py": "2b648b40158438ec804b86a9e048d99058ce03db7f8c53439efbc428edd8bfff",
+    "prompits/channels/__init__.py": "139e8eec7b1984cb5ff94ca32641e7b72d9201b165c42fb5d1a4e7ac2bcdd236",
+    "prompits/channels/notifications.py": "78d03a9ac862eb1526a9710e73da2b92b5c180fa396ec3d39675c797b92aad3f",
+    "prompits/channels/runtime.py": "35f063dc60b179477513732d1cd9300c777fc1c7f0e1983456537012cb45e142",
+    "prompits/components/__init__.py": "90fe79efbf4e271c18e2e96eb5a740e280e6ed1221b134a173bf6c58c92c2306",
+    "prompits/components/health.py": "bfe78a3e89a45c32cb3e723782c274e237b379276e499576b171795f0ee3c761",
+    "prompits/components/logs.py": "9fde83feb056e32ca25a0b840b92a01d92df87f3e2bb350f291dba60d9d1db61",
+    "prompits/components/settings.py": "9a13caf580d7debb5f25667435bb13c1fe3136b2134f5e6d86bba54c3ceca1b8",
+    "prompits/core/access_roles.py": "36830be740f49a3363ce015f5decd82931f2f10b3ece299cfbd46a64120711c9",
+    "prompits/core/agent_config.py": "ab4cd19280b954c2ea2946a7a4e1ef469681d31569f21f5a5c2a595b3d11947e",
+    "prompits/core/approved_access.py": "ea837a6fdd5e6cd6ede2bbebfa045602203713cf000f3144f13dc180bc299baa",
+    "prompits/core/blueprint.py": "170ea8813a459d94a2c709a682dcdd034acb405f762679f54660b2d916b93515",
+    "prompits/core/call_grants.py": "0fc6b2ac7f3fdaa63be8ba61927f9fcf19ccf7818de9a0892225e6cad2b213e5",
+    "prompits/core/capabilities.py": "8a30bbd0040559dd5c89be442aa152e04d201936a30a957eae0c0715945f46df",
+    "prompits/core/directory_runtime.py": "2df14cf60db67ea50af08c8fe22fcb8c5afd9d1f21c3d7bf1ffefe1db5cb2238",
+    "prompits/core/init_schema.py": "500e8e212a844ff12c25b53094948e5d4e11d06bb21eaca580a97fd78a686246",
+    "prompits/core/job_history.py": "acdf02cf20ac6856a0bd4f0aa3957792b594da1ad3a65dc4f37d69838b8fcfde",
+    "prompits/core/json_response.py": "3161639b47a7b8bfdb0200989446a841e55b01896ecbc3ff5c3e2e29f10ad171",
+    "prompits/core/log_paths.py": "3e57202727ff3f16b8c141d1e277e0771029fa2b2c3fabe9b1c7ca9284e96589",
+    "prompits/core/message.py": "84ea326d812d9243c39650175fc5dbb8df4ae3185258842523f0fb83bfc6c241",
+    "prompits/core/observability.py": "76d1164652222d2cef1484c8eaede82e49555ce8ae5023bf77190034079b7d7f",
+    "prompits/core/observability_routes.py": "4762c601cca7c7e85f79b28a22bc4e61f40ceb61c50d509d7cfdb46e2a3e3f28",
+    "prompits/core/operation_contracts.py": "0b2e580d6904329375f5d0cbacfc41c14fc613b1f9a1af9506a50bd10cf4cf2c",
+    "prompits/core/operation_input.py": "a7c8a409454de3e75f58922aafd033e8b040b54d72487c17cacb010b9a94cdf2",
+    "prompits/core/pit.py": "ba8c3659fbca8972c1a2fe96622c1a0842237872598585197f1e3d81d7b86b8d",
+    "prompits/core/plaza_jobs.py": "4593aee1c7d0303e1c1db7930afe5dbc368e5923e28d894dc88ca3a556adc76f",
+    "prompits/core/pool.py": "89d205287836fa3082fb6f9d78a10a17a975cf4085c3a394fb5055a1982593d2",
+    "prompits/core/practice.py": "f2c78c398a502b17c5618cbc65768ce7814083a0dd0be1d0843e1ccf551fc9c7",
+    "prompits/core/process_utils.py": "2f43f9170834747796a23809498c3e0a8dcab88f1e9ec2bd48258bef505947bb",
+    "prompits/core/pulse_mapping.py": "5b49f650f6df82d4426cd54f31fdb65a2d78cee3476e0a196b3f75d2f5af5531",
+    "prompits/core/resource_registry.py": "337f2d6ad3afdfab1ddd94b11492ff5c5759263fe480cc616808aefa55e6cbb8",
+    "prompits/core/schema.py": "b712e3abe793527abde5232d1e934d8c8072bd144edf3b928e8969db93e9929c",
+    "prompits/practices/__init__.py": "62ced013e74813246af027247e3bbf373453091aae95847d4ee6bde6f54087cc",
+    "prompits/practices/plaza.py": "7a54e4f4524dde4d8152d6a6afc3eca39ac8d508228384dbe3607d8f1e9a221e",
+    "requirements.lock": "d9a191e1669ebf8a48a5c9c5dd3f5157970c299ae6c0d7a8503a63e95c0253c4",
+    "scripts/run_local_analyst.py": "fc6d3ce08883f39b55f2b244da577bb19c691c855aeebc656a907e9b74db3f36",
+    "start.py": "2ff9ce2d7bb134d1a5dbb2067107c72f54a217b9ac5c4119d3c07c0794c8492f"
+  },
+  "id": "local-analyst",
+  "offer": {
+    "descriptions": {
+      "en": "Tags and scores recent news with the analysts you choose, on this computer or the site, and keeps the results in your AssetStorage.",
+      "zh-Hant": "由您選擇的分析師（在這台電腦或本站）為近期新聞加上標記並評分，結果保存在您的檔案庫。"
+    },
+    "id": "local-analyst",
+    "names": {
+      "en": "Local Analyst",
+      "zh-Hant": "本機分析師"
+    },
+    "notices": [
+      {
+        "homepage": "https://github.com/fastapi/annotated-doc",
+        "license": "MIT",
+        "name": "annotated-doc",
+        "version": "0.0.5"
+      },
+      {
+        "homepage": "https://github.com/annotated-types/annotated-types",
+        "license": "MIT",
+        "name": "annotated-types",
+        "version": "0.8.0"
+      },
+      {
+        "homepage": "https://anyio.readthedocs.io/en/latest/",
+        "license": "MIT",
+        "name": "anyio",
+        "version": "4.15.1"
+      },
+      {
+        "homepage": "https://www.attrs.org/",
+        "license": "MIT",
+        "name": "attrs",
+        "version": "26.1.0"
+      },
+      {
+        "homepage": "https://github.com/certifi/python-certifi",
+        "license": "MPL-2.0",
+        "name": "certifi",
+        "version": "2026.10.23"
+      },
+      {
+        "homepage": "https://cffi.readthedocs.io/",
+        "license": "MIT-0",
+        "name": "cffi",
+        "version": "2.1.1"
+      },
+      {
+        "homepage": "https://charset-normalizer.readthedocs.io/",
+        "license": "MIT",
+        "name": "charset-normalizer",
+        "version": "3.5.1"
+      },
+      {
+        "homepage": "https://click.palletsprojects.com/",
+        "license": "BSD-3-Clause",
+        "name": "click",
+        "version": "8.5.0"
+      },
+      {
+        "homepage": "https://cryptography.io/",
+        "license": "Apache-2.0 OR BSD-3-Clause",
+        "name": "cryptography",
+        "version": "50.0.1"
+      },
+      {
+        "homepage": "https://github.com/fastapi/fastapi",
+        "license": "MIT",
+        "name": "fastapi",
+        "version": "0.141.1"
+      },
+      {
+        "homepage": "https://github.com/python-hyper/h11",
+        "license": "MIT",
+        "name": "h11",
+        "version": "0.16.0"
+      },
+      {
+        "homepage": "https://www.encode.io/httpcore",
+        "license": "BSD-3-Clause",
+        "name": "httpcore",
+        "version": "1.0.9"
+      },
+      {
+        "homepage": "https://www.python-httpx.org",
+        "license": "BSD-3-Clause",
+        "name": "httpx",
+        "version": "0.27.2"
+      },
+      {
+        "homepage": "https://github.com/kjd/idna",
+        "license": "BSD-3-Clause",
+        "name": "idna",
+        "version": "3.20"
+      },
+      {
+        "homepage": "https://github.com/pydron/ifaddr",
+        "license": "MIT",
+        "name": "ifaddr",
+        "version": "0.2.0"
+      },
+      {
+        "homepage": "https://github.com/python-jsonschema/jsonschema",
+        "license": "MIT",
+        "name": "jsonschema",
+        "version": "4.23.0"
+      },
+      {
+        "homepage": "https://jsonschema-specifications.readthedocs.io/",
+        "license": "MIT",
+        "name": "jsonschema-specifications",
+        "version": "2025.9.1"
+      },
+      {
+        "homepage": "https://pillow.readthedocs.io",
+        "license": "MIT-CMU",
+        "name": "pillow",
+        "version": "13.0.0"
+      },
+      {
+        "homepage": "https://github.com/giampaolo/psutil",
+        "license": "BSD-3-Clause",
+        "name": "psutil",
+        "version": "7.2.2"
+      },
+      {
+        "homepage": "https://github.com/eliben/pycparser",
+        "license": "BSD-3-Clause",
+        "name": "pycparser",
+        "version": "3.0"
+      },
+      {
+        "homepage": "https://github.com/pydantic/pydantic",
+        "license": "MIT",
+        "name": "pydantic",
+        "version": "2.12.5"
+      },
+      {
+        "homepage": "https://github.com/pydantic/pydantic-core",
+        "license": "MIT",
+        "name": "pydantic_core",
+        "version": "2.41.5"
+      },
+      {
+        "homepage": "https://referencing.readthedocs.io/",
+        "license": "MIT",
+        "name": "referencing",
+        "version": "0.37.0"
+      },
+      {
+        "homepage": "https://requests.readthedocs.io",
+        "license": "Apache-2.0",
+        "name": "requests",
+        "version": "2.33.0"
+      },
+      {
+        "homepage": "https://rpds.readthedocs.io/",
+        "license": "MIT",
+        "name": "rpds-py",
+        "version": "2026.6.3"
+      },
+      {
+        "homepage": "https://github.com/python-trio/sniffio",
+        "license": "MIT OR Apache-2.0",
+        "name": "sniffio",
+        "version": "1.3.1"
+      },
+      {
+        "homepage": "https://github.com/Kludex/starlette",
+        "license": "BSD-3-Clause",
+        "name": "starlette",
+        "version": "1.6.0"
+      },
+      {
+        "homepage": "https://typing-extensions.readthedocs.io/",
+        "license": "PSF-2.0",
+        "name": "typing_extensions",
+        "version": "4.16.0"
+      },
+      {
+        "homepage": "https://github.com/pydantic/typing-inspection",
+        "license": "MIT",
+        "name": "typing-inspection",
+        "version": "0.4.4"
+      },
+      {
+        "homepage": "https://urllib3.readthedocs.io",
+        "license": "MIT",
+        "name": "urllib3",
+        "version": "2.8.0"
+      },
+      {
+        "homepage": "https://www.uvicorn.org/",
+        "license": "BSD-3-Clause",
+        "name": "uvicorn",
+        "version": "0.34.0"
+      },
+      {
+        "homepage": "https://github.com/python-websockets/websockets",
+        "license": "BSD-3-Clause",
+        "name": "websockets",
+        "version": "15.0.1"
+      },
+      {
+        "homepage": "https://python-zeroconf.readthedocs.io",
+        "license": "LGPL-2.1-or-later",
+        "name": "zeroconf",
+        "version": "0.151.3"
+      }
+    ],
+    "optional": true,
+    "platforms": [
+      "macos-arm64",
+      "windows-x86_64",
+      "linux-x86_64",
+      "linux-arm64"
+    ],
+    "run": {
+      "command": [
+        "{python}",
+        "-I",
+        "-S",
+        "-X",
+        "utf8",
+        "{component_dir}/start.py",
+        "--state",
+        "{data_dir}",
+        "--port",
+        "28560",
+        "--health-port",
+        "28561"
+      ],
+      "env": {
+        "PROMPITS_ENV_FILE": "none",
+        "PYTHON_DOTENV_DISABLED": "1"
+      },
+      "health_path": "/health",
+      "port": 28561
+    },
+    "settings": [
+      {
+        "default": "",
+        "descriptions": {
+          "en": "How this computer's Terminal lists it, such as \"Analyst on the studio Mac\". Empty: Local Analyst.",
+          "zh-Hant": "這台電腦的 Terminal 列出它時用的名稱，例如「工作室 Mac 上的分析師」。留空則為「本機分析師」（Local Analyst）。"
+        },
+        "id": "name",
+        "max_length": 60,
+        "names": {
+          "en": "Name",
+          "zh-Hant": "名稱"
+        },
+        "pattern": "[^\\x00-\\x1f\\x7f]{1,60}",
+        "type": "text"
+      }
+    ],
+    "version": "0.1.9-beta"
+  },
+  "version": "0.1.9-beta"
+}

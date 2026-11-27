@@ -1,6 +1,6 @@
 // Terminal settings → Data sources. Keys are saved in this Terminal only and are
 // sent only to the vendor hosts shown on each row; no agent receives them.
-import {ui as html,label,setUIText} from './i18n.js';
+import {ui as html,attribute,label,setUIText} from './i18n.js';
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let api,onSaved,rows=null,pending=null,warning='';
 
@@ -17,7 +17,7 @@ function keyFields(source){
 
 function row(source){
  const choice=source.sourceKeySupported?html`<label>Credential choice<select name="mode"><option value="own" ${source.mode==='own'?'selected':''}>Use my key</option><option value="source" ${source.mode==='source'?'selected':''}>Use source key</option></select></label>`:html`<input type="hidden" name="mode" value="own">`;
- return html`<details class="source-config-row" data-source-row="${esc(source.sourceId)}" data-source-search="${esc((source.name+' '+source.sourceId).toLowerCase())}"><summary><span class="source-config-name"><strong>${esc(source.name)}</strong><small>${esc(source.sourceId)}</small></span><span>${source.ownKeySupported||source.sourceKeySupported?label(source.mode==='source'?'Use source key':'Use my key'):''}</span><span class="source-access-status ${source.accessible?'available':'unavailable'}" title="${esc(source.reason)}">${label(status(source))}</span><span class="source-config-icon" aria-label="Configure source" title="Configure source">⚙</span></summary><form data-source-config="${esc(source.sourceId)}">${choice}<div class="source-key-config" ${source.mode==='source'?'hidden':''}>${keyFields(source)}</div><div class="source-owned-status" ${source.mode==='source'?'':'hidden'}>${label('The source operator’s own key serves the data it owns.')}</div><p class="source-config-reason">${source.reason?label(source.reason):''}</p>${source.ownKeySupported||source.sourceKeySupported?html`<button class="button" type="submit">Save source</button>`:''}<p data-source-feedback role="status"></p></form></details>`;
+ return html`<details class="source-config-row" data-source-row="${esc(source.sourceId)}" data-source-search="${esc((source.name+' '+source.sourceId).toLowerCase())}"><summary><span class="source-config-name"><strong>${esc(source.name)}</strong><small>${esc(source.sourceId)}</small></span><span>${source.ownKeySupported||source.sourceKeySupported?label(source.mode==='source'?'Use source key':'Use my key'):''}</span><span class="source-access-status ${source.accessible?'available':'unavailable'}" ${source.reason?attribute('title',source.reason):''}>${label(status(source))}</span><span class="source-config-icon" aria-label="Configure source" title="Configure source">⚙</span></summary><form data-source-config="${esc(source.sourceId)}">${choice}<div class="source-key-config" ${source.mode==='source'?'hidden':''}>${keyFields(source)}</div><div class="source-owned-status" ${source.mode==='source'?'':'hidden'}>${label('The source operator’s own key serves the data it owns.')}</div><p class="source-config-reason">${source.reason?label(source.reason):''}</p>${source.ownKeySupported||source.sourceKeySupported?html`<button class="button" type="submit">Save source</button>`:''}<p data-source-feedback role="status"></p></form></details>`;
 }
 
 function filter(container){

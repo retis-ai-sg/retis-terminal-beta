@@ -19,11 +19,13 @@ Payload, schema `prompits.parts-list/1`::
         "run": {"command": ["{python}", "-m", "example"], "env": {"PYTHONPATH": "{component_dir}/lib"},
                 "port": 28500, "health_path": "/health"},
         "data": [{"id": "full", "names": {"en": "Full dataset"}, "size": 1000000}],
-        "terms": [{"id": "licence", "version": "1", "url": "https://...", "names": {"en": "Licence"}}]}]}
+        "terms": [{"id": "licence", "version": "1", "url": "https://...", "names": {"en": "Licence"}}],
+        "settings": [{"id": "limit_gb", "type": "number", "names": {"en": "Storage limit (GB)"}, "default": 20}]}]}
 
 `run.command` and `run.env` values may use the placeholders `{python}`, `{component_dir}`, `{data_dir}` and
 `{port}`, and nothing else. `data` describes data the component downloads itself after install; it is never
-part of the package.
+part of the package. `settings` declares what the user may change for the component (prompits.components.settings);
+a manager that predates it ignores it.
 """
 from __future__ import annotations
 
@@ -35,6 +37,8 @@ from dataclasses import dataclass, field
 from typing import Any, Mapping
 
 from cryptography.exceptions import InvalidSignature
+
+from prompits.components.settings import SettingsError, parse_fields
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey, Ed25519PublicKey
 
 SCHEMA = "prompits.parts-list/1"
@@ -81,6 +85,7 @@ class Component:
     optional: bool = True
     data: tuple[Mapping[str, Any], ...] = ()
     terms: tuple[Mapping[str, Any], ...] = ()
+    settings: tuple[Mapping[str, Any], ...] = ()
     raw: Mapping[str, Any] = field(default_factory=dict, compare=False, repr=False)
 
     def artifact_for(self, platform: str) -> Artifact | None:
@@ -182,6 +187,10 @@ def parse_component(raw: Any) -> Component:
     for platform, item in (raw.get("artifacts") or {}).items():
         artifacts[str(platform)] = _parse_artifact(component_id, platform, item)
     run = _parse_run(component_id, raw.get("run")) if raw.get("run") is not None else None
+    try:
+        settings = parse_fields(component_id, raw.get("settings"))
+    except SettingsError as error:
+        raise PartsListError(str(error)) from error
     return Component(
         id=component_id,
         version=version,
@@ -192,6 +201,7 @@ def parse_component(raw: Any) -> Component:
         optional=bool(raw.get("optional", True)),
         data=tuple(_parse_data(component_id, item) for item in raw.get("data") or ()),
         terms=tuple(dict(item) for item in raw.get("terms") or () if isinstance(item, Mapping)),
+        settings=settings,
         raw=dict(raw),
     )
 

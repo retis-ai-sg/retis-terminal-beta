@@ -21,6 +21,8 @@ export function structuredFields(schema,{text=esc,attribute=(name,key)=>`${name}
    // The picture itself never enters the page's saved form draft: only the hidden field carries it, and drafts skip hidden fields.
    const limit=Math.min(Number.isInteger(value.maxLength)?value.maxLength:IMAGE_LENGTH,IMAGE_LENGTH);
    return `<label class="phema-image-field">${label}<input type="file" accept="${IMAGE_TYPES.join(',')}" data-structured-image data-media-type="${esc(value.contentMediaType)}" data-max-length="${limit}" ${attribute('aria-label',value.title||path.at(-1))} ${required?'required':''}>`
+    // The chosen picture, shown beside its name as soon as it is ready (before the form is sent).
+    +`<img data-image-preview alt="" hidden>`
     +`<input type="hidden" name="${name}" data-structured-field data-value-type="string" data-image-value><small data-image-note hidden></small>`
     +`<button type="button" data-image-clear hidden>${text('Remove image')}</button>`
     +`<small data-image-message="busy" hidden>${text('Preparing the image…')}</small>`
@@ -97,9 +99,10 @@ async function shrink(image,type,limit){
 }
 async function pickImage(input){
  const holder=input.closest('.phema-image-field');if(!holder)return;
- const value=holder.querySelector('[data-image-value]'),note=holder.querySelector('[data-image-note]'),clear=holder.querySelector('[data-image-clear]');
+ const value=holder.querySelector('[data-image-value]'),note=holder.querySelector('[data-image-note]'),clear=holder.querySelector('[data-image-clear]'),preview=holder.querySelector('[data-image-preview]');
  const say=kind=>holder.querySelectorAll('[data-image-message]').forEach(node=>{node.hidden=node.dataset.imageMessage!==kind;});
  value.value='';note.hidden=true;clear.hidden=true;say(null);input.setCustomValidity('');
+ if(preview){preview.hidden=true;preview.removeAttribute('src');}
  const file=input.files?.[0];if(!file)return;
  // Until the picture is ready the form does not submit, so a design never leaves without the image it shows.
  say('busy');input.setCustomValidity(holder.querySelector('[data-image-message="busy"]').textContent||'Preparing the image…');
@@ -111,6 +114,7 @@ async function pickImage(input){
   const encoded=await shrink(image,input.dataset.mediaType,Number(input.dataset.maxLength)||IMAGE_LENGTH);
   if(!encoded)throw new Error('large');
   value.value=encoded.data;note.textContent=`${file.name} · ${encoded.width}×${encoded.height}`;note.hidden=false;clear.hidden=false;say(null);
+  if(preview){preview.src=`data:${input.dataset.mediaType||'image/jpeg'};base64,${encoded.data}`;preview.hidden=false;}
  }catch(error){input.value='';say(error?.message==='large'?'large':'type');}
  finally{image?.close?.();input.setCustomValidity('');}
 }

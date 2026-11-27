@@ -82,3 +82,19 @@ html,body{height:100%;overflow:hidden}
   .window-canvas .composed-browser-layout.free-placement>.template-panel{position:relative!important;left:auto!important;top:auto!important;width:auto!important;height:auto!important;flex-shrink:0}
   .window-canvas .composed-browser-layout.free-placement:after{display:none}
 }
+/* A Phema's split-container border (layout-splitters.js): a thin grip over the 1px gap between its two panels, or the
+   strip a hidden panel leaves, with ‹ › to hide or show a panel. */
+.browser-layout>.layout-splitter{position:relative;z-index:4;justify-self:start;align-self:stretch;width:9px;margin-left:-5px;min-height:0;padding:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;cursor:col-resize;touch-action:none;user-select:none;background:transparent;border:0;outline:none}
+.browser-layout>.layout-splitter.is-collapsed{justify-self:stretch;width:auto;margin-left:0;cursor:default;background:var(--surface)}
+.browser-layout>.layout-splitter.is-fixed{pointer-events:none}
+.layout-splitter:hover,.layout-splitter:focus-visible,.layout-splitter.is-dragging{background:color-mix(in srgb,var(--accent) 22%,transparent)}
+.layout-splitter-grip{width:3px;height:28px;border-left:1px dotted var(--muted);border-right:1px dotted var(--muted);pointer-events:none}
+.layout-splitter.is-collapsed .layout-splitter-grip{display:none}
+.layout-splitter-buttons{position:absolute;top:8px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;gap:4px}
+.layout-splitter button{width:14px;height:22px;padding:0;border:1px solid var(--line);border-radius:3px;background:var(--raised);color:var(--muted);font-size:11px;line-height:1;cursor:pointer;opacity:0;transition:opacity .12s}
+.layout-splitter:hover button,.layout-splitter:focus-within button,.layout-splitter.is-collapsed button{opacity:1}
+.layout-splitter button:hover{color:var(--text);border-color:var(--accent)}
+.layout-split-dragging,.layout-split-dragging *{cursor:col-resize!important;user-select:none}
+.layout-split-dragging iframe{pointer-events:none}
+.phema-editing>.layout-splitter{display:none}
+@container(max-width:400px){.window-canvas .browser-layout>.layout-splitter{display:none}}

@@ -168,12 +168,25 @@ def llm_key(store, user, agent, provider):
     name = provider.get('name') if isinstance(provider.get('name'), str) and provider.get('name') else provider['id']
     record, key = usable_key(store, user, source)
     if record is None:
-        raise HTTPException(409, say(store, user, 'Add your {0} key in Terminal settings → LLM keys.', name))
+        raise HTTPException(409, say(store, user, 'Add your {0} key in Terminal settings → Data sources → LLM keys.', name))
     hosts = [h for h in record.get('vendorHosts') or [] if isinstance(h, str)]
     published = direct(info_of(agent, source))['hosts']
     if not hosts or not published or not set(published) <= set(hosts):
         raise HTTPException(409, 'Save your ' + name + ' key again so this Terminal can pin its current host.')
     return key, hosts
+
+
+def own_llm_key_ready(store, user, agent, provider_id):
+    """Whether this window's own key for one LLM provider the agent publishes would be used now: llm_key()'s check,
+    answered yes or no. Only that answer leaves here; the key and its masked form never do."""
+    provider = llm_provider(agent, LLM + provider_id)
+    if store is None or provider is None:
+        return False
+    try:
+        llm_key(store, user, agent, provider)
+    except HTTPException:
+        return False
+    return True
 
 
 def row(store, user, source, agents, policy):

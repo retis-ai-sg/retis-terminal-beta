@@ -1,13 +1,21 @@
 """Expose selected Pulser operations as a local resource this computer's Terminal uses (no pairing)."""
+import copy
+
 from fastapi import HTTPException
 from starlette.concurrency import run_in_threadpool
+
 from .service import install_local_resource
+
+# Card entries a pulser that is also a data source publishes about itself (its source id and its spec's hash), so
+# this computer's Terminal lists it as a source and a model planner can plan for it (phemacast.core.model_plans).
+SOURCE_META = ('data_source', 'spec_snapshot')
 
 
 def install_pulser_local(pulser, *, views=None, phemas=None):
     """`views` (release digest -> folder) serves the pulser's agent views; the card's `phemacast_agent_views`
     catalog is described with them. `phemas` (id -> {name, revision, phema}) are Phemas the pulser ships, which
-    the Terminal keeps in its own library."""
+    the Terminal keeps in its own library. A pulser whose card describes it as a data source (SOURCE_META) is
+    described with that too."""
     config = pulser.raw_config.get('local_network')
     if not config:
         return None
@@ -19,7 +27,9 @@ def install_pulser_local(pulser, *, views=None, phemas=None):
             {k: v for k, v in p.items() if k in public_fields}
             for p in pulser.supported_pulses if p.get('name') in allowed]
         meta = {'supported_pulses': pulses}
-        catalog = ((getattr(pulser, 'agent_card', None) or {}).get('meta') or {}).get('phemacast_agent_views')
+        card = (getattr(pulser, 'agent_card', None) or {}).get('meta') or {}
+        meta.update({key: copy.deepcopy(card[key]) for key in SOURCE_META if isinstance(card.get(key), dict)})
+        catalog = card.get('phemacast_agent_views')
         if views is not None and catalog:
             meta['phemacast_agent_views'] = catalog
         return {'name': pulser.name, 'pulses': pulses, 'meta': meta}

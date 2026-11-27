@@ -1,0 +1,122 @@
+{
+    "name": "LLMPulser",
+    "type": "phemacast.pulsers.llm_pulser.LLMPulser",
+    "host": "127.0.0.1",
+    "port": 8031,
+    "role": "pulser",
+    "description": "LLM pulser for chat completions through its configured providers. Each call runs on the site's key and is priced by the model it uses; viewers with their own key call the provider from their Terminal instead.",
+    "tags": [
+        "llm",
+        "chat",
+        "cloud"
+    ],
+    "pools": [
+        {
+            "type": "FileSystemPool",
+            "name": "llm_pool",
+            "description": "LLM pulser pool",
+            "root_path": "phemacast/storage/llm_pulser"
+        }
+    ],
+    "site_model": "claude-sonnet-5-5",
+    "default_points": 1,
+    "max_tokens": 8192,
+    "providers": [
+        {
+            "id": "anthropic",
+            "name": "Anthropic",
+            "adapter": "anthropic-messages",
+            "base_url": "https://api.anthropic.com",
+            "key_env": "ANTHROPIC_API_KEY",
+            "model_prefixes": ["claude-"],
+            "effort": "medium",
+            "max_effort": "high",
+            "max_tokens": 8192,
+            "min_tokens": 4096,
+            "fallbacks": true,
+            "points": 1,
+            "default_model": "claude-sonnet-5-5",
+            "models": [
+                {"id": "claude-sonnet-5-5", "name": "Claude Sonnet 5.5", "points": 1},
+                {"id": "claude-opus-5-5", "name": "Claude Opus 5.5", "points": 3},
+                {"id": "claude-haiku-5-5", "name": "Claude Haiku 5.5", "points": 1}
+            ]
+        },
+        {
+            "id": "openai",
+            "name": "OpenAI",
+            "adapter": "openai-chat",
+            "base_url": "https://api.openai.com/v1",
+            "key_env": "OPENAI_API_KEY",
+            "model_prefixes": ["gpt-", "o1", "o3", "o4"],
+            "points": 1,
+            "default_model": "gpt-6-luna",
+            "models": [
+                {"id": "gpt-6-luna", "name": "GPT-6 Luna"}
+            ]
+        }
+    ],
+    "supported_pulses": [
+        {
+            "party": "System",
+            "name": "llm_chat",
+            "title": "LLM chat",
+            "description": "Chat completion through this pulser's providers, on the site's key. The quote is the price of the model the call will use.",
+            "extensions": {
+                "phemacast:ui": {
+                    "version": 1,
+                    "defaultLocale": "en",
+                    "messages": {
+                        "LLM chat": {
+                            "zh-Hant": "LLM 對話",
+                            "zh-Hans": "LLM 对话",
+                            "ja": "LLM チャット",
+                            "es": "Chat con un LLM",
+                            "fr": "Discussion avec un LLM"
+                        }
+                    }
+                }
+            },
+            "pulse_address": "plaza://pulse/pulse_1",
+            "tags": [
+                "llm",
+                "chat"
+            ],
+            "cost": 1,
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "prompt": {"type": "string"},
+                    "messages": {
+                        "type": "array",
+                        "maxItems": 16,
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "role": {"type": "string", "enum": ["system", "user", "assistant"]},
+                                "content": {"type": "string"}
+                            },
+                            "required": ["role", "content"]
+                        }
+                    },
+                    "system": {"type": "string"},
+                    "provider": {"type": "string"},
+                    "model": {"type": "string"},
+                    "max_tokens": {"type": "integer", "minimum": 1},
+                    "reasoning_effort": {
+                        "type": "string",
+                        "enum": ["low", "medium", "high", "xhigh", "max"]
+                    }
+                }
+            },
+            "mapping": {
+                "response": "response",
+                "model": "model",
+                "provider": "provider"
+            },
+            "test_data": {
+                "prompt": "Say hello in one sentence."
+            }
+        }
+    ]
+}

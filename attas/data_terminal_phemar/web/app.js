@@ -1,13 +1,14 @@
 import {refreshPhemaFrame} from './phema-frame-refresh.js';
-import {reloadBrowserPhema} from './connected.js';
+import {reloadBrowserPhema,setCompositionViewParameters} from './connected.js';
 import {installPhemaEdit,mountPhemaEdit,phemaEditToolbar,togglePhemaEdit,phemaEditGesture} from './browser-phema-edit.js';
 import {uiBundle} from './phema-i18n.js';
+import {currentComponentPage,carriedValues} from './component-page.js';
 
 import {normalizeResearchState} from './workspace-storage.js';
 import {normalizeContentOverrides} from './content-policies.js';
 import {openBrowserLanguageDialog,openLanguageChoice} from './browser-language.js';
 import {closeOnOutsideClick} from './dialog-dismiss.js';
-import {ui as uiHTML,label,attribute,t,applyUI,validLocale,setUIAttribute,setLocale} from './i18n.js';
+import {ui as uiHTML,label,attribute,message,t,applyUI,validLocale,setUIAttribute,setLocale,scopedTranslate} from './i18n.js';
 // A workspace keeps the default name as saved and shows it in the window's language.
 const DEFAULT_WORKSPACE='Research desk';
 const workspaceName=w=>w?.name===DEFAULT_WORKSPACE?t(DEFAULT_WORKSPACE):(w?.name||'');
@@ -16,6 +17,8 @@ import {watchPhemaChanges,saveReloadDraft,takeReloadDraft} from './phema-reload.
 import {normalizeFieldBindings} from './field-bindings.js';
 import {normalizeRefreshOverrides,refreshPolicy,refreshLabel,refreshFields} from './block-refresh.js';
 import {renderBrowserPanels,installLayoutTabs} from './layout-tabs.js';
+import {browserLayoutStyle,installSplitters} from './layout-splitters.js';
+import {normalizeSplits} from './layout-split.js';
 import {layoutFetchStatus,statusHTML as fetchStatusHTML,updateStatus} from './layout-status.js';
 import {refreshPanels} from './panel-refresh.js';
 import {keepMounted} from './composition-renderers.js';
@@ -23,12 +26,18 @@ import {captureOperationDrafts,restoreOperationDrafts} from './operation-form-dr
 const operationDraftScopes=new WeakMap();
 import {normalizeInstrumentOverrides} from './browser-instruments.js';
 import {providerOrigin,consultantURL} from './host-context.js';
-import {runtime, connect, api, scopedStorage, statusHTML, settingsHTML, syncBrowsers, setBrowserLanguage, browserState, browserCompany, panelHTML, loadCatalog, discussionHTML} from './connected.js';
+import {runtime, connect, api, scopedStorage, statusHTML, settingsHTML, syncBrowsers, setBrowserLanguage, browserState, browserCompany, panelHTML, loadCatalog, discussionHTML, remoteIdOf} from './connected.js';
+import {installAICommands,askToSpend,askToAllow,undoToast,viewUndo} from './ai-commands.js';
+import {mountedAgentViews} from './agent-view-renderer-adapter.js';
+import {captureForAI} from './ai-capture.js';
+import {installLinkGroups,joinGroup,nextGroup,linkChipHTML,thisWindow,reload as reloadLinks} from './link-groups.js';
 import {runningPhemas} from './scheduled-runs.js';
 await connect();
 import {installWorkspaceLauncher,openingIndicator} from './agent-workspaces.js';
 import {resolveWorkspaceEntry,workspaceEntryReference} from './workspace-entry-navigation.js';
 import {installPhemaSelector,readStarterWorkspace} from './phema-selector.js';
+import {openFeedbackDialog} from './feedback-dialog.js';
+import {agentStorages} from './phema-storages.js';
 import {LayoutPreviews} from './layout-previews.js';
 const workspaceLauncher=installWorkspaceLauncher({request:api,text:t,showButton:false});
 const layoutPreviews=new LayoutPreviews(api);
@@ -38,7 +47,22 @@ const trustOwner=record=>{
  const raw=new TextEncoder().encode(JSON.stringify(record)),b64=btoa(String.fromCharCode(...raw)).replaceAll('+','-').replaceAll('/','_').replace(/=+$/,'');
  return new URL(runtime.plaza.url).origin+'/trusted-agents/accounts?owner='+b64;
 };
-const phemaSelector=installPhemaSelector({request:api,toEntry:phemaToEntry,workspaceId:()=>currentWorkspace().id,text:t,onOpen:openSelectedPhema,previews:layoutPreviews,trustOwner});
+// New Data Browser searches this Terminal's Phemas and every agent library this account may use, found through Plaza.
+// Which storages it searches and whether opening arranges the windows are this window's preference.
+const chooserPreference={get:()=>runtime.settings?.preferences?.phemaChooser||null,async set(value){
+ if(runtime.settings?.preferences)runtime.settings.preferences.phemaChooser=value;
+ await api('/api/settings',{method:'PUT',body:{phemaChooser:value}});
+}};
+// Where the viewer last put each Phema's window (moved, resized, maximized), kept like the chooser's choices: a
+// preference of this account and Terminal window in the Terminal's store. A new window of that Phema opens there.
+const phemaWindows=createPhemaWindows({read:()=>runtime.settings?.preferences?.phemaWindows,async write(list){
+ if(runtime.settings?.preferences)runtime.settings.preferences.phemaWindows=list;
+ if(runtime.user)await api('/api/settings',{method:'PUT',body:{phemaWindows:list}});
+}});
+const phemaSelector=installPhemaSelector({request:api,toEntry:phemaToEntry,workspaceId:()=>currentWorkspace().id,text:t,onOpen:openSelectedPhema,previews:layoutPreviews,trustOwner,
+ storages:()=>agentStorages({request:api,toEntry:phemaToEntry,workspaceId:()=>currentWorkspace().id}),preference:chooserPreference,
+ // The libraries' lists as last shown, for this tab only; each opening asks the libraries again and replaces them.
+ cache:{read:()=>scopedStorage().getItem('phema-chooser-lists'),write:value=>scopedStorage().setItem('phema-chooser-lists',value)}});
 import {WorkspaceClient} from './workspace-client.js';
 import {WorkspacePreviews} from './workspace-previews.js';
 
@@ -53,13 +77,15 @@ import { sessionNameTagHTML, applySessionName, sessionNameSettingsHTML } from '.
 import { reopenTabsButtonHTML } from './reopen-tabs.js';
 
 import { renderPlazaStatus, closePlazaStatus } from './plaza-status.js';
-import { normalizeFrame, moveFrame, resizeFrame, tileFrames, cascadeFrame, freeFrame } from './window-geometry.js';
+import { normalizeFrame, moveFrame, resizeFrame, tileFrames, cascadeFrame, openingFrame } from './window-geometry.js';
+import { phemaWindowKey, restoredFrame, createPhemaWindows } from './phema-windows.js';
 import { readWorkspaceStore, STORAGE_KEY, normalizeMessages, normalizeDiscussionDrafts, normalizeInteractionDrafts } from './workspace-storage.js';
 import { normalizeLayoutEntry, bindLayoutEntry, layoutKind } from './layout-library.js';
 
 import { layoutStyle, templateStyle, layoutScope, usesFreePlacement, renderDesignMap } from './layout-presentation.js';
 import { toComposableEntry } from './layout-composition.js';
 import { PLAZA_PULSES } from './plaza-pulses.js';
+import { openWorkspaceHistory, historyPictures } from './workspace-history.js';
 
 initializeTheme();
 
@@ -121,12 +147,15 @@ function createBrowser(command,customLayout=null){
  return {id:'browser-'+nextId++,previewId:crypto.randomUUID(),uiLanguage:null,command,layoutId:rec.layoutId,ticker:rec.ticker,tickers:rec.tickers,design:rec.dbl,customLayout,range:'1M',showRequirements:false,paused:false,selectedReport:null,messages:[],frame:null,z:++topZ,commandOpen:false,commandDraft:command,...(original&&!customLayout?{unsupportedLayout:original}:{})};
 }
 function openWorkspacePhema(entry){
-  let browser=ui.browsers.find(b=>b.customLayout?.id===entry.id);
+  let browser=ui.browsers.find(b=>b.customLayout?.id===entry.id),maximized=true;
   if(!browser){
     if(ui.browsers.length>=12)throw new Error('Close a browser before opening '+entry.name+'.');
-    browser=createBrowser('CONTENT',entry);browser.sourceMode='parameters';ui.browsers.push(browser);
+    browser=createBrowser('CONTENT',entry);browser.sourceMode='parameters';
+    // An entry opens maximized, unless the viewer last left its window somewhere else.
+    const saved=placeRemembered(browser);if(saved){maximized=saved.maximized;ui.arrange=false;}
+    ui.browsers.push(browser);
   }
-  ui.activeId=browser.id;ui.focus=true;
+  ui.activeId=browser.id;ui.focus=maximized;
   return browser;
 }
 // Set when a signed-in window loaded no saved workspace: it then opens the starter workspace (openStarterWorkspace).
@@ -142,7 +171,7 @@ async function restore({strict=false}={}) {
     ui.density = saved.settings.density;
     if (typeof saved.settings.sidebarCollapsed === 'boolean') ui.sidebarCollapsed = saved.settings.sidebarCollapsed;
     ui.workspaces = saved.workspaces.map(w => {
-      const browsers = w.browsers.map(b => ({ ...createBrowser(b.command,b.customLayout), terminalDocumentId:b.terminalDocumentId,previewId:b.previewId||crypto.randomUUID(),range:b.range,sourceMode:b.sourceMode||'parameters',contentSnapshotId:b.contentSnapshotId,selectionKey:typeof b.selectionKey==='string'?b.selectionKey:null,uiLanguage:validLocale(b.uiLanguage)?b.uiLanguage:null, frame:b.frame, z:b.z, messages:b.messages||[], discussionDrafts:b.discussionDrafts||{},interactionDrafts:normalizeInteractionDrafts(b.interactionDrafts),fieldBindings:normalizeFieldBindings(b.fieldBindings),contentOverrides:normalizeContentOverrides(b.contentOverrides),refreshOverrides:normalizeRefreshOverrides(b.refreshOverrides),instrumentOverrides:normalizeInstrumentOverrides(b.instrumentOverrides),parameterValues:normalizeResearchState(b.parameterValues),researchView:normalizeResearchState(b.researchView),commandDraft:b.commandDraft??b.command,commandOpen:b.commandOpen===true,layoutTabs:b.layoutTabs, layoutPublication:b.layoutPublication,consultantId:b.consultantId || null,unsupportedLayout:b.unsupportedLayout || null }));
+      const browsers = w.browsers.map(b => ({ ...createBrowser(b.command,b.customLayout), linkGroup:b.linkGroup||null,opened:b.opened||{},layoutSplits:normalizeSplits(b.layoutSplits), terminalDocumentId:b.terminalDocumentId,previewId:b.previewId||crypto.randomUUID(),range:b.range,sourceMode:b.sourceMode||'parameters',contentSnapshotId:b.contentSnapshotId,selectionKey:typeof b.selectionKey==='string'?b.selectionKey:null,uiLanguage:validLocale(b.uiLanguage)?b.uiLanguage:null, frame:b.frame, z:b.z, messages:b.messages||[], discussionDrafts:b.discussionDrafts||{},interactionDrafts:normalizeInteractionDrafts(b.interactionDrafts),fieldBindings:normalizeFieldBindings(b.fieldBindings),contentOverrides:normalizeContentOverrides(b.contentOverrides),refreshOverrides:normalizeRefreshOverrides(b.refreshOverrides),instrumentOverrides:normalizeInstrumentOverrides(b.instrumentOverrides),parameterValues:normalizeResearchState(b.parameterValues),researchView:normalizeResearchState(b.researchView),commandDraft:b.commandDraft??b.command,commandOpen:b.commandOpen===true,layoutTabs:b.layoutTabs, layoutPublication:b.layoutPublication,consultantId:b.consultantId || null,unsupportedLayout:b.unsupportedLayout || null }));
       topZ = Math.max(topZ, ...browsers.map(b => b.z));
       const workspace={ id:w.id, name:w.name, updatedAt:w.updatedAt, browsers, activeId:browsers[w.activeIndex]?.id || null, focus:w.focus, arrange:browsers.length>0 && browsers.every(b=>!b.frame), terminalDraft:'' };
       workspace.lastSnapshot=workspaceContent(workspace);
@@ -166,20 +195,28 @@ async function openStarterWorkspace(){
   starterPending=false;
   const workspace=currentWorkspace(),untouched=()=>currentWorkspace()===workspace&&!workspace.browsers.length;
   try{
-    const starter=await workspaceLauncher.openPreferred({name:'App Consultant',
-      resolve:entry=>resolveWorkspaceEntry({entry,request:api,toEntry:phemaToEntry,workspaceId:workspace.id}),
-      present:detail=>readStarterWorkspace({phema:detail.phema,request:api,toEntry:phemaToEntry,workspaceId:workspace.id,
-        locale:document.documentElement.lang||'en',limit:12})});
+    // The status line names each step it waits for: Plaza's list, the App Consultant's entry, each starter Phema.
+    let owner='App Consultant';
+    const plaza=(()=>{try{return new URL(runtime.plaza.url).host;}catch{return 'Plaza';}})();
+    const starter=await workspaceLauncher.openPreferred({name:'App Consultant',where:plaza,
+      resolve:(entry,say)=>{owner=entry.name||owner;say?.('Asking {0} for the starter workspace…',owner);
+        return resolveWorkspaceEntry({entry,request:api,toEntry:phemaToEntry,workspaceId:workspace.id});},
+      present:(detail,say)=>readStarterWorkspace({phema:detail.phema,request:api,toEntry:phemaToEntry,workspaceId:workspace.id,
+        locale:document.documentElement.lang||'en',limit:12,
+        onProgress:({name,index,total})=>say?.('Reading {0} from {1} ({2} of {3})…',name||owner,owner,String(index),String(total))})});
     if(!starter||!untouched())return;
     if(!starter.phemas.length)throw new Error(t('None of its Phemas is available to this account.'));
     if(starter.name&&workspace.name===DEFAULT_WORKSPACE){workspace.name=starter.name;render();}
-    for(const phema of starter.phemas){
+    // It lays out the new, empty workspace it fills: each Phema opens straight into its own tile of an even
+    // arrangement for all of them (or where the viewer last left it), so no window moves once it is shown.
+    const tiles=tileFrames(starter.phemas.length,canvasBounds());
+    for(const [index,phema] of starter.phemas.entries()){
       if(currentWorkspace()!==workspace)break;  // the viewer moved to another workspace meanwhile
-      await openSelectedPhema({phema,sourceMode:'parameters',target:'new'});
+      await openSelectedPhema({phema,sourceMode:'parameters',target:'new',frame:tiles[index]});
     }
-    // The list's first Phema is the one in front.
+    // The list's first Phema is the one in front, maximized only if the viewer last left it so.
     const first=workspace.browsers[0];
-    if(first&&currentWorkspace()===workspace){ui.activeId=first.id;first.z=++topZ;render();await persist();}
+    if(first&&currentWorkspace()===workspace){ui.activeId=first.id;first.z=++topZ;ui.focus=keptPlace(first)?.maximized===true;render();await persist();}
   }catch(error){
     console.warn('Starter workspace:',error.message);
     toast(t('The starter workspace could not open: {0}',error.message));
@@ -187,7 +224,7 @@ async function openStarterWorkspace(){
 }
 const currentWorkspace = () => ui.workspaces.find(w=>w.id===ui.workspaceId);
 function workspaceSnapshot(w) {
-  return { id:w.id, name:w.name, updatedAt:w.updatedAt, browsers:w.browsers.map(b=>({command:b.command,terminalDocumentId:b.terminalDocumentId,previewId:b.previewId,range:b.range,sourceMode:b.sourceMode||'parameters',contentSnapshotId:b.contentSnapshotId,selectionKey:b.selectionKey||null,uiLanguage:validLocale(b.uiLanguage)?b.uiLanguage:null,frame:b.frame,z:b.z,messages:b.messages||[],discussionDrafts:b.discussionDrafts||{},interactionDrafts:normalizeInteractionDrafts(b.interactionDrafts),fieldBindings:normalizeFieldBindings(b.fieldBindings),contentOverrides:normalizeContentOverrides(b.contentOverrides),refreshOverrides:normalizeRefreshOverrides(b.refreshOverrides),instrumentOverrides:normalizeInstrumentOverrides(b.instrumentOverrides),parameterValues:normalizeResearchState(b.parameterValues),researchView:normalizeResearchState(b.researchView),commandDraft:b.commandDraft??b.command,commandOpen:b.commandOpen===true,layoutTabs:b.layoutTabs,...(b.customLayout?{customLayout:b.customLayout}:{}),...(b.layoutPublication?{layoutPublication:b.layoutPublication}:{}),...(b.consultantId?{consultantId:b.consultantId}:{}),...(b.unsupportedLayout?{unsupportedLayout:b.unsupportedLayout}:{})})), activeIndex:w.browsers.findIndex(b=>b.id===w.activeId), focus:w.focus };
+  return { id:w.id, name:w.name, updatedAt:w.updatedAt, browsers:w.browsers.map(b=>({command:b.command,linkGroup:b.linkGroup||null,opened:b.opened||{},layoutSplits:normalizeSplits(b.layoutSplits),terminalDocumentId:b.terminalDocumentId,previewId:b.previewId,range:b.range,sourceMode:b.sourceMode||'parameters',contentSnapshotId:b.contentSnapshotId,selectionKey:b.selectionKey||null,uiLanguage:validLocale(b.uiLanguage)?b.uiLanguage:null,frame:b.frame,z:b.z,messages:b.messages||[],discussionDrafts:b.discussionDrafts||{},interactionDrafts:normalizeInteractionDrafts(b.interactionDrafts),fieldBindings:normalizeFieldBindings(b.fieldBindings),contentOverrides:normalizeContentOverrides(b.contentOverrides),refreshOverrides:normalizeRefreshOverrides(b.refreshOverrides),instrumentOverrides:normalizeInstrumentOverrides(b.instrumentOverrides),parameterValues:normalizeResearchState(b.parameterValues),researchView:normalizeResearchState(b.researchView),commandDraft:b.commandDraft??b.command,commandOpen:b.commandOpen===true,layoutTabs:b.layoutTabs,...(b.customLayout?{customLayout:b.customLayout}:{}),...(b.layoutPublication?{layoutPublication:b.layoutPublication}:{}),...(b.consultantId?{consultantId:b.consultantId}:{}),...(b.unsupportedLayout?{unsupportedLayout:b.unsupportedLayout}:{})})), activeIndex:w.browsers.findIndex(b=>b.id===w.activeId), focus:w.focus };
 }
 function workspaceContent(w) {
   const {updatedAt,...snapshot}=workspaceSnapshot(w);
@@ -209,13 +246,15 @@ function selectWorkspace(w) {
   ui.terminalDraft=w.terminalDraft;
   ui.terminalCommandOpen=false;
 }
+// After a save goes quiet, a small picture of the window area is filed with that version of the workspace.
+const historyPicture=historyPictures({api,area:()=>document.querySelector('.window-canvas'),revision:()=>workspaceClient.revision,enabled:()=>!!runtime.user&&!sessionTransition});
 async function persist() {
   // Never save a guest workspace into an account while its saved state loads.
   if(sessionTransition)return false;
   captureWorkspace();
   const document={version:2,activeWorkspaceId:ui.workspaceId,workspaces:ui.workspaces.map(workspaceSnapshot),settings:{density:ui.density,sidebarCollapsed:ui.sidebarCollapsed}};
   try {
-    if(runtime.user)await workspaceClient.save(document);
+    if(runtime.user){await workspaceClient.save(document);historyPicture.saved();}
     ui.storageError=runtime.user?null:'Sign in to save workspaces.';
   } catch(error) { ui.storageError=error.message; }
   const status=$('.local-status');
@@ -236,7 +275,7 @@ async function persistPreviewWorkspace(){
   if(!runtime.user||sessionTransition)return false;
   captureWorkspace();
   const document={version:2,activeWorkspaceId:ui.workspaceId,workspaces:ui.workspaces.map(workspaceSnapshot),settings:{density:ui.density,sidebarCollapsed:ui.sidebarCollapsed}};
-  try{await workspaceClient.save(document);return true;}
+  try{await workspaceClient.save(document);historyPicture.saved();return true;}
   catch{return false;}
 }
 function loadWorkspace(id) {
@@ -279,6 +318,26 @@ function toast(message) { $('#toast').textContent = message; $('#toast').classLi
 function canvasBounds() {
   const canvas = $('.window-canvas');
   return { width: canvas?.clientWidth || 1, height: canvas?.clientHeight || 1 };
+}
+// Phones fill the screen with each window, so there a window's place is neither kept nor used.
+const keepsPlaces=()=>!narrowViewport.matches;
+/** Where the viewer last left this window's Phema, or null. */
+const keptPlace=browser=>keepsPlaces()?phemaWindows.get(phemaWindowKey(browser)):null;
+/** A new window of a Phema with a kept place goes there, clear of its copies already open; returns that place. */
+function placeRemembered(browser){
+  const saved=keptPlace(browser),key=phemaWindowKey(browser);
+  if(saved)browser.frame=restoredFrame(saved,ui.browsers.filter(b=>b!==browser&&phemaWindowKey(b)===key).map(b=>b.frame),canvasBounds());
+  return saved;
+}
+/** Keep where the viewer moved or resized a window. Arranging, tiling and fitting a smaller canvas keep nothing. */
+function rememberPlace(browser){
+  if(browser&&keepsPlaces())phemaWindows.remember(phemaWindowKey(browser),{frame:browser.frame,maximized:ui.focus&&ui.activeId===browser.id});
+}
+/** After the viewer maximizes the front window or restores it, keep that with its place. */
+function rememberMaximized(){
+  const browser=active(),saved=keptPlace(browser);
+  if(!browser||!keepsPlaces()||(saved?saved.maximized===ui.focus:!ui.focus))return;
+  phemaWindows.remember(phemaWindowKey(browser),{frame:saved||browser.frame,maximized:ui.focus});
 }
 function placeWindow(node, frame, z) {
   if (!node) return;
@@ -352,7 +411,7 @@ document.addEventListener('pointerdown',e=>{
   const resize=e.target.closest('[data-resize-window]');
   const title=e.target.closest('[data-drag-window]');
   const id=windowNode.dataset.browser;
-  if(ui.focus || (!resize && (!title || e.target.closest('.window-tools'))))return;
+  if(ui.focus || (!resize && (!title || e.target.closest('.window-tools,.layout-approve'))))return;
   const b=active();
   const capture=resize||title;
   gesture={id,node:windowNode,capture,pointerId:e.pointerId,startX:e.clientX,startY:e.clientY,frame:{...b.frame},bounds:canvasBounds(),edge:resize?.dataset.edge,moved:false};
@@ -377,7 +436,7 @@ function finishGesture(e) {
   gesture=null;
   if(e.type==='pointercancel'){
     const b=ui.browsers.find(item=>item.id===g.id);b.frame=g.frame;placeWindow(g.node,b.frame,b.z);
-  }
+  }else if(g.moved)rememberPlace(ui.browsers.find(item=>item.id===g.id));
   if(g.capture.hasPointerCapture(e.pointerId))g.capture.releasePointerCapture(e.pointerId);
   g.node.classList.remove('is-dragging','is-resizing');
   document.body.classList.remove('window-manipulating');
@@ -393,8 +452,8 @@ document.addEventListener('click',e=>{
 },true);
 document.addEventListener('dblclick',e=>{
   const title=e.target.closest('[data-drag-window]');
-  if(!title||e.target.closest('.window-tools'))return;
-  ui.activeId=title.dataset.dragWindow;ui.focus=!ui.focus;render();
+  if(!title||e.target.closest('.window-tools,.layout-approve'))return;
+  ui.activeId=title.dataset.dragWindow;ui.focus=!ui.focus;rememberMaximized();render();
 });
 document.addEventListener('keydown',e=>{
   const title=e.target.closest('[data-drag-window]');
@@ -404,7 +463,7 @@ document.addEventListener('keydown',e=>{
   const dx=e.key==='ArrowLeft'?-16:e.key==='ArrowRight'?16:0;
   const dy=e.key==='ArrowUp'?-16:e.key==='ArrowDown'?16:0;
   b.frame=e.shiftKey?resizeFrame(b.frame,'se',dx,dy,canvasBounds()):moveFrame(b.frame,dx,dy,canvasBounds());
-  bringToFront(b.id);placeWindow(title.closest('.browser-window'),b.frame,b.z);persist();
+  bringToFront(b.id);placeWindow(title.closest('.browser-window'),b.frame,b.z);rememberPlace(b);persist();
 });
 
 
@@ -417,7 +476,7 @@ function renderTerminalCommands() {
     <section id="terminal-command-panel" class="terminal-command-panel" aria-label="Terminal command controls">
       <div class="terminal-command-heading"><span>Terminal commands</span><button class="icon-button" data-action="close-terminal-command" aria-label="Close Terminal commands">${icon('close')}</button></div>
       <form id="command-form" class="command-input">${icon('command')}<input id="command" name="command" aria-label="Ticker or command" value="${esc(ui.terminalDraft)}" autocomplete="off" spellcheck="false" maxlength="499" placeholder="Command for the active browser…"/><kbd>⌘ K</kbd><button type="submit" aria-label="Run command">${icon('arrow')}</button></form>
-      <div class="terminal-command-actions"><button data-action="new" aria-label="New browser">${icon('plus')} New browser</button><button data-action="save" aria-label="Save workspace">${icon('save')} Save workspace</button><button data-action="tile" aria-label="Tile all browsers">${icon('grid')} Tile all browsers</button><button data-action="focus" aria-label="Focus active browser">${icon('expand')} Focus active browser</button><button data-action="help" aria-label="Command reference">${icon('book')} Command reference</button></div>
+      <div class="terminal-command-actions"><button data-action="new" aria-label="New browser">${icon('plus')} New browser</button><button data-action="save" aria-label="Save workspace">${icon('save')} Save workspace</button><button data-action="tile" aria-label="Tile all browsers">${icon('grid')} Tile all browsers</button><button data-action="focus" aria-label="Focus active browser">${icon('expand')} Focus active browser</button><button data-action="help" aria-label="Command reference">${icon('book')} Command reference</button><button data-action="send-feedback" aria-label="Send feedback">${icon('chat')} Send feedback</button></div>
     </section>`:''}</div>`;
 }
 
@@ -478,13 +537,15 @@ document.addEventListener('focusout',event=>{if(event.target.matches?.('[data-re
 document.addEventListener('keydown',event=>{if(event.key==='Escape'&&event.target.matches?.('[data-requirement-source],[data-source-type]'))setTimeout(()=>event.target.blur(),0);});
 
 installLayoutTabs(()=>{syncBrowsers(ui.browsers,ui.workspaceId,renderData);renderData();persist();},id=>ui.workspaces.flatMap(w=>w.browsers).find(b=>b.id===id));
+// A Phema's split-container border moved or a panel hidden: the grid's columns change, then the panels redraw.
+installSplitters(id=>ui.workspaces.flatMap(w=>w.browsers).find(b=>b.id===id),b=>{const layout=document.querySelector(`[data-browser="${CSS.escape(b.id)}"] .browser-layout`);if(layout)layout.style.cssText=browserLayoutStyle(b);renderData();persist();});
 function renderPhemaBrowser(b){
  const node=document.querySelector(`[data-browser="${CSS.escape(b.id)}"]`);if(!node)return;
  const toolbar=node.querySelector('.phema-edit-toolbar'),markup=phemaEditToolbar(b);
  if(toolbar)toolbar.outerHTML=markup;else if(markup)node.querySelector('.browser-layout').insertAdjacentHTML('beforebegin',markup);
  const button=node.querySelector('[data-action="browser-edit"]');if(button){button.setAttribute('aria-pressed',String(!!b.editMode));button.innerHTML=b.editMode?'✓':'⚙';setUIAttribute(button,'aria-label',b.editMode?'Exit browser edit mode':'Enter browser edit mode');setUIAttribute(button,'title',b.editMode?'Done editing':'Phema Edit');}
  const title=node.querySelector('.browser-title-line strong');if(title)title.innerHTML=label(b.design.title);
- const layout=node.querySelector('.browser-layout');layout.style.cssText=layoutStyle(b.design.layout);layout.className='browser-layout layout-'+layoutKind(b.layoutId)+(b.design.layout.columns===12?' composed-browser-layout':'')+(usesFreePlacement(b.design.layout)?' free-placement':'');
+ const layout=node.querySelector('.browser-layout');layout.style.cssText=browserLayoutStyle(b);layout.className='browser-layout layout-'+layoutKind(b.layoutId)+(b.design.layout.columns===12?' composed-browser-layout':'')+(usesFreePlacement(b.design.layout)?' free-placement':'');
  renderData();persist();syncBrowsers(ui.browsers,ui.workspaceId,renderData);
 }
 document.addEventListener('browser:phema-edited',event=>{const b=ui.browsers.find(b=>b.id===event.detail?.id);if(b)renderPhemaBrowser(b);});
@@ -503,10 +564,13 @@ function renderData() {
     node.dataset.uiLocale=b.uiLanguage||'';node.dataset.phemaUi=JSON.stringify(uiBundle(b.customLayout)||{});applyUI(node);
     const company=node.querySelector('.browser-company');if(company)company.textContent=browserCompany(b);
     const count=node.querySelector('[data-requirement-count]');if(count)count.innerHTML=label('{0} data requirements',(browserState(b).entry?.design.dataRequirements||b.design.dataRequirements).length);
-    const status=node.querySelector('.layout-fetch-status'),value=layoutFetchStatus(browserState(b),(browserState(b).entry?.design.dataRequirements||b.design.dataRequirements).filter(r=>!browserState(b).visibleRequirementIds||browserState(b).visibleRequirementIds.includes(r.id)));if(status){updateStatus(status,value);}
+    const status=node.querySelector('.layout-fetch-status'),value=layoutFetchStatus(browserState(b),(browserState(b).entry?.design.dataRequirements||b.design.dataRequirements).filter(r=>!browserState(b).visibleRequirementIds||browserState(b).visibleRequirementIds.includes(r.id)));if(status){updateStatus(status,value,b.id);}
   }
 }
 
+// A window's name in its title-bar labels: the Phema's name in the window's language (its own catalog), with the
+// symbol when it has one, so a Phema without a symbol never leaves a blank in the label.
+const windowName=b=>{const symbol=String(b.ticker||'').trim();return symbol?message('{0} · {1}',message(b.design.title),symbol):message(b.design.title);};
 function renderBrowser(b) {
   if(b.unsupportedLayout)return uiHTML`<article class="browser-window" data-browser="${b.id}"><header class="browser-chrome" data-drag-window="${b.id}"><strong>Unsupported saved layout</strong><button data-action="close" data-id="${b.id}">Close</button></header><div class="settings-body"><p>The original layout has been preserved. Export this workspace to recover or migrate it.</p></div></article>`;
   // Render the consultant's actual DBL proposal, rather than choosing a layout
@@ -524,12 +588,12 @@ function renderBrowser(b) {
   const inst = {name:browserCompany(b)};
 
   return uiHTML`<article class="browser-window ${b.id===ui.activeId?'is-active':''}" data-browser="${b.id}" data-phema-ui="${esc(JSON.stringify(uiBundle(b.customLayout)||{}))}" data-ui-locale="${esc(b.uiLanguage||'')}" aria-label="${esc(def.name)} browser ${esc(b.ticker)}">
-    <header class="browser-chrome" data-drag-window="${b.id}" tabindex="0" aria-label="Move ${esc(b.ticker)} window" aria-describedby="window-help" title="Drag to move. Double-click to maximize. Alt + arrows to move; Alt + Shift + arrows to resize."><button class="browser-title" data-action="activate" data-id="${b.id}"><span class="window-icon">${icon(layoutIcon[b.layoutId])}</span><span class="browser-identity"><span class="browser-title-line"><strong>${label(def.name)}</strong><span class="symbol-tag">${esc(b.ticker)}</span><small class="browser-instance">· Browser ${ui.browsers.indexOf(b)+1}</small></span><small class="browser-subtitle"><span class="browser-company instrument-name" title="${esc(inst?.name || (b.layoutId==='portfolio'?'Main portfolio':b.layoutId==='comparison'?'Peer comparison':''))}">${esc(inst?.name || (b.layoutId==='portfolio'?'Main portfolio':b.layoutId==='comparison'?'Peer comparison':''))}</span></small></span></button><span class="layout-fetch-status" role="status" title="${esc(layoutFetchStatus(browserState(b),(browserState(b).entry?.design.dataRequirements||b.design.dataRequirements).filter(r=>!browserState(b).visibleRequirementIds||browserState(b).visibleRequirementIds.includes(r.id))).detail)}">${fetchStatusHTML(layoutFetchStatus(browserState(b),(browserState(b).entry?.design.dataRequirements||b.design.dataRequirements).filter(r=>!browserState(b).visibleRequirementIds||browserState(b).visibleRequirementIds.includes(r.id))))}</span><div class="window-tools">${b.layoutConflict?uiHTML`<button class="icon-button" data-action="review-layout-update" data-id="${esc(b.id)}" title="Review layout update" aria-label="Review layout update">!</button>`:''}<button class="icon-button" data-phema-permissions="${esc(b.id)}" aria-label="Phema permissions" title="Phema permissions">♧</button><button class="icon-button" data-content-settings="${esc(b.id)}" aria-label="Phema content" title="Phema content">▣</button><button class="icon-button" data-action="browser-language" data-id="${b.id}" aria-label="Browser language" title="Browser language">${icon('globe')}</button><button class="icon-button" data-action="browser-edit" data-id="${b.id}" ${attribute("aria-label",b.editMode?"Exit browser edit mode":"Enter browser edit mode")} aria-pressed="${!!b.editMode}" ${attribute("title",b.editMode?"Done editing":"Phema Edit")}>${b.editMode?'✓':'⚙'}</button><button class="icon-button ${b.commandOpen?'is-open':''}" data-action="browser-command" data-id="${b.id}" ${attribute("aria-label",b.commandOpen?"Hide command bar for browser {0}":"Show command bar for browser {0}",ui.browsers.indexOf(b)+1)} aria-expanded="${b.commandOpen}" aria-controls="command-form-${b.id}" ${attribute("title",b.commandOpen?"Hide browser command bar":"Show browser command bar")}>${icon('command')}</button><button class="icon-button" data-action="reload-phema" data-id="${b.id}" aria-label="Reload Phema" title="Reload Phema">${icon('refresh')}</button><button class="icon-button" data-action="change-layout" data-id="${b.id}" aria-label="Change layout for ${esc(b.ticker)}" title="Change layout">${icon('sparkle')}</button><button class="icon-button" data-action="duplicate" data-id="${b.id}" aria-label="Duplicate ${esc(b.ticker)} browser" title="Duplicate browser">${icon('copy')}</button><button class="icon-button" data-action="maximize" data-id="${b.id}" aria-label="Focus ${esc(b.ticker)} browser" title="Focus browser">${icon('expand')}</button><button class="icon-button close-browser" data-action="close" data-id="${b.id}" aria-label="Close ${esc(b.ticker)} browser" title="Close browser">${icon('close')}</button></div></header>
+    <header class="browser-chrome" data-drag-window="${b.id}" tabindex="0" ${attribute('aria-label','Move browser {0} ({1})',ui.browsers.indexOf(b)+1,windowName(b))} aria-describedby="window-help" title="Drag to move. Double-click to maximize. Alt + arrows to move; Alt + Shift + arrows to resize."><button class="browser-title" data-action="activate" data-id="${b.id}"><span class="window-icon">${icon(layoutIcon[b.layoutId])}</span><span class="browser-identity"><span class="browser-title-line"><strong>${label(def.name)}</strong><span class="symbol-tag">${esc(b.ticker)}</span><small class="browser-instance">· Browser ${ui.browsers.indexOf(b)+1}</small></span><small class="browser-subtitle"><span class="browser-company instrument-name" title="${esc(inst?.name || (b.layoutId==='portfolio'?'Main portfolio':b.layoutId==='comparison'?'Peer comparison':''))}">${esc(inst?.name || (b.layoutId==='portfolio'?'Main portfolio':b.layoutId==='comparison'?'Peer comparison':''))}</span></small></span></button><span class="layout-fetch-status" role="status" title="${esc(layoutFetchStatus(browserState(b),(browserState(b).entry?.design.dataRequirements||b.design.dataRequirements).filter(r=>!browserState(b).visibleRequirementIds||browserState(b).visibleRequirementIds.includes(r.id))).detail)}">${fetchStatusHTML(layoutFetchStatus(browserState(b),(browserState(b).entry?.design.dataRequirements||b.design.dataRequirements).filter(r=>!browserState(b).visibleRequirementIds||browserState(b).visibleRequirementIds.includes(r.id))),b.id)}</span><div class="window-tools">${b.layoutConflict?uiHTML`<button class="icon-button" data-action="review-layout-update" data-id="${esc(b.id)}" title="Review layout update" aria-label="Review layout update">!</button>`:''}${linkChipHTML(b,{esc,attribute,label})}<button class="icon-button" data-phema-permissions="${esc(b.id)}" aria-label="Phema permissions" title="Phema permissions">♧</button><button class="icon-button" data-content-settings="${esc(b.id)}" aria-label="Phema content" title="Phema content">▣</button><button class="icon-button" data-action="browser-language" data-id="${b.id}" aria-label="Browser language" title="Browser language">${icon('globe')}</button><button class="icon-button" data-action="browser-edit" data-id="${b.id}" ${attribute("aria-label",b.editMode?"Exit browser edit mode":"Enter browser edit mode")} aria-pressed="${!!b.editMode}" ${attribute("title",b.editMode?"Done editing":"Phema Edit")}>${b.editMode?'✓':'⚙'}</button><button class="icon-button ${b.commandOpen?'is-open':''}" data-action="browser-command" data-id="${b.id}" ${attribute("aria-label",b.commandOpen?"Hide command bar for browser {0}":"Show command bar for browser {0}",ui.browsers.indexOf(b)+1)} aria-expanded="${b.commandOpen}" aria-controls="command-form-${b.id}" ${attribute("title",b.commandOpen?"Hide browser command bar":"Show browser command bar")}>${icon('command')}</button><button class="icon-button" data-action="reload-phema" data-id="${b.id}" aria-label="Reload Phema" title="Reload Phema">${icon('refresh')}</button><button class="icon-button" data-action="change-layout" data-id="${b.id}" ${attribute('aria-label','Change layout of browser {0} ({1})',ui.browsers.indexOf(b)+1,windowName(b))} title="Change layout">${icon('sparkle')}</button><button class="icon-button" data-action="duplicate" data-id="${b.id}" ${attribute('aria-label','Duplicate browser {0} ({1})',ui.browsers.indexOf(b)+1,windowName(b))} title="Duplicate browser">${icon('copy')}</button><button class="icon-button" data-action="maximize" data-id="${b.id}" ${attribute('aria-label','Focus browser {0} ({1})',ui.browsers.indexOf(b)+1,windowName(b))} title="Focus browser">${icon('expand')}</button><button class="icon-button close-browser" data-action="close" data-id="${b.id}" ${attribute('aria-label','Close browser {0} ({1})',ui.browsers.indexOf(b)+1,windowName(b))} title="Close browser">${icon('close')}</button></div></header>
     ${b.commandOpen?uiHTML`<form id="command-form-${b.id}" class="browser-command-form command-input" data-browser-id="${b.id}">${icon('command')}<input id="command-${b.id}" name="command" aria-label="Command for browser ${ui.browsers.indexOf(b)+1}" value="${esc(b.commandDraft)}" placeholder="Ticker or command…" autocomplete="off" spellcheck="false" maxlength="499"/><button type="submit" aria-label="Run command in browser ${ui.browsers.indexOf(b)+1}">${icon('arrow')}</button><button type="button" data-action="browser-command" data-id="${b.id}" aria-label="Hide command bar for browser ${ui.browsers.indexOf(b)+1}">${icon('close')}</button></form>`:''}
 
 
     ${phemaEditToolbar(b)}
-    <div class="browser-layout layout-${layoutKind(b.layoutId)} ${b.design.layout.columns===12?'composed-browser-layout':''} ${usesFreePlacement(b.design.layout)?'free-placement':''}" style="${esc(layoutStyle(b.design.layout))}">${renderBrowserPanels(b)}</div>
+    <div class="browser-layout layout-${layoutKind(b.layoutId)} ${b.design.layout.columns===12?'composed-browser-layout':''} ${usesFreePlacement(b.design.layout)?'free-placement':''}" style="${esc(browserLayoutStyle(b))}">${renderBrowserPanels(b)}</div>
     ${b.showRequirements?renderRequirements(def):''}
     <footer class="browser-footer"><button data-action="requirements" data-id="${b.id}">${icon('layers')} <span data-requirement-count>${label('{0} data requirements',def.requirements.length)}</span> ${icon('down')}</button><span>Source timestamps in each panel</span></footer>
     ${ui.focus?'':['n','s','e','w','ne','nw','se','sw'].map(edge=>uiHTML`<div class="resize-handle resize-${edge}" data-resize-window="${b.id}" data-edge="${edge}" aria-hidden="true"></div>`).join('')}
@@ -545,10 +609,9 @@ function renderRequirements(def) {
 
 
 
-async function requestWorkspaceSearch(command='',target='new',current=null){closeModal();return workspaceLauncher.openPreferred({name:'App Consultant',resolve:entry=>resolveWorkspaceEntry({entry,request:api,toEntry:phemaToEntry,workspaceId:currentWorkspace().id}),present:detail=>{previews.capture(true).catch(()=>{});return phemaSelector.open({...detail,target,current});}}).catch(error=>{
- // The catalog's owner did not answer: the Phemas kept in this Terminal still open.
- toast(error.message);phemaSelector.openSaved({target,current}).catch(failure=>console.error('Saved Phemas:',failure.message));
-});}
+// One search over every Phema storage; one that does not answer gets a note while the others' Phemas still open.
+function requestWorkspaceSearch(command='',target='new',current=null){closeModal();previews.capture(true).catch(()=>{});
+ try{return phemaSelector.open({target,current});}catch(error){toast(error.message);}}
 // The open layout's Phema and its current parameter values, so Change layout starts from them.
 function currentLayout(b){
  const entry=b?.customLayout;if(!entry?.id)return null;
@@ -602,7 +665,7 @@ function renderModal() {
   if(ui.modal==='workspaces') {
     html=dialogFrame('Workspaces',renderWorkspaceManager());
   } else if(ui.modal==='settings') {
-    html=dialogFrame('Terminal settings',uiHTML`<div class="settings-body terminal-settings"><div class="settings-tabs" role="tablist" aria-label="Terminal settings">${['workspace','sources','connections','runs','plaza'].map(t=>uiHTML`<button type="button" role="tab" id="settings-tab-${t}" aria-controls="settings-panel-${t}" aria-selected="${ui.settingsTab===t}" tabindex="${ui.settingsTab===t?'0':'-1'}" class="${ui.settingsTab===t?'selected':''}" data-action="settings-tab" data-tab="${t}">${label(t==='plaza'?'Plaza account':t==='sources'?'Data sources':t==='runs'?'Scheduled runs':t[0].toUpperCase()+t.slice(1))}</button>`).join('')}</div>${settingsContent()}</div>`);
+    html=dialogFrame('Terminal settings',uiHTML`<div class="settings-body terminal-settings"><div class="settings-tabs" role="tablist" aria-label="Terminal settings">${['workspace','sources','connections','runs','ai','plaza'].map(t=>uiHTML`<button type="button" role="tab" id="settings-tab-${t}" aria-controls="settings-panel-${t}" aria-selected="${ui.settingsTab===t}" tabindex="${ui.settingsTab===t?'0':'-1'}" class="${ui.settingsTab===t?'selected':''}" data-action="settings-tab" data-tab="${t}">${label(t==='plaza'?'Plaza account':t==='sources'?'Data sources':t==='runs'?'Scheduled runs':t==='ai'?'AI apps':t[0].toUpperCase()+t.slice(1))}</button>`).join('')}</div>${settingsContent()}</div>`);
   } else if(ui.modal==='help') {
     html=dialogFrame('Command reference',uiHTML`<div class="settings-body"><p>Choose an agent workspace to provide a Phema.</p></div>`);
   } else if(ui.modal==='dbl') {
@@ -625,10 +688,10 @@ function renderModal() {
 }
 
 function settingsContent() {
-  return ['workspace','sources','connections','runs','plaza'].map(tab=>uiHTML`<div class="settings-panel" id="settings-panel-${tab}" role="tabpanel" aria-labelledby="settings-tab-${tab}" ${ui.settingsTab===tab?'':'hidden'}>${tab==='plaza'&&ui.signInFirst?uiHTML`<p class="signin-first-note" role="alert">Sign in first to open a Data Browser.</p>`:''}${tab==='workspace'?(runtime.permissions?.canConfigure===true?sessionNameSettingsHTML():'')+renderThemeSettings():''}${settingsHTML(tab)}</div>`).join('');
+  return ['workspace','sources','connections','runs','ai','plaza'].map(tab=>uiHTML`<div class="settings-panel" id="settings-panel-${tab}" role="tabpanel" aria-labelledby="settings-tab-${tab}" ${ui.settingsTab===tab?'':'hidden'}>${tab==='plaza'&&ui.signInFirst?uiHTML`<p class="signin-first-note" role="alert">Sign in first to open a Data Browser.</p>`:''}${tab==='workspace'?(runtime.permissions?.canConfigure===true?sessionNameSettingsHTML():'')+renderThemeSettings():''}${settingsHTML(tab)}</div>`).join('');
 }
 function selectSettingsTab(tab) {
-  if(!['workspace','sources','connections','runs','plaza'].includes(tab))return;
+  if(!['workspace','sources','connections','runs','ai','plaza'].includes(tab))return;
   ui.settingsTab=tab;
   document.querySelectorAll('[data-action="settings-tab"]').forEach(button=>{
     const selected=button.dataset.tab===tab;
@@ -664,7 +727,7 @@ document.addEventListener('change',e=>{
 document.addEventListener('keydown',e=>{
   if(e.target.matches('[data-action="settings-tab"]')&&['ArrowLeft','ArrowRight','Home','End'].includes(e.key)){
     e.preventDefault();
-    const tabs=['workspace','sources','connections','runs','plaza'],index=tabs.indexOf(ui.settingsTab);
+    const tabs=['workspace','sources','connections','runs','ai','plaza'],index=tabs.indexOf(ui.settingsTab);
     selectSettingsTab(tabs[e.key==='Home'?0:e.key==='End'?2:(index+(e.key==='ArrowRight'?1:2))%3]);
     return;
   }
@@ -689,7 +752,7 @@ document.addEventListener('click',async e=>{
      const title=node.querySelector('.browser-title-line strong');if(title)title.innerHTML=label(target.design.title);
      const nav=document.querySelector('.browser-nav-item[data-id="'+CSS.escape(target.id)+'"] strong');if(nav)nav.innerHTML=label(target.design.title);
      const tab=document.querySelector('.window-tabs [data-id="'+CSS.escape(target.id)+'"]');if(tab)for(const text of tab.childNodes)if(text.nodeType===3&&text.textContent.trim())text.textContent=target.design.title;
-     const layout=node.querySelector('.browser-layout');layout.style.cssText=layoutStyle(target.design.layout);
+     const layout=node.querySelector('.browser-layout');layout.style.cssText=browserLayoutStyle(target);
      layout.className='browser-layout layout-'+layoutKind(target.layoutId)+(target.design.layout.columns===12?' composed-browser-layout':'')+(usesFreePlacement(target.design.layout)?' free-placement':'');
      mountPhemaEdit(node,target);applyUI(node);await persist();}});}
    catch(error){toast(error.message);}finally{el.disabled=false;el.removeAttribute('aria-busy');}return;
@@ -702,6 +765,8 @@ document.addEventListener('click',async e=>{
     dialog.querySelector('[data-open]').onclick=()=>{if(ui.browsers.length>=12){toast('Close a browser before opening another. The preview supports 12.');return;}const copy=createBrowser(b.command,conflict.entry);copy.consultantId=conflict.agentId;copy.layoutPublication={publicationId:conflict.publicationId,revision:conflict.revision};ui.browsers.push(copy);ui.activeId=copy.id;dialog.close();render();};dialog.showModal();return;
   }
   if(action==='browser-edit'){if(b)togglePhemaEdit(b);return;}
+  // The link-group chip: next colour, then not linked. A Browser joining a group takes its latest values.
+  if(action==='link-group'){if(b)joinGroup(b,nextGroup(b.linkGroup));return;}
   if(action==='browser-command'){if(b)toggleBrowserCommand(b);return;}
   if(el.closest('.terminal-command-actions'))closeTerminalCommands();
   if(action==='toggle-sidebar'){if(narrowViewport.matches)narrowSidebarOpen=!narrowSidebarOpen;else ui.sidebarCollapsed=!ui.sidebarCollapsed;render();$('.sidebar-toggle')?.focus();return;}
@@ -719,24 +784,20 @@ document.addEventListener('click',async e=>{
   }
   if(action==='settings'||action==='plaza'){ui.settingsTab=action==='plaza'?'plaza':'workspace';openModal('settings');return;}
   if(action==='help'){openModal('help');return;}
+  if(action==='send-feedback'){if(!runtime.user){signInFirst();return;}openFeedbackDialog({request:api,facts:feedbackFacts(),account:runtime.user.email||''});return;}
   
   
   if(action==='dismiss'){closeModal();return;}
-  if(action==='workspace'){ui.focus=false;render();return;}
+  if(action==='workspace'){ui.focus=false;rememberMaximized();render();return;}
   if(action==='activate'){bringToFront(id);if(ui.focus)layoutWindows();else if(el.closest('.browser-nav,.window-tabs'))$(`[data-browser="${id}"]`)?.scrollIntoView({block:'nearest'});return;}
   if(action==='save'){const ok=await persist();toast(ok?'Workspace saved to your account.':ui.storageError);if(ok)previews.capture(true).catch(()=>{});return;}
-  if(action==='tile'||action==='focus'){ui.focus=action==='focus';if(action==='tile')ui.arrange=true;render();return;}
-  if(action==='maximize'){ui.activeId=id;ui.focus=!ui.focus;render();return;}
+  if(action==='tile'||action==='focus'){ui.focus=action==='focus';if(action==='tile')ui.arrange=true;rememberMaximized();render();return;}
+  if(action==='maximize'){ui.activeId=id;ui.focus=!ui.focus;rememberMaximized();render();return;}
   if(action==='close'){ui.browsers=ui.browsers.filter(x=>x.id!==id);if(ui.activeId===id)ui.activeId=ui.browsers[0]?.id;if(!ui.browsers.length)ui.focus=false;render();return;}
   if(action==='history'){
-  try{
-   await persist();const [{records},current]=await Promise.all([api('/api/workspace-state/revisions'),api('/api/workspace-state')]);
-   const dialog=document.createElement('dialog');dialog.className='config-dialog';
-   dialog.innerHTML=uiHTML`<header class="config-header"><h2>Workspace history</h2><button data-close-history aria-label="Close">×</button></header><div class="config-dialog-body">${records.sort((a,b)=>b.revision-a.revision).map(r=>uiHTML`<p>${esc(new Date(r.updatedAt*1000).toLocaleString())} · ${esc(r.revision)} <button data-restore-revision="${r.revision}">Restore revision</button></p>`).join('')}<p data-history-status role="status"></p></div>`;
-   document.body.append(dialog);dialog.showModal();dialog.addEventListener('close',()=>dialog.remove(),{once:true});
-   dialog.addEventListener('click',async e=>{if(e.target.closest('[data-close-history]'))dialog.close();const value=e.target.closest('[data-restore-revision]')?.dataset.restoreRevision;if(value!==undefined){try{await api('/api/workspace-state/rollback',{method:'POST',body:{previousRevision:Number(value),revision:current.revision}});location.reload();}catch(error){dialog.querySelector('[data-history-status]').textContent=error.message;}}});
-  }catch(error){toast(error.message);}return;
- }
+   // The current version and each kept version with its picture (workspace-history.js).
+   try{await openWorkspaceHistory({api,persist});}catch(error){toast(error.message);}return;
+  }
  if(action==='duplicate'){if(ui.browsers.length>=12){toast('This Terminal supports up to 12 browsers.');return;}const copy=createBrowser(b.command,b.customLayout);copy.range=b.range;copy.uiLanguage=b.uiLanguage;copy.fieldBindings=normalizeFieldBindings(b.fieldBindings);copy.refreshOverrides=normalizeRefreshOverrides(b.refreshOverrides);copy.contentOverrides=normalizeContentOverrides(b.contentOverrides);copy.instrumentOverrides=normalizeInstrumentOverrides(b.instrumentOverrides);copy.parameterValues=normalizeResearchState(b.parameterValues);copy.researchView=normalizeResearchState(b.researchView);copy.layoutPublication=b.layoutPublication?{...b.layoutPublication}:undefined;copy.consultantId=b.consultantId;copy.frame={...b.frame,x:b.frame.x+28,y:b.frame.y+28};ui.browsers.push(copy);ui.activeId=copy.id;ui.focus=false;render();toast('Independent browser copy opened.');return;}
   if(action==='change-layout'){openModal('consultant',id);ui.target='current';renderModal();return;}
   if(action==='range'){b.range=el.dataset.range;render();return;}
@@ -754,7 +815,14 @@ document.addEventListener('click',async e=>{
 });
 
 
+// Phemas on this Terminal working together: link groups and the list of open Phemas (link-groups.js).
+installLinkGroups({account:()=>runtime.user?.id||null,api,notice:message=>toast(message),text:t,
+ allBrowsers:()=>ui.workspaces.flatMap(w=>w.id===ui.workspaceId?ui.browsers:w.browsers),
+ workspaceName:b=>(ui.workspaces.find(w=>(w.id===ui.workspaceId?ui.browsers:w.browsers).includes(b))||{}).name||'',
+ changed:()=>{clearTimeout(linkRender);linkRender=setTimeout(()=>{render();persist();},50);}});
+let linkRender=null;
 await restore();
+reloadLinks();
 
 render();
 if(location.hash==='#plaza'){ui.settingsTab='plaza';openModal('settings');history.replaceState({},'',location.pathname+location.search);}
@@ -813,6 +881,7 @@ onWindowSignIn(async()=>{
   const request=(path,options={})=>api(path,{...options,...(!options.method||options.method==='GET'?{signal:AbortSignal.timeout(10000)}:{})});
   workspaceClient=new WorkspaceClient(request,scopedStorage());
   await restore({strict:true});
+  reloadLinks();
   applyAccountTheme();
   
   closeModal();
@@ -863,13 +932,8 @@ document.addEventListener('click',async event=>{
  if(action==='legacy'){const legacy=readWorkspaceStore(localStorage);if(!legacy.data){toast(legacy.error||'No legacy workspace found.');return;}if(ui.workspaces.length+legacy.data.workspaces.length>32){toast('Workspace limit reached.');return;}for(const saved of legacy.data.workspaces){const copy={...saved,id:crypto.randomUUID(),name:saved.name+' imported',browsers:saved.browsers.map(b=>({...createBrowser(b.command,b.customLayout),frame:b.frame,terminalDocumentId:b.terminalDocumentId,range:b.range,sourceMode:b.sourceMode||'parameters',contentSnapshotId:b.contentSnapshotId,uiLanguage:validLocale(b.uiLanguage)?b.uiLanguage:null,messages:normalizeMessages(b.messages),discussionDrafts:normalizeDiscussionDrafts(b.discussionDrafts),interactionDrafts:normalizeInteractionDrafts(b.interactionDrafts),fieldBindings:normalizeFieldBindings(b.fieldBindings),contentOverrides:normalizeContentOverrides(b.contentOverrides),refreshOverrides:normalizeRefreshOverrides(b.refreshOverrides),instrumentOverrides:normalizeInstrumentOverrides(b.instrumentOverrides),parameterValues:normalizeResearchState(b.parameterValues),researchView:normalizeResearchState(b.researchView),commandDraft:b.commandDraft??b.command,commandOpen:b.commandOpen===true,layoutTabs:b.layoutTabs,layoutPublication:b.layoutPublication,consultantId:b.consultantId,unsupportedLayout:b.unsupportedLayout})),updatedAt:Date.now()};copy.activeId=copy.browsers[0]?.id;while(ui.workspaces.some(w=>w.name===copy.name))copy.name+=' copy';ui.workspaces.push(copy);}render();renderModal();toast('Legacy workspaces copied into this account.');}
  if(action==='conflicts'){try{const {records}=await api('/api/workspace-state/conflicts');const dialog=document.createElement('dialog');dialog.className='config-dialog';dialog.innerHTML=uiHTML`<div class="config-dialog-body"><h2>Review saved drafts</h2>${records.map(r=>uiHTML`<p>${esc(new Date(r.updatedAt*1000).toLocaleString())} · ${r.document.workspaces.length} <button data-merge-draft="${esc(r.id)}">Merge saved draft</button></p>`).join('')}<button data-close-draft>Close</button></div>`;document.body.append(dialog);dialog.showModal();dialog.addEventListener('close',()=>dialog.remove(),{once:true});dialog.addEventListener('click',async e=>{if(e.target.closest('[data-close-draft]'))dialog.close();const id=e.target.closest('[data-merge-draft]')?.dataset.mergeDraft;if(id){try{await api('/api/workspace-state/import',{method:'POST',body:{document:records.find(r=>r.id===id).document}});location.reload();}catch(error){toast(error.message);}}});}catch(error){toast(error.message);}return;}
  if(action==='history'){
-  try{
-   await persist();const [{records},current]=await Promise.all([api('/api/workspace-state/revisions'),api('/api/workspace-state')]);
-   const dialog=document.createElement('dialog');dialog.className='config-dialog';
-   dialog.innerHTML=uiHTML`<header class="config-header"><h2>Workspace history</h2><button data-close-history aria-label="Close">×</button></header><div class="config-dialog-body">${records.sort((a,b)=>b.revision-a.revision).map(r=>uiHTML`<p>${esc(new Date(r.updatedAt*1000).toLocaleString())} · ${esc(r.revision)} <button data-restore-revision="${r.revision}">Restore revision</button></p>`).join('')}<p data-history-status role="status"></p></div>`;
-   document.body.append(dialog);dialog.showModal();dialog.addEventListener('close',()=>dialog.remove(),{once:true});
-   dialog.addEventListener('click',async e=>{if(e.target.closest('[data-close-history]'))dialog.close();const value=e.target.closest('[data-restore-revision]')?.dataset.restoreRevision;if(value!==undefined){try{await api('/api/workspace-state/rollback',{method:'POST',body:{previousRevision:Number(value),revision:current.revision}});location.reload();}catch(error){dialog.querySelector('[data-history-status]').textContent=error.message;}}});
-  }catch(error){toast(error.message);}return;
+  // The current version and each kept version with its picture (workspace-history.js).
+  try{await openWorkspaceHistory({api,persist});}catch(error){toast(error.message);}return;
  }
  if(action==='duplicate'){if(ui.workspaces.length>=32){toast('Workspace limit reached.');return;}const copy=structuredClone(w);copy.id=crypto.randomUUID();copy.name=w.name+' copy';while(ui.workspaces.some(x=>x.name===copy.name))copy.name+=' copy';copy.browsers=copy.browsers.map(b=>({...b,id:'browser-'+nextId++}));copy.activeId=copy.browsers[0]?.id;ui.workspaces.push(copy);selectWorkspace(copy);render();renderModal();}
  if(action==='delete'){ui.workspaces=ui.workspaces.filter(x=>x.id!==w.id);if(!ui.workspaces.length)ui.workspaces.push({id:crypto.randomUUID(),name:DEFAULT_WORKSPACE,browsers:[],activeId:null,focus:false,arrange:true,updatedAt:Date.now()});selectWorkspace(ui.workspaces[0]);render();renderModal();}
@@ -886,6 +950,160 @@ document.addEventListener('browser:interaction',()=>persist());
 
 
 installPhemaEdit({find:id=>ui.browsers.find(b=>b.id===id),render:renderPhemaBrowser});
+
+// What an AI app this window approved asks it to show (ai-commands.js, mcp_access.py): the same actions a click takes,
+// then the usual save. Each answers with what the window shows afterwards.
+function aiDescribe(){
+ captureWorkspace();
+ const w=currentWorkspace();
+ return {workspace:{id:w.id,name:w.name},maximized:!!ui.focus,
+  windows:ui.browsers.map(b=>({id:b.id,title:String(b.design?.title||b.customLayout?.name||b.command||'Browser').slice(0,120),remoteId:remoteIdOf(b.id),parameters:b.parameterValues||{},front:b.id===ui.activeId})),
+  workspaces:ui.workspaces.map(x=>({id:x.id,name:x.name,current:x.id===w.id,browserWindows:x.id===w.id?ui.browsers.length:x.browsers.length}))};
+}
+function aiBrowser(id){const b=ui.browsers.find(x=>x.id===id)||ui.browsers.find(x=>remoteIdOf(x.id)===id);if(!b)throw new Error('No Browser window in the current workspace has that id; show_window lists them.');return b;}
+// The agent views a Browser window shows, by panel (its path in the window), with their host handles.
+function aiViews(b,panel){
+ const node=document.querySelector(`[data-browser="${CSS.escape(b.id)}"]`);if(!node)return [];
+ return mountedAgentViews(node).map(({root,reference,handle})=>{
+  const surface=root.closest('[data-content-interaction]'),path=surface?surface.dataset.contentInteraction.split('/').slice(1).filter(Boolean).join('/'):'';
+  return {root,handle,panel:path||String(reference?.viewId||'view'),title:String(b.design?.title||reference?.viewId||'Agent view').slice(0,120)};
+ }).filter(view=>!panel||view.panel===panel);
+}
+// The declarative controls a Browser window draws (phemacast control-forms.js and control-table.js), by panel.
+function aiControlHosts(b,panel){
+ const node=document.querySelector(`[data-browser="${CSS.escape(b.id)}"]`);if(!node)return [];
+ return [...node.querySelectorAll('[data-installed-renderer],[data-table-host]')].filter(host=>host._aiControls).map(host=>{
+  const surface=host.closest('[data-content-interaction]'),path=surface?surface.dataset.contentInteraction.split('/').slice(1).filter(Boolean).join('/'):'';
+  return {host,panel:path||'panel'};
+ }).filter(item=>!panel||item.panel===panel);
+}
+function aiWorkspace(key){const w=key?ui.workspaces.find(x=>x.id===key||x.name===key):currentWorkspace();if(!w)throw new Error('No workspace has that id or name.');return w;}
+async function aiSave(by){render();if(by)toast(t('{0} changed this window.',by));if(!await persist())throw new Error(ui.storageError||'This window could not save its workspace.');}
+const aiCommands={
+ describe:async()=>aiDescribe(),
+ confirm_spend:async({points,what},by)=>({allowed:await askToSpend({by,points,what},{label,esc,html:uiHTML})}),
+ // An AI app's open never rearranges the person's windows (Alvin, 2026-11-27: "never rearrange automatically unless
+ // user ask for it"): the new window takes a free spot or cascades, and a workspace it makes starts with Arrange
+ // windows off. Tiling is the person's choice, or `arrange` tile at their request.
+ // The agent libraries' Phemas for `query` (search_phemas): what the Phema chooser lists from them.
+ catalog_phemas:async({query=''})=>phemaSelector.searchLibraries({query}),
+ open_phema:async({phema,library=null,parameters={},where='newPanel'},by)=>{
+  const listed=library?[]:(await api('/api/kept-phemas'))?.phemas||[];
+  const row=listed.find(r=>r.id===phema||r.source?.key===phema||r.name===phema);
+  // Not kept here: a Phema of an agent library (a catalog), opened as the chooser opens it.
+  if(!row){
+   if(where==='newWorkspace')throw new Error('A catalog Phema opens in the current workspace; switch workspace first.');
+   const opened=await phemaSelector.openFromLibrary({name:phema,library,options:{arrange:false}});
+   if(!opened)throw new Error('No Phema in this account\'s library or its agents\' catalogs is named that; search_phemas lists them.');
+   const shown=active();
+   if(shown&&parameters&&Object.keys(parameters).length)shown.parameterValues={...(shown.parameterValues||{}),...parameters};
+   await aiSave(by);
+   return {...aiDescribe(),opened:shown?.id||null,from:opened.library};
+  }
+  const kept=await api('/api/kept-phemas/'+encodeURIComponent(row.id));
+  if(where==='newWorkspace'){
+   if(ui.workspaces.length>=32)throw new Error('This Terminal supports up to 32 workspaces.');
+   captureWorkspace();let name=String(row.name||phema).slice(0,56);
+   for(let n=2;ui.workspaces.some(w=>w.name===name);n++)name=String(row.name||phema).slice(0,52)+' '+n;
+   const w={id:crypto.randomUUID(),name,updatedAt:Date.now(),browsers:[],activeId:null,focus:false,arrange:false,terminalDraft:''};
+   ui.workspaces.push(w);selectWorkspace(w);
+  }
+  await openSelectedPhema({phema:kept.phema,sourceMode:'parameters',target:'new',selectionKey:row.source?.key||null,arrange:false});
+  const opened=active();
+  if(opened&&parameters&&Object.keys(parameters).length)opened.parameterValues={...(opened.parameterValues||{}),...parameters};
+  await aiSave(by);
+  return {...aiDescribe(),opened:opened?.id||null};
+ },
+ set_parameters:async({window,values},by)=>{const b=aiBrowser(window);b.parameterValues={...(b.parameterValues||{}),...values};await aiSave(by);return {window:b.id,parameters:b.parameterValues};},
+ arrange:async({action,window,workspace},by)=>{
+  if(action==='switch'){const w=aiWorkspace(workspace);captureWorkspace();selectWorkspace(w);}
+  else if(action==='tile'){ui.focus=false;ui.arrange=true;}
+  else if(action==='restore')ui.focus=false;
+  else if(action==='maximize'){const b=aiBrowser(window);ui.activeId=b.id;ui.focus=true;}
+  else if(action==='front')bringToFront(aiBrowser(window).id);
+  else throw new Error('Arrange front, maximize, restore, tile or switch.');
+  await aiSave(by);return aiDescribe();
+ },
+ close_window:async({window},by)=>{const b=aiBrowser(window);ui.browsers=ui.browsers.filter(x=>x.id!==b.id);if(ui.activeId===b.id)ui.activeId=ui.browsers[0]?.id;if(!ui.browsers.length)ui.focus=false;await aiSave(by);return aiDescribe();},
+ // A data panel's source, as the menu in its heading picks it; the Browser keeps the choice with its saved settings.
+ choose_source:async({window,panel=null,source=null},by)=>{
+  const b=aiBrowser(window),remote=remoteIdOf(b.id);
+  if(!remote)throw new Error('That Browser window is still opening; try again in a moment.');
+  const answer=await api('/api/instances/'+remote+'/content',{method:'POST',body:{operation:'source',source,...(panel?{reference:panel}:{})}});
+  b.contentOverrides=normalizeContentOverrides(answer.contentOverrides);
+  if(answer.dataSources?.byPanel)b.panelSources=answer.dataSources.byPanel;
+  await aiSave(by);
+  return {window:b.id,changed:answer.changed||[],chosen:answer.dataSources?.chosen??null,
+   panels:Object.fromEntries(Object.entries(answer.dataSources?.byPanel||{}).map(([path,row])=>[path,row?.chosen??null]))};
+ },
+ capture:async({window,hide=[]})=>{
+  const hidden=new Set(ui.browsers.filter(b=>hide.includes(remoteIdOf(b.id))).map(b=>b.id)),b=window?aiBrowser(window):null;
+  const node=b?document.querySelector(`[data-browser="${CSS.escape(b.id)}"]`):document.querySelector('.window-canvas');
+  if(!node)throw new Error(b?'That Browser window is not showing; bring it to the front first.':'This window shows no workspace yet.');
+  if(b&&hidden.has(b.id))throw new Error('That Browser window shows data its source\'s terms keep from AI apps.');
+  return {...await captureForAI(node,{hidden,single:!!b}),window:b?.id||null};
+ },
+ view_actions:async({window,panel})=>{const b=aiBrowser(window);
+  return {window:b.id,views:aiViews(b,panel).map(v=>({panel:v.panel,title:v.title,ready:typeof v.handle?.action==='function',
+   mountId:typeof v.handle?.mountId==='function'?v.handle.mountId()||null:null}))};},
+ confirm_action:async({what},by)=>({allowed:await askToAllow({by,what},{label,esc,html:uiHTML})}),
+ // The view runs the action with its own code, as a click would. An edit can be undone for 60 s when the view says how
+ // (viewUndo): its inverse runs through the view's own code, or the window's earlier parameter values are written back
+ // and the view reloaded. An edit the view gives no way back for shows no Undo.
+ view_action:async({window,panel,mountId,action,input={},effect,title},by)=>{
+  const b=aiBrowser(window),view=aiViews(b,panel).find(v=>typeof v.handle?.mountId==='function'&&v.handle.mountId()===mountId);
+  if(!view||typeof view.handle.action!=='function')throw new Error('That view was reopened or closed; list its actions again.');
+  const before=effect==='edit'?structuredClone(b.parameterValues||{}):null;
+  // A run action (a backtest, an analyst run) may take minutes; the server waits a little longer (mcp_access.py).
+  let value=await view.handle.action(action,input,{by,timeoutMs:effect==='run'?280000:120000});
+  const undo=effect==='edit'?viewUndo(view.handle,value):null;
+  if(value&&typeof value==='object'&&!Array.isArray(value)&&Object.hasOwn(value,'undo')){value={...value};delete value.undo;}
+  if(undo&&by)undoToast({text:t('{0} changed {1}.',by,title),onUndo:undo.parameters?async()=>{
+   const now=b.parameterValues||{},patch={...before};for(const key of Object.keys(now))if(!Object.hasOwn(before,key))patch[key]=null;
+   try{setCompositionViewParameters(view.root,patch);}catch(error){toast(error.message);return;}
+   document.querySelector('[data-action="reload-phema"][data-id="'+CSS.escape(b.id)+'"]')?.click();
+  }:async()=>{
+   try{await view.handle.action(undo.action,undo.input,{timeoutMs:120000});}catch(error){toast(error.message);}
+  }},{label,html:uiHTML});
+  else if(effect!=='read'&&by)toast(t('{0} changed {1}.',by,title));
+  return {value,undo:!!undo};
+ },
+ controls:async({window,panel})=>{const b=aiBrowser(window),panels=new Map();
+  for(const {host,panel:path} of aiControlHosts(b,panel)){const listed=host._aiControls.list();panels.set(path,[...(panels.get(path)||[]),...listed]);}
+  return {window:b.id,panels:[...panels].map(([path,controls])=>({panel:path,controls}))};},
+ // A set or a click goes through the control's own commit and events, as the person's input would; a set can be
+ // undone for 60 s by writing the window's parameter values back.
+ use_control:async({window,panel,control,op,value,row,column},by)=>{
+  const b=aiBrowser(window),hosts=aiControlHosts(b,panel).filter(({host})=>host._aiControls.list().some(c=>c.control===control));
+  if(!hosts.length)throw new Error('No control by that name in that Browser window; controls lists them.');
+  if(hosts.length>1)throw new Error('Several panels have a control by that name; name the panel.');
+  const before=structuredClone(b.parameterValues||{}),arg=op==='select_row'||op==='set_cell'?{row,column,value}:value;
+  const result=hosts[0].host._aiControls.use(control,op,arg),label=String(b.design?.title||'Browser').slice(0,120);
+  if(by&&(op==='set'||op==='set_cell'))undoToast({text:t('{0} changed {1}.',by,label),onUndo:async()=>{
+   const now=b.parameterValues||{},patch={...before};for(const key of Object.keys(now))if(!Object.hasOwn(before,key))patch[key]=null;
+   b.parameterValues=Object.fromEntries(Object.entries({...now,...patch}).filter(([,v])=>v!==null));await persist();
+   document.querySelector('[data-action="reload-phema"][data-id="'+CSS.escape(b.id)+'"]')?.click();
+  }},{label,html:uiHTML});
+  else if(by)toast(t('{0} changed {1}.',by,label));
+  return {panel:hosts[0].panel,control,result};
+ },
+ save_workspace:async({action,workspace,name},by)=>{
+  captureWorkspace();
+  const w=aiWorkspace(workspace),clean=String(name||'').replace(/[\u0000-\u001f\u007f]/g,' ').trim().slice(0,56);
+  if(action==='rename'){if(!clean)throw new Error('Give the workspace a name.');if(ui.workspaces.some(x=>x!==w&&x.name===clean))throw new Error('Another workspace already has that name.');w.name=clean;}
+  else if(action==='duplicate'){
+   if(ui.workspaces.length>=32)throw new Error('This Terminal supports up to 32 workspaces.');
+   const copy=structuredClone(w);copy.id=crypto.randomUUID();copy.name=clean||w.name+' copy';while(ui.workspaces.some(x=>x.name===copy.name))copy.name+=' copy';
+   copy.browsers=copy.browsers.map(b=>({...b,id:'browser-'+nextId++}));copy.activeId=copy.browsers[0]?.id;ui.workspaces.push(copy);selectWorkspace(copy);
+  }
+  else if(action!=='save')throw new Error('Save, rename or duplicate a workspace.');
+  await aiSave(by);return aiDescribe();
+ },
+};
+installAICommands({api,signedIn:()=>!!runtime.user&&!!terminalWindow(),run:(kind,args,by)=>{
+ if(!Object.hasOwn(aiCommands,kind))throw new Error('This Terminal does not know that command.');
+ return aiCommands[kind](args,by);
+}});
 
 // An agent's workspace entry is one effect-free read with no inputs, so opening it is
 // the request for it: run it now and open the workspace it returns. If that fails, the
@@ -915,8 +1133,16 @@ document.addEventListener('phemacast:open-result',async event=>{
  }catch(error){toast(error.message);}
 });
 
+// What Send feedback shows, and sends only if the viewer leaves it ticked: this Terminal's version and language, its
+// Plaza's host (never the address, which can carry a credential) and the front window's Phema, named as that window
+// shows it (its language, with the Phema's own words).
+function feedbackFacts(){
+ let host='';try{host=new URL(runtime.plaza?.url||'').host;}catch{}
+ const front=active(),title=String(front?.design?.title||''),node=front&&document.querySelector(`[data-browser="${CSS.escape(front.id)}"]`);
+ return {terminal_version:String(runtime.version||''),language:document.documentElement.lang||'en',plaza_host:host,phema_name:title&&node?scopedTranslate(node,title):title};
+}
 // The generic selector returns only an explicitly chosen, owner-resolved Phema.
-async function openSelectedPhema({phema,sourceMode,target,snapshotId=null,selectionKey=null}){
+async function openSelectedPhema({phema,sourceMode,target,snapshotId=null,selectionKey=null,arrange,frame=null}){
  if(!phema||!['parameters','snapshot'].includes(sourceMode))throw new Error('Resolved owner Phema required.');
  // Snapshot mode opens this account's own saved Browser snapshot, chosen in New Data Browser.
  if(sourceMode==='snapshot'&&!/^[a-f0-9]{64}$/.test(snapshotId||''))throw new Error('Choose a saved snapshot.');
@@ -928,8 +1154,75 @@ async function openSelectedPhema({phema,sourceMode,target,snapshotId=null,select
  browser.sourceMode=sourceMode;browser.contentSnapshotId=sourceMode==='snapshot'?snapshotId:null;browser.loadOnOpen=sourceMode==='parameters';
  // The list entry it came from, so Change layout starts on it and not on a copy with the same id.
  browser.selectionKey=typeof selectionKey==='string'?selectionKey:null;
+ let kept=null;
  if(previous){browser.id=previous.id;browser.frame=previous.frame;browser.z=previous.z;browser.uiLanguage=previous.uiLanguage;ui.browsers[ui.browsers.indexOf(previous)]=browser;}
- // A new window goes beside the open ones, never on top: a free tile, or all windows tiled again.
- else{const frame=freeFrame(ui.browsers.map(x=>x.frame),canvasBounds());if(frame)browser.frame=frame;else ui.arrange=true;ui.browsers.push(browser);}
- ui.activeId=browser.id;ui.focus=false;render();if(!await persist())toast(ui.storageError);
+ // A new window of a Phema the viewer placed before opens where they left it, maximized if it was, and clear of its
+ // copies already open. Otherwise only the person's own Arrange windows (New Data Browser) tiles every window again.
+ // Any other opening (an AI app's open_phema, a view's openPhema, Arrange windows off) leaves the open windows where
+ // they are: the new one takes the place its caller laid out for it (the starter workspace), else a free tile, else
+ // the next cascade step. Never rearrange automatically unless the person asks (Alvin, 2026-11-27).
+ else{
+  kept=placeRemembered(browser);
+  if(kept)ui.arrange=false;
+  else if(arrange===true)ui.arrange=true;
+  else if(frame){browser.frame={...frame};ui.arrange=false;}
+  else browser.frame=openingFrame(ui.browsers.map(x=>x.frame),canvasBounds());
+  ui.browsers.push(browser);
+ }
+ ui.activeId=browser.id;ui.focus=kept?.maximized===true;render();if(!await persist())toast(ui.storageError);
+}
+// A viewer panel asks for a Phema to copy (its Phema choice): New Data Browser opens to choose one, and the chosen
+// Phema, with this Terminal's last screenshot of it, goes back to the panel, which keeps it as its page setting.
+document.addEventListener('phemacast:viewer-choose-phema',event=>{
+ const detail=event.detail||{};if(typeof detail.respond!=='function')return;
+ detail.handled=true;
+ try{phemaSelector.open({pick:choice=>detail.respond(choice)});}catch(error){toast(error.message);}
+});
+// 「更新為目前的版本」: a window whose page is an earlier version of one a program on this computer
+// ships takes the program's current page in place, keeping its frame and the page values the current page still has.
+document.addEventListener('click',event=>{
+ const button=event.target.closest?.('[data-component-update]');if(!button)return;
+ button.dispatchEvent(new CustomEvent('phemacast:update-component-page',{bubbles:true,detail:{key:button.dataset.componentUpdate}}));
+});
+document.addEventListener('phemacast:update-component-page',event=>{
+ const id=event.target?.closest?.('[data-browser]')?.dataset?.browser,b=ui.browsers.find(x=>x.id===id);
+ if(b)updateComponentPage(b,event.detail?.key).catch(error=>toast(error.message));
+});
+async function updateComponentPage(b,key){
+ const phema=await currentComponentPage(api,key);
+ if(!phema){toast(t('Open the current version from New Data Browser.'));return;}
+ const values=b.parameterValues;ui.activeId=b.id;
+ await openSelectedPhema({phema,sourceMode:'parameters',target:'current',selectionKey:key});
+ const opened=ui.browsers.find(x=>x.id===b.id);if(!opened)return;
+ opened.parameterValues={...(opened.parameterValues||{}),...carriedValues(values,opened.design?.params)};
+ render();await persist();toast(t('Updated to the current version.'));
+}
+// The openPhema action (Terminal controls C4): a Phema kept in this Terminal's library opens at once with the page
+// values passed to it, in a new panel, in place of the panel that asked, or in a new workspace; any other Phema is
+// chosen in New Data Browser. `as` keeps the opened panel's handle for later setPanelParameters ($opened).
+document.addEventListener('phemacast:control-action',event=>{
+ const detail=event.detail||{};if(detail.kind!=='openPhema')return;
+ const id=event.target?.closest?.('[data-browser]')?.dataset?.browser,origin=ui.browsers.find(b=>b.id===id);
+ if(origin)openPhemaFrom(origin,detail).catch(error=>toast(error.message));
+});
+async function openPhemaFrom(origin,{phema,parameters={},where='newPanel',link='none',as}){
+ const listed=(await api('/api/kept-phemas'))?.phemas||[];
+ const row=listed.find(r=>r.id===phema||r.source?.key===phema||r.name===phema);
+ if(!row){toast(t('Open {0} from New Data Browser.',String(phema??'')));try{phemaSelector.open({target:'new'});}catch{}return;}
+ const kept=await api('/api/kept-phemas/'+encodeURIComponent(row.id));
+ const values=Object.fromEntries(Object.entries(parameters&&typeof parameters==='object'?parameters:{}).filter(([key,value])=>/^[A-Za-z][A-Za-z0-9_]{0,63}$/.test(key)&&value!==undefined&&JSON.stringify(value).length<=32768));
+ if(where==='newWorkspace'){
+  if(ui.workspaces.length>=32)throw new Error(t('This Terminal supports up to 32 workspaces.'));
+  captureWorkspace();let name=String(row.name||phema).slice(0,56);
+  for(let n=2;ui.workspaces.some(w=>w.name===name);n++)name=String(row.name||phema).slice(0,52)+' '+n;
+  const w={id:crypto.randomUUID(),name,updatedAt:Date.now(),browsers:[],activeId:null,focus:false,arrange:true,terminalDraft:''};
+  ui.workspaces.push(w);selectWorkspace(w);
+ }
+ if(where==='replaceThis')ui.activeId=origin.id;
+ await openSelectedPhema({phema:kept.phema,sourceMode:'parameters',target:where==='replaceThis'?'current':'new',selectionKey:row.source?.key||null});
+ const opened=ui.browsers.find(b=>b.id===ui.activeId);if(!opened)return;
+ opened.parameterValues={...(opened.parameterValues||{}),...values};
+ if(link==='sameGroup'&&origin.linkGroup)opened.linkGroup=origin.linkGroup;
+ if(typeof as==='string'&&/^[A-Za-z][A-Za-z0-9_-]{0,63}$/.test(as)){const keeper=where==='replaceThis'?opened:origin;keeper.opened={...(keeper.opened||{}),[as]:thisWindow()+'|'+opened.id};}
+ render();await persist();
 }

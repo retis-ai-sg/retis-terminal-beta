@@ -20,6 +20,7 @@ KINDS = {'pulse', 'api', 'channel', 'phemar-snapshot', 'phemar-generate', 'asset
 TRIGGERS = {'open', 'change', 'manual', 'interval', 'stream'}
 MAX_DEPTH = 8
 MAX_COMPONENTS = 64
+BOUND_AGENT = re.compile(r'^/[A-Za-z][A-Za-z0-9_]{0,63}$')
 
 
 from .schema_security import check_schema as schema_check, validate as bounded_validate
@@ -35,7 +36,12 @@ def validate_reference(ref):
     allowed = {'pulse': {'agentId', 'pulse'}, 'api': {'agentId', 'operation'}, 'channel': {'agentId', 'pulse'},
                'phemar-snapshot': {'agentId', 'snapshotId'}, 'phemar-generate': {'agentId', 'phemaId'},
                'asset': {'assetId', 'version'}}[ref['kind']]
-    if set(target) != allowed or any(not isinstance(v, str) or not v or len(v) > 200 for v in target.values()):
+    # A pulse may ask the agent the viewer chose: its agentId bound to a page value ({"$param": "/analyst"}), resolved
+    # when the reference runs, with the same trust check as any other target.
+    def chosen(key, v):
+        return (key == 'agentId' and ref['kind'] in ('pulse', 'channel') and isinstance(v, dict) and set(v) == {'$param'}
+                and isinstance(v['$param'], str) and BOUND_AGENT.fullmatch(v['$param']) is not None)
+    if set(target) != allowed or any(not chosen(k, v) and (not isinstance(v, str) or not v or len(v) > 200) for k, v in target.items()):
         raise ValueError('Use registered identities; credentials and arbitrary endpoints are not portable targets.')
     if not isinstance(ref.get('inputs', {}), dict): raise ValueError('Reference inputs must be an object.')
     def inspect_input(value, depth=0):
@@ -55,6 +61,7 @@ def validate_reference(ref):
     if refresh['trigger'] == 'interval' and (type(refresh.get('seconds')) is not int or not 60 <= refresh['seconds'] <= 86400): raise ValueError('Interval must be 60–86400 seconds.')
     # A live stream resolves at open, then the host pushes each delivery into this reference's result.
     if refresh['trigger'] == 'stream' and ref['kind'] != 'pulse': raise ValueError('Only Pulse references can stream.')
+    if refresh['trigger'] == 'stream' and not isinstance(target.get('agentId'), str): raise ValueError('A stream names its agent.')
     # An interaction that settles several paid steps, each through the payment service, can take minutes on a slow
     # day; 240 s still ends before the view channel stops waiting (255 s).
     for key, default, maximum in [('timeoutSeconds', 20, 240), ('maxAgeSeconds', 0, 31536000)]:
@@ -116,6 +123,11 @@ def validate_composition(phema, *, _ancestors=(), _count=None):
         validate_reference(ref)
         if ref['id'] in ids: raise ValueError('Duplicate reference.')
         ids.add(ref['id'])
+    # What the Phema sends to and receives from other panels on the same Terminal (phemacast/core/ports.py).
+    ports = (node.get('extensions') or {}).get('phemacast:ports')
+    if ports is not None:
+        from .ports import validate_ports, page_parameters
+        validate_ports(ports, page_parameters(phema))
     graph = {ref['id']: dependencies(ref) for ref in refs}
     visiting, visited = set(), set()
     def visit(id):

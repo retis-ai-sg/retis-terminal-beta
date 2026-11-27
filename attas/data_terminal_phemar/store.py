@@ -194,6 +194,31 @@ class Store:
         with self.connect() as db:
             db.execute('DELETE FROM documents WHERE owner=? AND kind=? AND id=?', (owner, kind, id))
 
+    def revision_times(self, owner, kind, key):
+        """(id, revision, saved time) of the records named `<key>:<revision>`, without reading their payloads."""
+        with self.connect() as db:
+            # ';' follows ':' in code point order, so this is exactly the ids that start with key + ':'.
+            rows = db.execute('SELECT id, updated FROM documents WHERE owner=? AND kind=? AND id>? AND id<?',
+                              (owner, kind, key + ':', key + ';')).fetchall()
+        found = []
+        for row in rows:
+            suffix = row['id'][len(key) + 1:]
+            if suffix.isdigit():
+                found.append((row['id'], int(suffix), row['updated']))
+        return found
+
+    def revision_keys(self, kind):
+        """Every (owner, key) that has records named `<key>:<revision>` of this kind."""
+        with self.connect() as db:
+            rows = db.execute('SELECT owner, id FROM documents WHERE kind=?', (kind,)).fetchall()
+        return sorted({(row['owner'], row['id'].rsplit(':', 1)[0]) for row in rows if ':' in row['id']})
+
+    def delete_ids(self, owner, kind, ids):
+        if not ids:
+            return
+        with self.connect() as db:
+            db.executemany('DELETE FROM documents WHERE owner=? AND kind=? AND id=?', [(owner, kind, id) for id in ids])
+
     def encrypt(self, data):
         return self.cipher.encrypt(json.dumps(data).encode()).decode()
 

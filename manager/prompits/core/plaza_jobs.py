@@ -15,11 +15,37 @@ def _persist(state, completion):
         store.record_event(identity, completion, instance=state.runtime_agent.observations.instance_id)
 
 
+def _record_failure(state, agent, label, exc, completion, persist):
+    """Record a quiet job only when it fails: one finished job with its error, as a normal job would."""
+    status = 'cancelled' if isinstance(exc, (asyncio.CancelledError, KeyboardInterrupt, GeneratorExit)) else 'error'
+    work_id = agent._start_runtime_work(label=label, kind='job', detail=label)
+    with agent.observations.span(label, kind='job', job_id=work_id):
+        event = agent._finish_runtime_work(work_id, status=status, error=type(exc).__name__)
+    result = completion if completion is not None else {}
+    if event:
+        result.update(event)
+    if persist:
+        _persist(state, result)
+
+
 @contextmanager
-def track_plaza_job(state, label, *, completion=None, persist=True):
+def track_plaza_job(state, label, *, completion=None, persist=True, quiet=False):
+    """Track one Plaza coordination job.
+
+    A quiet job is one Plaza runs many times a second, such as an agent's heartbeat. It writes
+    nothing when it succeeds (no live entry, span, log lines or stored job), because each of
+    those is a disk write; when it fails it is recorded exactly like any other job.
+    """
     agent = getattr(state, 'runtime_agent', None)
     if agent is None or not callable(getattr(agent, '_start_runtime_work', None)) or not getattr(agent, 'observations', None):
         yield None
+        return
+    if quiet:
+        try:
+            yield None
+        except BaseException as exc:
+            _record_failure(state, agent, label, exc, completion, persist)
+            raise
         return
     result = completion if completion is not None else {}
     work_id = agent._start_runtime_work(label=label, kind='job', detail=label)
@@ -41,15 +67,17 @@ def track_plaza_job(state, label, *, completion=None, persist=True):
             _persist(state, result)
 
 
-def coordination_job(state, label):
-    """Preserve endpoint signatures and keep diagnostic writes off the event loop."""
+def coordination_job(state, label, *, quiet=False):
+    """Preserve endpoint signatures and keep diagnostic writes off the event loop.
+
+    quiet=True records only failures (see track_plaza_job)."""
     def decorate(fn):
         if asyncio.iscoroutinefunction(fn):
             @wraps(fn)
             async def asynchronous(*args, **kwargs):
                 completion = {}
                 try:
-                    with track_plaza_job(state, label, completion=completion, persist=False):
+                    with track_plaza_job(state, label, completion=completion, persist=False, quiet=quiet):
                         return await fn(*args, **kwargs)
                 finally:
                     if completion:
@@ -58,7 +86,7 @@ def coordination_job(state, label):
 
         @wraps(fn)
         def synchronous(*args, **kwargs):
-            with track_plaza_job(state, label):
+            with track_plaza_job(state, label, quiet=quiet):
                 return fn(*args, **kwargs)
         return synchronous
     return decorate

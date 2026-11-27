@@ -102,6 +102,16 @@ export function movedMessage(launcherApp){
 }
 export function movedText(launcherApp){return t(...movedMessage(launcherApp));}
 
+/** The sentence a tab shows once its Terminal answers again as a new process. Started from the app, the Terminal opens
+ * a new tab, which takes this window over a few seconds later; started by Retis MAS Manager, it opens none. So the app's
+ * sentence names both at once, instead of asking for a reload and then, a moment later, to close this tab. The kit's
+ * `up` opens no tab: this tab is reloaded. */
+export function restartedMessage(launcherApp){
+ return launcherApp?['{0} restarted. If it opened a new tab, this window moves there in a moment; otherwise reload this tab.',launcherApp]
+  :['This Terminal restarted. Reload this tab to continue.'];
+}
+export function restartedText(launcherApp){return t(...restartedMessage(launcherApp));}
+
 let launcher='';
 /** The app that starts this Terminal ('' for the kit), for the stopped notice. */
 export function presenceLauncher(app){launcher=app||'';}
@@ -118,7 +128,7 @@ function notice(){
  node.dataset.terminalPresence=state;
  const text=document.createElement('span');
  text.textContent=state==='stopped'?stoppedText(launcher):state==='moved'?movedText(launcher)
-  :t('This Terminal restarted. Reload this tab to continue.');
+  :restartedText(launcher);
  node.replaceChildren(text);
  if(state==='restarted'){
   const reload=document.createElement('button');reload.type='button';reload.textContent=t('Reload this tab');

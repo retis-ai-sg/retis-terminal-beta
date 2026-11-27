@@ -390,8 +390,10 @@ def main():
         else:
             stop_child(process)
             raise SystemExit('Terminal did not become healthy. Inspect '+str(state/'terminal.log'))
-    # Only the printed address carries the secret; process.json and the logs never do.
-    print(json.dumps({**record,'open':record['url']+'#local-access='+access_token}),flush=True)
+    # Only the printed address carries the secret; process.json and the logs never do. Under the MAS Manager
+    # this output is the component's log and the app reads the secret from local-access.json: no address.
+    managed=os.environ.get('RETIS_MAS_MANAGER')=='1'
+    print(json.dumps(record if managed else {**record,'open':record['url']+'#local-access='+access_token}),flush=True)
     if args.foreground:
         import signal
         def finish(*_):

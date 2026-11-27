@@ -166,8 +166,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(statusLine)
         menu.addItem(updateLine)
         menu.addItem(.separator())
-        // A launcher only: everything else (problem reports, components and their updates) is a Phema in the Terminal.
         menu.addItem(withTitle: Words.open, action: #selector(openTerminal), keyEquivalent: "o").target = self
+        // A launcher, plus a check for a new Retis Terminal now rather than at the daily check. Everything else
+        // (problem reports, components and their updates) is a Phema in the Terminal.
+        menu.addItem(withTitle: Words.update, action: #selector(checkUpdateNow), keyEquivalent: "").target = self
         menu.addItem(.separator())
         menu.addItem(withTitle: Words.quit, action: #selector(quit), keyEquivalent: "q").target = self
         item.menu = menu
@@ -297,8 +299,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func checkUpdate(force: Bool) {
         controller.run(force ? ["check-update", "--force"] : ["check-update"]) { [weak self] result in
             guard let self else { return }
-            if let error = result["error"] as? String {
-                if force { self.alert(Words.t("無法檢查更新", "无法检查更新", "Couldn't check for updates"), error) }
+            if result["error"] is String {
+                // The controller's reason is in English and already in its log: say it in the app's language.
+                if force {
+                    self.alert(Words.t("無法檢查更新", "无法检查更新", "Couldn't check for updates"),
+                               Words.t("現在無法檢查更新。請確認網路連線，稍後再試一次。", "现在无法检查更新。请确认网络连接，稍后再试一次。",
+                                       "Can't check for updates right now. Check your network and try again later."))
+                }
                 return
             }
             guard result["updateAvailable"] as? Bool == true, let latest = result["latest"] as? String else {
